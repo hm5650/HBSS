@@ -69,7 +69,7 @@ end
 local notif1 = (function()
     pcall(function()
         safeNotify({
-            Title = "Script Started!",
+            Title = "Script loaded!",
             Content = "May be unstable/dont work on some games",
             Audio = "rbxassetid://17208361335",
             Length = 3,
@@ -82,7 +82,7 @@ end)()
 local lib
 do
     local success, result = pcall(function()
-        return loadstring(game:HttpGet("https://raw.githubusercontent.com/igfrx/Testh/refs/heads/main/Tt.lua"))()
+        return loadstring(game:HttpGet("https://raw.githubusercontent.com/hm5650/ACXUI/refs/heads/main/ACXUI"))()
     end)
     if success and result then
         lib = result
