@@ -69,7 +69,7 @@ end
 local notif1 = (function()
     pcall(function()
         safeNotify({
-            Title = "Script loaded!",
+            Title = "Script started!",
             Content = "May be unstable/dont work on some games",
             Audio = "rbxassetid://17208361335",
             Length = 3,
@@ -1286,7 +1286,7 @@ end
 
 local function makeui()
     lib:SetTitle("Gravel.lua")
-    lib:SetIcon("http://www.roblox.com/asset/?id=4483362458")
+    lib:SetIcon("http://www.roblox.com/asset/?id=132214308111067")
     lib:SetTheme("HighContrast")
     local T1 = lib:CreateTab("SilentAim")
     local T2 = lib:CreateTab("Visuals")
@@ -1661,6 +1661,19 @@ end, "Enter Size...", "10", {
 
     return lib
 end
+
+local notif1 = (function()
+    pcall(function()
+        safeNotify({
+            Title = "Script loaded!",
+            Content = "Script made by @hmmm5651\nYT: @gpsickle",
+            Audio = "rbxassetid://17208361335",
+            Length = 10,
+            Image = "rbxassetid://4483362458",
+            BarColor = Color3.fromRGB(0, 170, 255)
+        })
+    end)
+end)()
 
 local function init()
     makeui()
