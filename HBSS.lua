@@ -2064,7 +2064,7 @@ local function makeui()
         return tostring(config.antiAimTPDistance)
     end, "Enter Distance...", "3", {
         min = 1,
-        max = 50,
+        max = 9999,
         isNumber = true
     })
     
@@ -2102,7 +2102,7 @@ local function makeui()
         return tostring(config.antiAimAboveHeight)
     end, "Enter Height...", "10", {
         min = 1,
-        max = 100,
+        max = 9999,
         isNumber = true
     })
     
@@ -2140,7 +2140,7 @@ local function makeui()
         return tostring(config.antiAimBehindDistance)
     end, "Enter Distance...", "5", {
         min = 1,
-        max = 50,
+        max = 9999,
         isNumber = true
     })
     lib:Tab("Aimbot")
@@ -2492,7 +2492,7 @@ end, "Enter Size...", "10", {
         return tostring(config.autoFarmDistance)
     end, "1-100", "10", {
         min = 1,
-        max = 100,
+        max = 9999,
         isNumber = true
     })
     
@@ -2502,9 +2502,9 @@ end, "Enter Size...", "10", {
             config.autoFarmVerticalOffset = n
         end
         return tostring(config.autoFarmVerticalOffset)
-    end, "-50 to 50", "0", {
-        min = -50,
-        max = 50,
+    end, "-9999 to 9999", "0", {
+        min = -9999,
+        max = 9999,
         isNumber = true
     })
 
