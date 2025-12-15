@@ -77,6 +77,10 @@ local config = {
     autoFarmAlignToCrosshair = true,
     autoFarmVerticalOffset = 0,
     autoFarmOriginalPositions = {}, 
+    aimbot360Enabled = false,
+    aimbot360OriginalFOV = 100,
+    aimbot360Omnidirectional = true,
+    aimbot360BehindRange = 180,
 }
 
 local Alurt = loadstring(game:HttpGet("https://raw.githubusercontent.com/azir-py/project/refs/heads/main/Zwolf/AlurtUI.lua"))()
@@ -1386,7 +1390,6 @@ local function smoothAim(currentCFrame, targetCFrame, strength)
     strength = math.clamp(strength or 0.5, 0, 1)
     return currentCFrame:Lerp(targetCFrame, strength)
 end
-
 local function aimbotUpdate()
     if not config.aimbotEnabled then
         if config.aimbotCurrentTarget then
@@ -1401,26 +1404,46 @@ local function aimbotUpdate()
     
     local viewportSize = camera.ViewportSize
     local center = Vector2.new(viewportSize.X / 2, viewportSize.Y / 2)
-    local radiusPx = config.aimbotFOVSize
+    local radiusPx = config.aimbot360Enabled and math.huge or config.aimbotFOVSize
     
     local bestTarget = nil
     local bestScreenDist = math.huge
     local bestPart = nil
+    local bestAngle = 180
     
     for _, player in ipairs(Players:GetPlayers()) do
         if shouldTargetAimbot(player) and player.Character then
             local targetPart = getAimbotTargetPart(player)
             if targetPart then
                 local screenPos, onScreen = camera:WorldToViewportPoint(targetPart.Position)
-                if onScreen then
+                if config.aimbot360Enabled or onScreen then
                     local screenVec = Vector2.new(screenPos.X, screenPos.Y)
                     local distPx = (screenVec - center).Magnitude
                     
                     if distPx <= radiusPx and distPx < bestScreenDist then
-                        if aimbotWallCheck(targetPart.Position, camera.CFrame.Position) then
+                        local cameraCFrame = camera.CFrame
+                        local cameraPos = cameraCFrame.Position
+                        local cameraForward = cameraCFrame.LookVector
+                        local targetDirection = (targetPart.Position - cameraPos).Unit
+                        
+                        local dotProduct = cameraForward:Dot(targetDirection)
+                        local angle = math.deg(math.acos(math.clamp(dotProduct, -1, 1)))
+                        local isBehind = angle > 90
+                        
+                        if config.aimbot360Omnidirectional then
                             bestTarget = player
                             bestScreenDist = distPx
                             bestPart = targetPart
+                            bestAngle = angle
+                        else
+                            if distPx < bestScreenDist or (distPx == bestScreenDist and angle < bestAngle) then
+                                if aimbotWallCheck(targetPart.Position, cameraPos) then
+                                    bestTarget = player
+                                    bestScreenDist = distPx
+                                    bestPart = targetPart
+                                    bestAngle = angle
+                                end
+                            end
                         end
                     end
                 end
@@ -1449,6 +1472,7 @@ local function aimbotUpdate()
         end
     end
 end
+
 
 local function aimbotfov()
     if config.aimbotFOVRing and config.aimbotFOVRing.Parent then
@@ -1489,11 +1513,75 @@ local function aimbotfov()
     
     return config.aimbotFOVRing
 end
-
 local function updateAimbotFOVRing()
     if config.aimbotFOVRing and config.aimbotFOVRing.RingFrame then
-        config.aimbotFOVRing.RingFrame.Size = UDim2.new(0, config.aimbotFOVSize * 2, 0, config.aimbotFOVSize * 2)
-        config.aimbotFOVRing.RingFrame.Visible = config.aimbotEnabled
+        if config.aimbot360Enabled then
+            config.aimbotFOVRing.RingFrame.Visible = false
+        else
+            config.aimbotFOVRing.RingFrame.Size = UDim2.new(0, config.aimbotFOVSize * 2, 0, config.aimbotFOVSize * 2)
+            config.aimbotFOVRing.RingFrame.Position = UDim2.new(0.5, 0, 0.5, -28)
+            config.aimbotFOVRing.RingFrame.Visible = config.aimbotEnabled
+        end
+    end
+end
+
+
+local function toggle360Aimbot(state)
+    config.aimbot360Enabled = state
+    
+    if state then
+        config.aimbot360OriginalFOV = config.aimbotFOVSize
+        if not config.aimbotEnabled then
+            config.aimbotEnabled = true
+        end
+        
+        safeNotify({
+            Title = "360° Aimbot",
+            Content = "Enabled - Targeting in all directions",
+            Audio = "rbxassetid://17208361335",
+            Length = 2,
+            Image = "rbxassetid://4483362458",
+            BarColor = Color3.fromRGB(255, 165, 0)
+        })
+    else
+        if config.aimbot360OriginalFOV then
+            config.aimbotFOVSize = config.aimbot360OriginalFOV
+        end
+        
+        safeNotify({
+            Title = "360° Aimbot",
+            Content = "Disabled",
+            Audio = "rbxassetid://17208361335",
+            Length = 1,
+            Image = "rbxassetid://4483362458",
+            BarColor = Color3.fromRGB(255, 0, 0)
+        })
+    end
+    
+    updateAimbotFOVRing()
+end
+
+local function toggleOmnidirectionalAimbot(state)
+    config.aimbot360Omnidirectional = state
+    
+    if state then
+        safeNotify({
+            Title = "Omnidirectional Aimbot",
+            Content = "Enabled - Evenly targets all directions",
+            Audio = "rbxassetid://17208361335",
+            Length = 2,
+            Image = "rbxassetid://4483362458",
+            BarColor = Color3.fromRGB(0, 200, 255)
+        })
+    else
+        safeNotify({
+            Title = "Omnidirectional Aimbot",
+            Content = "Disabled - Prefers front targets",
+            Audio = "rbxassetid://17208361335",
+            Length = 1,
+            Image = "rbxassetid://4483362458",
+            BarColor = Color3.fromRGB(200, 200, 200)
+        })
     end
 end
 
@@ -2058,6 +2146,10 @@ local function makeui()
     lib:Tab("Aimbot")
     lib:AddToggle("Toggle Aimbot (G)", function(state)
         config.aimbotEnabled = state
+        if not state and config.aimbot360Enabled then
+            toggle360Aimbot(false)
+        end
+        
         if config.aimbotFOVRing and config.aimbotFOVRing.RingFrame then
             config.aimbotFOVRing.RingFrame.Visible = state
         end
@@ -2087,7 +2179,31 @@ local function makeui()
             })
         end
     end, false)
-    
+    lib:AddToggle("Wall Check (H)", function(state)
+        config.aimbotWallCheck = state
+        if state then
+            safeNotify({
+                Title = "Aimbot Wall Check",
+                Content = "Enabled",
+                Audio = "rbxassetid://17208361335",
+                Length = 1,
+                Image = "rbxassetid://",
+                BarColor = Color3.fromRGB(0, 170, 255)
+            })
+        else
+            safeNotify({
+                Title = "Aimbot Wall Check",
+                Content = "Disabled",
+                Audio = "rbxassetid://17208361335",
+                Length = 1,
+                Image = "rbxassetid://",
+                BarColor = Color3.fromRGB(255, 0, 0)
+            })
+        end
+    end, false)
+    lib:AddToggle("360° Aimbot", function(state)
+        toggle360Aimbot(state)
+    end, false)
     lib:AddComboBox("Team Target", {"Enemies", "Teams", "All"}, function(selection)
         if config.masterTeamTarget == "All" then
             return
@@ -2117,29 +2233,6 @@ local function makeui()
         max = 1,
         isNumber = true
     })
-    
-    lib:AddToggle("Wall Check (H)", function(state)
-        config.aimbotWallCheck = state
-        if state then
-            safeNotify({
-                Title = "Aimbot Wall Check",
-                Content = "Enabled",
-                Audio = "rbxassetid://17208361335",
-                Length = 1,
-                Image = "rbxassetid://",
-                BarColor = Color3.fromRGB(0, 170, 255)
-            })
-        else
-            safeNotify({
-                Title = "Aimbot Wall Check",
-                Content = "Disabled",
-                Audio = "rbxassetid://17208361335",
-                Length = 1,
-                Image = "rbxassetid://",
-                BarColor = Color3.fromRGB(255, 0, 0)
-            })
-        end
-    end, false)
     
     lib:AddInputBox("FOV Size", function(text)
         local n = tonumber(text)
@@ -2338,7 +2431,7 @@ end, "Enter Size...", "10", {
         end
     end, "Enter Value...", tostring(config.fovsize), {
         min = 0,
-        max = 900,
+        max = 9999,
         isNumber = true
     })
 
@@ -2737,7 +2830,11 @@ local function cleanup()
     for pl, _ in pairs(config.activeApplied) do
         restorePartForPlayer(pl)
     end
-    
+
+    if config.aimbot360Enabled then
+        toggle360Aimbot(false)
+    end
+
     for pl, _ in pairs(config.hitboxExpandedParts) do
         restoreTorso(pl)
     end
