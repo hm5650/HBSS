@@ -2338,7 +2338,7 @@ end, "Enter Size...", "10", {
         end
     end, "Enter Value...", tostring(config.fovsize), {
         min = 0,
-        max = 211,
+        max = 900,
         isNumber = true
     })
 
