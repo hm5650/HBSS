@@ -1,4 +1,4 @@
--- Gravel.lua
+-- Gravel.cc
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
@@ -54,6 +54,29 @@ local config = {
     hitboxExpandedParts = {},
     hitboxOriginalSizes = {},
     hitboxLastSize = {},
+    antiAimEnabled = false,
+    raycastAntiAim = false,
+    antiAimTPDistance = 3,
+    antiAimAbovePlayer = false,
+    antiAimAboveHeight = 10,
+    antiAimBehindPlayer = false,
+    antiAimBehindDistance = 5,
+    originalPosition = nil,
+    isTeleported = false,
+    currentAntiAimTarget = nil,
+    masterTeamTarget = "Enemies",
+    autoFarmEnabled = false,
+    autoFarmDistance = 10,
+    autoFarmSpeed = 1,
+    autoFarmTargets = {},
+    currentAutoFarmTarget = nil,
+    autoFarmLoop = nil,
+    autoFarmIndex = 1,
+    autoFarmCompleted = {},
+    autoFarmTargetPart = "Head",
+    autoFarmAlignToCrosshair = true,
+    autoFarmVerticalOffset = 0,
+    autoFarmOriginalPositions = {}, 
 }
 
 local Alurt = loadstring(game:HttpGet("https://raw.githubusercontent.com/azir-py/project/refs/heads/main/Zwolf/AlurtUI.lua"))()
@@ -122,6 +145,47 @@ if not math.clamp then
     end
 end
 
+local function updateTeamTargetModes()
+    local masterSelection = config.masterTeamTarget or config.targetMode
+    
+    if masterSelection == "All" then
+        config.targetMode = "All"
+        config.aimbotTeamTarget = "All"
+        config.hitboxTeamTarget = "All"
+    else
+        config.targetMode = masterSelection
+        config.aimbotTeamTarget = masterSelection
+        config.hitboxTeamTarget = masterSelection
+    end
+    
+    if config.espEnabled then
+        for _, pl in ipairs(Players:GetPlayers()) do
+            if pl ~= localPlayer then
+                removeESPLabel(pl)
+                if addesp(pl) then
+                    makeesp(pl)
+                end
+            end
+        end
+    end
+    
+    if config.highlightesp then
+        for _, pl in ipairs(Players:GetPlayers()) do
+            if pl ~= localPlayer then
+                removeHighlightESP(pl)
+                if addesp(pl) and pl.Character then
+                    high(pl)
+                end
+            end
+        end
+    end
+    applyhb()
+    config.aimbotCurrentTarget = nil
+    config.currentTarget = nil
+    updateESPColors()
+end
+
+
 local function isTeammate(p)
     if not (localPlayer and p) then return false end
     if localPlayer.Team and p.Team then
@@ -168,6 +232,499 @@ local function plralive(targetPlayer)
     local humanoid = character:FindFirstChildOfClass("Humanoid")
     if not humanoid then return false end
     return humanoid.Health > 0
+end
+
+
+local function saveTargetOriginalPosition(targetPlayer)
+    if not targetPlayer or not targetPlayer.Character then return end
+    local targetRoot = targetPlayer.Character:FindFirstChild("HumanoidRootPart")
+    if not targetRoot then return end
+    
+    config.autoFarmOriginalPositions[targetPlayer] = {
+        position = targetRoot.Position,
+        cframe = targetRoot.CFrame,
+        timestamp = tick()
+    }
+end
+
+local function restoreTargetOriginalPosition(targetPlayer)
+    if not targetPlayer or not targetPlayer.Character then return end
+    local targetRoot = targetPlayer.Character:FindFirstChild("HumanoidRootPart")
+    if not targetRoot then return end
+    
+    local savedData = config.autoFarmOriginalPositions[targetPlayer]
+    if savedData then
+        pcall(function()
+            targetRoot.CFrame = savedData.cframe
+        end)
+        config.autoFarmOriginalPositions[targetPlayer] = nil
+    end
+end
+
+local function getValidAutoFarmTargets()
+    local validTargets = {}
+    
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player ~= localPlayer and player.Character and plralive(player) then
+            local shouldTarget = false
+            if config.masterTeamTarget == "Enemies" then
+                shouldTarget = not isTeammate(player)
+            elseif config.masterTeamTarget == "Teams" then
+                shouldTarget = isTeammate(player)
+            elseif config.masterTeamTarget == "All" then
+                shouldTarget = true
+            end
+            
+            if shouldTarget then
+                local humanoid = player.Character:FindFirstChildOfClass("Humanoid")
+                if humanoid and humanoid.Health > 0 then
+                    if not config.autoFarmCompleted[player] then
+                        table.insert(validTargets, player)
+                    end
+                end
+            end
+        end
+    end
+    table.sort(validTargets, function(a, b)
+        local charA = a.Character
+        local charB = b.Character
+        local rootA = charA and charA:FindFirstChild("HumanoidRootPart")
+        local rootB = charB and charB:FindFirstChild("HumanoidRootPart")
+        local localRoot = localPlayer.Character and localPlayer.Character:FindFirstChild("HumanoidRootPart")
+        
+        if not localRoot then return false end
+        if not rootA then return false end
+        if not rootB then return true end
+        
+        local distA = (localRoot.Position - rootA.Position).Magnitude
+        local distB = (localRoot.Position - rootB.Position).Magnitude
+        
+        return distA < distB
+    end)
+    
+    return validTargets
+end
+
+local function tptocross(targetPlayer)
+    if not targetPlayer or not targetPlayer.Character or not localPlayer.Character or not camera then 
+        return false 
+    end
+    
+    local targetRoot = targetPlayer.Character:FindFirstChild("HumanoidRootPart")
+    local targetHead = targetPlayer.Character:FindFirstChild("Head")
+    if not targetRoot then return false end
+    local targetPart = nil
+    if config.autoFarmTargetPart == "Head" and targetHead then
+        targetPart = targetHead
+    else
+        targetPart = targetRoot
+    end
+    
+    if not targetPart then return false end
+    local cameraPos = camera.CFrame.Position
+    local cameraLook = camera.CFrame.LookVector
+    local crosshairWorldPos = cameraPos + (cameraLook * config.autoFarmDistance)
+    crosshairWorldPos = crosshairWorldPos + Vector3.new(0, config.autoFarmVerticalOffset, 0)
+    local partOffset = targetPart.Position - targetRoot.Position
+    local newRootPosition = crosshairWorldPos - partOffset
+    pcall(function()
+        targetRoot.CFrame = CFrame.new(newRootPosition)
+        local humanoid = targetPlayer.Character:FindFirstChildOfClass("Humanoid")
+        if humanoid then
+            humanoid:MoveTo(cameraPos)
+        end
+    end)
+    
+    return true
+end
+
+local function tptocrossExact(targetPlayer)
+    if not targetPlayer or not targetPlayer.Character or not localPlayer.Character or not camera then 
+        return false 
+    end
+    
+    local targetRoot = targetPlayer.Character:FindFirstChild("HumanoidRootPart")
+    local targetHead = targetPlayer.Character:FindFirstChild("Head")
+    if not targetRoot then return false end
+    
+    local targetPart = nil
+    if config.autoFarmTargetPart == "Head" and targetHead then
+        targetPart = targetHead
+    else
+        targetPart = targetRoot
+    end
+    
+    if not targetPart then return false end
+    
+    local viewportSize = camera.ViewportSize
+    local screenCenter = Vector2.new(viewportSize.X / 2, viewportSize.Y / 2)
+    local ray = camera:ScreenPointToRay(screenCenter.X, screenCenter.Y)
+    local crosshairWorldPos = ray.Origin + (ray.Direction * config.autoFarmDistance)
+    crosshairWorldPos = crosshairWorldPos + Vector3.new(0, config.autoFarmVerticalOffset, 0)
+    local partOffset = targetPart.Position - targetRoot.Position
+    local newRootPosition = crosshairWorldPos - partOffset
+    pcall(function()
+        targetRoot.CFrame = CFrame.new(newRootPosition)
+        
+        local humanoid = targetPlayer.Character:FindFirstChildOfClass("Humanoid")
+        if humanoid then
+            local lookAt = CFrame.new(targetRoot.Position, camera.CFrame.Position)
+            targetRoot.CFrame = lookAt
+        end
+    end)
+    
+    return true
+end
+local function tptocrossWithAlignment(targetPlayer)
+    if not targetPlayer or not targetPlayer.Character or not localPlayer.Character or not camera then 
+        return false 
+    end
+    
+    local targetRoot = targetPlayer.Character:FindFirstChild("HumanoidRootPart")
+    local targetHead = targetPlayer.Character:FindFirstChild("Head")
+    if not targetRoot then return false end
+    
+    if not config.autoFarmOriginalPositions[targetPlayer] then
+        saveTargetOriginalPosition(targetPlayer)
+    end
+
+    local cameraCFrame = camera.CFrame
+    local forward = cameraCFrame.LookVector
+    local cameraPos = cameraCFrame.Position
+    local targetPos = cameraPos + (forward * config.autoFarmDistance)
+    targetPos = targetPos + Vector3.new(0, config.autoFarmVerticalOffset, 0)
+    local alignPart = nil
+    if config.autoFarmTargetPart == "Head" and targetHead then
+        alignPart = targetHead
+    else
+        alignPart = targetRoot
+    end
+    
+    if not alignPart then return false end
+    local offsetFromRoot = alignPart.Position - targetRoot.Position
+    local newRootPos = targetPos - offsetFromRoot
+
+    pcall(function()
+        local directionToCamera = (cameraPos - newRootPos).Unit
+        local lookAt = CFrame.new(newRootPos, newRootPos + directionToCamera)
+        targetRoot.CFrame = lookAt
+    end)
+    
+    return true
+end
+
+
+local function checkTargetHealth(targetPlayer)
+    if not targetPlayer or not targetPlayer.Character then return false end
+    local humanoid = targetPlayer.Character:FindFirstChildOfClass("Humanoid")
+    if not humanoid then return false end
+    
+    return humanoid.Health > 0
+end
+local function autoFarmProcess()
+    if config.autoFarmLoop then
+        config.autoFarmLoop:Disconnect()
+        config.autoFarmLoop = nil
+    end
+    
+    config.autoFarmLoop = RunService.Heartbeat:Connect(function()
+        if not config.autoFarmEnabled or not localPlayer.Character or not camera then
+            if config.autoFarmLoop then
+                config.autoFarmLoop:Disconnect()
+                config.autoFarmLoop = nil
+            end
+            return
+        end
+
+        local validTargets = getValidAutoFarmTargets()
+        if #validTargets == 0 then
+            config.currentAutoFarmTarget = nil
+            config.autoFarmIndex = 1
+            config.autoFarmCompleted = {}
+            return
+        end
+        
+        if not config.currentAutoFarmTarget or config.autoFarmCompleted[config.currentAutoFarmTarget] then
+            for i = config.autoFarmIndex, #validTargets do
+                local target = validTargets[i]
+                if not config.autoFarmCompleted[target] then
+                    config.currentAutoFarmTarget = target
+                    config.autoFarmIndex = i
+                    break
+                end
+            end
+            
+            if not config.currentAutoFarmTarget then
+                config.autoFarmIndex = 1
+                config.currentAutoFarmTarget = validTargets[1]
+            end
+            
+            if config.currentAutoFarmTarget then
+            end
+        end
+        
+        if config.currentAutoFarmTarget and config.currentAutoFarmTarget.Character then
+            if not checkTargetHealth(config.currentAutoFarmTarget) then
+                restoreTargetOriginalPosition(config.currentAutoFarmTarget)
+                config.autoFarmCompleted[config.currentAutoFarmTarget] = true
+                config.currentAutoFarmTarget = nil
+                return
+            end
+            
+            if not config.autoFarmOriginalPositions[config.currentAutoFarmTarget] then
+                saveTargetOriginalPosition(config.currentAutoFarmTarget)
+            end
+
+            local success = tptocrossWithAlignment(config.currentAutoFarmTarget)
+            if not success then
+                teleportTargetToLocalPlayerFront(config.currentAutoFarmTarget)
+            end
+        end
+    end)
+end
+
+local function stopAutoFarm()
+    if config.autoFarmLoop then
+        config.autoFarmLoop:Disconnect()
+        config.autoFarmLoop = nil
+    end
+    
+    for targetPlayer, _ in pairs(config.autoFarmOriginalPositions) do
+        if targetPlayer and targetPlayer.Character then
+            restoreTargetOriginalPosition(targetPlayer)
+        end
+    end
+    
+    config.currentAutoFarmTarget = nil
+    config.autoFarmIndex = 1
+    config.autoFarmCompleted = {}
+    config.autoFarmOriginalPositions = {}
+    config.autoFarmEnabled = false
+end
+
+local function teleportTargetToLocalPlayerFront(targetPlayer)
+    if not targetPlayer or not targetPlayer.Character or not localPlayer.Character then 
+        return false 
+    end
+    
+    local targetRoot = targetPlayer.Character:FindFirstChild("HumanoidRootPart")
+    local localRoot = localPlayer.Character:FindFirstChild("HumanoidRootPart")
+    if not targetRoot or not localRoot then return false end
+    
+    local localCFrame = localRoot.CFrame
+    local frontOffset = localCFrame.LookVector * config.autoFarmDistance
+    local frontPos = localRoot.Position + frontOffset
+    frontPos = Vector3.new(frontPos.X, targetRoot.Position.Y, frontPos.Z)
+    
+    pcall(function()
+        targetRoot.CFrame = CFrame.new(frontPos, localRoot.Position)
+    end)
+    
+    return true
+end
+
+local function raycastFromPlayer(player)
+    if not player or not player.Character then return false end
+    local character = player.Character
+    local head = character:FindFirstChild("Head")
+    if not head then return false end
+    
+    local lookVector = head.CFrame.LookVector
+    local rayOrigin = head.Position
+    local rayDirection = lookVector * 1000
+    local ray = Ray.new(rayOrigin, rayDirection)
+    
+    local ignoreList = {character}
+    
+    local hit, position = Workspace:FindPartOnRayWithIgnoreList(ray, ignoreList)
+    
+    if hit then
+        local hitParent = hit.Parent
+        if hitParent and hitParent:IsA("Model") then
+            local hitPlayer = Players:GetPlayerFromCharacter(hitParent)
+            if hitPlayer == localPlayer then
+                return true, position, lookVector
+            end
+        end
+    end
+    
+    return false, nil, nil
+end
+
+local function teleportLocalPlayer(direction, distance)
+    if not localPlayer.Character then return end
+    local humanoidRootPart = localPlayer.Character:FindFirstChild("HumanoidRootPart")
+    if not humanoidRootPart then return end
+    
+    local currentPos = humanoidRootPart.Position
+    local newPos = currentPos + (direction * distance)
+    
+    if not config.originalPosition then
+        config.originalPosition = currentPos
+    end
+    
+    pcall(function()
+        humanoidRootPart.CFrame = CFrame.new(newPos)
+    end)
+    
+    config.isTeleported = true
+end
+
+local function returnToOriginalPosition()
+    if not config.originalPosition or not localPlayer.Character then return end
+    local humanoidRootPart = localPlayer.Character:FindFirstChild("HumanoidRootPart")
+    if not humanoidRootPart then return end
+    
+    pcall(function()
+        humanoidRootPart.CFrame = CFrame.new(config.originalPosition)
+    end)
+    
+    config.originalPosition = nil
+    config.isTeleported = false
+    config.currentAntiAimTarget = nil
+end
+
+local function teleportAboveTarget(targetPlayer)
+    if not targetPlayer or not targetPlayer.Character or not localPlayer.Character then return end
+    local targetRoot = targetPlayer.Character:FindFirstChild("HumanoidRootPart")
+    local localRoot = localPlayer.Character:FindFirstChild("HumanoidRootPart")
+    if not targetRoot or not localRoot then return end
+    
+    local targetPos = targetRoot.Position
+    local abovePos = targetPos + Vector3.new(0, config.antiAimAboveHeight, 0)
+    
+    if not config.originalPosition then
+        config.originalPosition = localRoot.Position
+    end
+    
+    pcall(function()
+        localRoot.CFrame = CFrame.new(abovePos)
+    end)
+    
+    config.currentAntiAimTarget = targetPlayer
+    config.isTeleported = true
+end
+
+local function teleportBehindTarget(targetPlayer)
+    if not targetPlayer or not targetPlayer.Character or not localPlayer.Character then return end
+    local targetRoot = targetPlayer.Character:FindFirstChild("HumanoidRootPart")
+    local localRoot = localPlayer.Character:FindFirstChild("HumanoidRootPart")
+    if not targetRoot or not localRoot then return end
+    
+    local targetCFrame = targetRoot.CFrame
+    local behindOffset = -targetCFrame.LookVector * config.antiAimBehindDistance
+    local behindPos = targetRoot.Position + behindOffset
+    
+    if not config.originalPosition then
+        config.originalPosition = localRoot.Position
+    end
+    
+    pcall(function()
+        localRoot.CFrame = CFrame.new(behindPos)
+    end)
+    
+    config.currentAntiAimTarget = targetPlayer
+    config.isTeleported = true
+end
+
+
+local function findClosestEnemy()
+    if not localPlayer.Character then return nil end
+    local localRoot = localPlayer.Character:FindFirstChild("HumanoidRootPart")
+    if not localRoot then return nil end
+    
+    local closestPlayer = nil
+    local closestDistance = math.huge
+    
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player ~= localPlayer and player.Character and plralive(player) then
+            local shouldTarget = false
+            if config.targetMode == "Enemies" then
+                shouldTarget = not isTeammate(player)
+            elseif config.targetMode == "Teams" then
+                shouldTarget = isTeammate(player)
+            elseif config.targetMode == "All" then
+                shouldTarget = true
+            end
+            
+            if shouldTarget then
+                local playerRoot = player.Character:FindFirstChild("HumanoidRootPart")
+                if playerRoot then
+                    local distance = (localRoot.Position - playerRoot.Position).Magnitude
+                    if distance < closestDistance then
+                        closestDistance = distance
+                        closestPlayer = player
+                    end
+                end
+            end
+        end
+    end
+    
+    return closestPlayer
+end
+
+local function antiAimUpdate()
+    if not config.antiAimEnabled then
+        if config.isTeleported then
+            returnToOriginalPosition()
+        end
+        return
+    end
+    
+    if config.antiAimAbovePlayer then
+        local closestEnemy = findClosestEnemy()
+        if closestEnemy then
+            teleportAboveTarget(closestEnemy)
+        end
+        return
+    end
+    
+    if config.antiAimBehindPlayer then
+        local closestEnemy = findClosestEnemy()
+        if closestEnemy then
+            teleportBehindTarget(closestEnemy)
+        end
+        return
+    end
+    if config.autoFarmEnabled then
+        if config.isTeleported then
+            returnToOriginalPosition()
+        end
+        return
+    end
+    
+    if not config.antiAimEnabled then
+        if config.isTeleported then
+            returnToOriginalPosition()
+        end
+        return
+    end
+    if config.raycastAntiAim then
+        local wasTargeted = false
+        
+        for _, player in ipairs(Players:GetPlayers()) do
+            if player ~= localPlayer and plralive(player) then
+                local isLooking, hitPosition, lookVector = raycastFromPlayer(player)
+                if isLooking then
+                    wasTargeted = true
+                    config.currentAntiAimTarget = player
+                    
+                    local teleportDirection = Vector3.new(-lookVector.Z, 0, lookVector.X)
+                    
+                    if math.random(1, 2) == 1 then
+                        teleportDirection = -teleportDirection
+                    end
+                    
+                    teleportLocalPlayer(teleportDirection.Unit, config.antiAimTPDistance)
+                    break
+                end
+            end
+        end
+        
+        if not wasTargeted and config.isTeleported then
+            returnToOriginalPosition()
+        end
+    end
 end
 
 local function RFD(targetPlayer)
@@ -942,6 +1499,7 @@ end
 
 RunService.Heartbeat:Connect(hb)
 RunService.RenderStepped:Connect(aimbotUpdate)
+RunService.Heartbeat:Connect(antiAimUpdate)
 
 local function onRenderStep()
     if not camera or not camera.Parent then
@@ -1161,6 +1719,14 @@ end
 
 local function cleanplrdata(targetPlayer)
     if not targetPlayer then return end
+
+    config.autoFarmOriginalPositions[targetPlayer] = nil
+    config.autoFarmCompleted[targetPlayer] = nil
+    
+    if config.currentAutoFarmTarget == targetPlayer then
+        config.currentAutoFarmTarget = nil
+    end
+
     restorePartForPlayer(targetPlayer)
     restoreTorso(targetPlayer)
     removeESPLabel(targetPlayer)
@@ -1199,6 +1765,16 @@ local function setupPlayerListeners(pl)
     if config.playerConnections[pl] then
         return
     end
+
+    config.playerConnections[pl] = {}
+    
+    local charAddedConn = pl.CharacterAdded:Connect(function(char)
+        task.wait(0.25)
+        config.autoFarmOriginalPositions[pl] = nil
+        config.autoFarmCompleted[pl] = nil
+        
+    end)
+    table.insert(config.playerConnections[pl], charAddedConn)
 
     config.playerConnections[pl] = {}
     removeESPLabel(pl)
@@ -1285,13 +1861,15 @@ local function lrfd()
 end
 
 local function makeui()
-    lib:SetTitle("Gravel.lua")
+    lib:SetTitle("Gravel.cc")
     lib:SetIcon("http://www.roblox.com/asset/?id=132214308111067")
     lib:SetTheme("HighContrast")
+    local T0 = lib:CreateTab("Main")
     local T1 = lib:CreateTab("SilentAim")
     local T2 = lib:CreateTab("Visuals")
     local T3 = lib:CreateTab("Aimbot")
     local T4 = lib:CreateTab("Hitbox")
+    local T5 = lib:CreateTab("AntiAim")
 
     lib:Tab("Visuals")
     lib:AddToggle("Toggle Highlight ESP (V)", function(state)
@@ -1339,6 +1917,144 @@ local function makeui()
             })
         end
     end, false)
+    lib:Tab("AntiAim")
+    
+    lib:AddToggle("Toggle AntiAim (L)", function(state)
+        config.antiAimEnabled = state
+        if not state then
+            returnToOriginalPosition()
+            safeNotify({
+                Title = "AntiAim",
+                Content = "Disabled",
+                Audio = "rbxassetid://17208361335",
+                Length = 1,
+                Image = "rbxassetid://4483362458",
+                BarColor = Color3.fromRGB(255, 0, 0)
+            })
+        else
+            safeNotify({
+                Title = "AntiAim",
+                Content = "Enabled",
+                Audio = "rbxassetid://17208361335",
+                Length = 1,
+                Image = "rbxassetid://4483362458",
+                BarColor = Color3.fromRGB(255, 100, 0)
+            })
+        end
+    end, false)
+    
+    lib:AddToggle("Raycast AntiAim", function(state)
+        config.raycastAntiAim = state
+        if state then
+            config.antiAimAbovePlayer = false
+            config.antiAimBehindPlayer = false
+            safeNotify({
+                Title = "Raycast AntiAim",
+                Content = "Enabled",
+                Audio = "rbxassetid://17208361335",
+                Length = 1,
+                Image = "rbxassetid://4483362458",
+                BarColor = Color3.fromRGB(0, 170, 255)
+            })
+        else
+            safeNotify({
+                Title = "Raycast AntiAim",
+                Content = "Disabled",
+                Audio = "rbxassetid://17208361335",
+                Length = 1,
+                Image = "rbxassetid://4483362458",
+                BarColor = Color3.fromRGB(255, 0, 0)
+            })
+        end
+    end, false)
+    
+    lib:AddInputBox("Teleport Distance", function(text)
+        local n = tonumber(text)
+        if n and n > 0 then
+            config.antiAimTPDistance = n
+        end
+        return tostring(config.antiAimTPDistance)
+    end, "Enter Distance...", "3", {
+        min = 1,
+        max = 50,
+        isNumber = true
+    })
+    
+    lib:AddToggle("Above Player", function(state)
+        config.antiAimAbovePlayer = state
+        if state then
+            config.raycastAntiAim = false
+            config.antiAimBehindPlayer = false
+            safeNotify({
+                Title = "Above Player",
+                Content = "Enabled",
+                Audio = "rbxassetid://17208361335",
+                Length = 1,
+                Image = "rbxassetid://4483362458",
+                BarColor = Color3.fromRGB(0, 170, 255)
+            })
+        else
+            returnToOriginalPosition()
+            safeNotify({
+                Title = "Above Player",
+                Content = "Disabled",
+                Audio = "rbxassetid://17208361335",
+                Length = 1,
+                Image = "rbxassetid://4483362458",
+                BarColor = Color3.fromRGB(255, 0, 0)
+            })
+        end
+    end, false)
+    
+    lib:AddInputBox("Above Height", function(text)
+        local n = tonumber(text)
+        if n and n > 0 then
+            config.antiAimAboveHeight = n
+        end
+        return tostring(config.antiAimAboveHeight)
+    end, "Enter Height...", "10", {
+        min = 1,
+        max = 100,
+        isNumber = true
+    })
+    
+    lib:AddToggle("Behind Player", function(state)
+        config.antiAimBehindPlayer = state
+        if state then
+            config.raycastAntiAim = false
+            config.antiAimAbovePlayer = false
+            safeNotify({
+                Title = "Behind Player",
+                Content = "Enabled",
+                Audio = "rbxassetid://17208361335",
+                Length = 1,
+                Image = "rbxassetid://4483362458",
+                BarColor = Color3.fromRGB(0, 170, 255)
+            })
+        else
+            returnToOriginalPosition()
+            safeNotify({
+                Title = "Behind Player",
+                Content = "Disabled",
+                Audio = "rbxassetid://17208361335",
+                Length = 1,
+                Image = "rbxassetid://4483362458",
+                BarColor = Color3.fromRGB(255, 0, 0)
+            })
+        end
+    end, false)
+    
+    lib:AddInputBox("Behind Distance", function(text)
+        local n = tonumber(text)
+        if n and n > 0 then
+            config.antiAimBehindDistance = n
+        end
+        return tostring(config.antiAimBehindDistance)
+    end, "Enter Distance...", "5", {
+        min = 1,
+        max = 50,
+        isNumber = true
+    })
     lib:Tab("Aimbot")
     lib:AddToggle("Toggle Aimbot (G)", function(state)
         config.aimbotEnabled = state
@@ -1373,9 +2089,17 @@ local function makeui()
     end, false)
     
     lib:AddComboBox("Team Target", {"Enemies", "Teams", "All"}, function(selection)
+        if config.masterTeamTarget == "All" then
+            return
+        end
+        
         config.aimbotTeamTarget = selection
         config.aimbotCurrentTarget = nil
         updateESPColors()
+        if config.aimbotTeamTarget == "All" then
+            config.masterTeamTarget = "All"
+            updateTeamTargetModes()
+        end
     end)
     
     lib:AddComboBox("Target Part", {"Head", "HumanoidRootPart", "Torso"}, function(selection)
@@ -1483,8 +2207,17 @@ end, "Enter Size...", "10", {
 })
     
     lib:AddComboBox("Team Target", {"Enemies", "Teams", "All"}, function(selection)
+        if config.masterTeamTarget == "All" then
+            return
+        end
+        
         config.hitboxTeamTarget = selection
         applyhb()
+        
+        if config.hitboxTeamTarget == "All" then
+            config.masterTeamTarget = "All"
+            updateTeamTargetModes()
+        end
     end)
     lib:Tab("SilentAim")
     lib:AddToggle("Toggle SS (X)", function(state)
@@ -1544,37 +2277,24 @@ end, "Enter Size...", "10", {
         end
     end, false)
 
-    lib:AddComboBox("Team Target", {"Only enemies", "Only Teams", "All"}, function(selection)
-        if selection == "Only enemies" then
+    lib:AddComboBox("Team Target", {"Enemies", "Teams", "All"}, function(selection)
+        if config.masterTeamTarget == "All" then
+            return
+        end
+        
+        if selection == "Enemies" then
             config.targetMode = "Enemies"
-        elseif selection == "Only Teams" then
+        elseif selection == "Teams" then
             config.targetMode = "Teams"
         elseif selection == "All" then
             config.targetMode = "All"
         else
             config.targetMode = "Enemies"
         end
-
-        for _, pl in ipairs(Players:GetPlayers()) do
-            if pl ~= localPlayer then
-                if config.espEnabled then
-                    removeESPLabel(pl)
-                    if addesp(pl) then
-                        makeesp(pl)
-                    end
-                else
-                    removeESPLabel(pl)
-                end
-
-                if config.highlightesp then
-                    removeHighlightESP(pl)
-                    if addesp(pl) and pl.Character then
-                        high(pl)
-                    end
-                else
-                    removeHighlightESP(pl)
-                end
-            end
+        
+        if config.targetMode == "All" then
+            config.masterTeamTarget = "All"
+            updateTeamTargetModes()
         end
     end)
 
@@ -1621,6 +2341,80 @@ end, "Enter Size...", "10", {
         max = 211,
         isNumber = true
     })
+
+    lib:Tab("Main")
+    lib:AddComboBox("Master Team Target", {"Enemies", "Teams", "All"}, function(selection)
+        if selection == "Enemies" then
+            config.masterTeamTarget = "Enemies"
+            config.targetMode = "Enemies"
+        elseif selection == "Teams" then
+            config.masterTeamTarget = "Teams"
+            config.targetMode = "Teams"
+        elseif selection == "All" then
+            config.masterTeamTarget = "All"
+            config.targetMode = "All"
+        else
+            config.masterTeamTarget = "Enemies"
+            config.targetMode = "Enemies"
+        end
+        
+        updateTeamTargetModes()
+    end)
+
+    lib:AddToggle("Toggle AutoFarm (P)", function(state)
+        config.autoFarmEnabled = state
+        
+        if state then
+            autoFarmProcess()
+            safeNotify({
+                Title = "AutoFarm",
+                Content = "Enabled",
+                Audio = "rbxassetid://17208361335",
+                Length = 3,
+                Image = "rbxassetid://4483362458",
+                BarColor = Color3.fromRGB(0, 255, 0)
+            })
+        else
+            stopAutoFarm()
+            safeNotify({
+                Title = "AutoFarm",
+                Content = "Disabled",
+                Audio = "rbxassetid://17208361335",
+                Length = 1,
+                Image = "rbxassetid://4483362458",
+                BarColor = Color3.fromRGB(255, 0, 0)
+            })
+        end
+    end, false)
+    
+    lib:AddComboBox("Align Part", {"Head", "HumanoidRootPart"}, function(selection)
+        config.autoFarmTargetPart = selection
+    end)
+    
+    lib:AddInputBox("TP Distance", function(text)
+        local n = tonumber(text)
+        if n and n >= 1 and n <= 100 then
+            config.autoFarmDistance = n
+        end
+        return tostring(config.autoFarmDistance)
+    end, "1-100", "10", {
+        min = 1,
+        max = 100,
+        isNumber = true
+    })
+    
+    lib:AddInputBox("Vertical Offset", function(text)
+        local n = tonumber(text)
+        if n then
+            config.autoFarmVerticalOffset = n
+        end
+        return tostring(config.autoFarmVerticalOffset)
+    end, "-50 to 50", "0", {
+        min = -50,
+        max = 50,
+        isNumber = true
+    })
+
     local fovScreenGui = Instance.new("ScreenGui")
     fovScreenGui.Name = "FOVToggleGui_Modern"
     fovScreenGui.ResetOnSpawn = false
@@ -1770,6 +2564,31 @@ local function init()
                         BarColor = Color3.fromRGB(255, 0, 0)
                     })
                 end
+            elseif kc == Enum.KeyCode.P then
+                config.autoFarmEnabled = not config.autoFarmEnabled
+                
+                if config.autoFarmEnabled then
+                    autoFarmProcess()
+                    safeNotify({
+                        Title = "AutoFarm",
+                        Content = "Enabled (Hotkey)" ..
+                                 "\nAligning " .. config.autoFarmTargetPart .. " to crosshair",
+                        Audio = "rbxassetid://17208361335",
+                        Length = 3,
+                        Image = "rbxassetid://4483362458",
+                        BarColor = Color3.fromRGB(0, 255, 0)
+                    })
+                else
+                    stopAutoFarm()
+                    safeNotify({
+                        Title = "AutoFarm",
+                        Content = "Disabled (Hotkey)",
+                        Audio = "rbxassetid://17208361335",
+                        Length = 1,
+                        Image = "rbxassetid://4483362458",
+                        BarColor = Color3.fromRGB(255, 0, 0)
+                    })
+                end
             elseif kc == Enum.KeyCode.X then
                 config.Enabled = not config.Enabled
                 if not config.Enabled then
@@ -1877,16 +2696,39 @@ local function init()
                         BarColor = Color3.fromRGB(255, 0, 0)
                     })
                 end
+            elseif kc == Enum.KeyCode.L then
+                config.antiAimEnabled = not config.antiAimEnabled
+                if not config.antiAimEnabled then
+                    returnToOriginalPosition()
+                    safeNotify({
+                        Title = "AntiAim",
+                        Content = "Disabled (Hotkey)",
+                        Audio = "rbxassetid://17208361335",
+                        Length = 1,
+                        Image = "rbxassetid://4483362458",
+                        BarColor = Color3.fromRGB(255, 0, 0)
+                    })
+                else
+                    safeNotify({
+                        Title = "AntiAim",
+                        Content = "Enabled (Hotkey)",
+                        Audio = "rbxassetid://17208361335",
+                        Length = 1,
+                        Image = "rbxassetid://4483362458",
+                        BarColor = Color3.fromRGB(255, 100, 0)
+                    })
+                end
+            elseif kc == Enum.KeyCode.T then
+                updateTeamTargetModes()
             end
         end
     end)
 end
-
 local function cleanup()
     pcall(function()
         RunService:UnbindFromRenderStep("FOVhbUpdater_Modern")
     end)
-
+    stopAutoFarm()
     if config.hotkeyConnection then
         pcall(function() config.hotkeyConnection:Disconnect() end)
         config.hotkeyConnection = nil
@@ -1935,6 +2777,7 @@ local function cleanup()
     config.playerConnections = {}
     config.characterConnections = {}
     config.centerLocked = {}
+    config.currentAntiAimTarget = nil
     config.hitboxExpandedParts = {}
     config.hitboxOriginalSizes = {}
 end
