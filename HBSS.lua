@@ -23,7 +23,13 @@ local config = {
     wallc = false,
     bodypart = "Head",
     espEnabled = false,
+    prefTextESP = false,
     highlightesp = false,
+    prefHighlightESP = false,
+    prefBoxESP = false,
+    prefHealthESP = false,
+    prefColorByHealth = false,
+    espMasterEnabled = false,
     originalSizes = {},
     activeApplied = {},
     espData = {},
@@ -81,6 +87,20 @@ local config = {
     aimbot360OriginalFOV = 100,
     aimbot360Omnidirectional = true,
     aimbot360BehindRange = 180,
+    masterTarget = "Players",
+    clientMasterEnabled = false,
+    clientWalkSpeed = 16,
+    clientJumpPower = 50,
+    clientNoclip = false,
+    clientCFrameWalkEnabled = false,
+    clientCFrameSpeed = 1,
+    clientConnections = {},
+    clientOriginals = {},
+    _tpwalking = false,
+    clientWalkEnabled = false,
+    clientJumpEnabled = false,
+    clientNoclipEnabled = false,
+    clientCFrameWalkToggle = false
 }
 
 local Alurt = loadstring(game:HttpGet("https://raw.githubusercontent.com/azir-py/project/refs/heads/main/Zwolf/AlurtUI.lua"))()
@@ -138,6 +158,8 @@ do
                 pcall(callback, tostring(default))
             end
         end
+        function lib:CreateTab() return {} end
+        function lib:Tab() end
     end
 end
 
@@ -162,7 +184,7 @@ local function updateTeamTargetModes()
         config.hitboxTeamTarget = masterSelection
     end
     
-    if config.espEnabled then
+    if config.espMasterEnabled then
         for _, pl in ipairs(Players:GetPlayers()) do
             if pl ~= localPlayer then
                 removeESPLabel(pl)
@@ -173,7 +195,7 @@ local function updateTeamTargetModes()
         end
     end
     
-    if config.highlightesp then
+    if config.espMasterEnabled and config.prefHighlightESP then
         for _, pl in ipairs(Players:GetPlayers()) do
             if pl ~= localPlayer then
                 removeHighlightESP(pl)
@@ -189,112 +211,205 @@ local function updateTeamTargetModes()
     updateESPColors()
 end
 
+local function isNPCModel(model)
+    if not model or not model:IsA("Model") then return false end
+    if Players:GetPlayerFromCharacter(model) then return false end
+    local humanoid = model:FindFirstChildOfClass("Humanoid")
+    if humanoid and humanoid.Health ~= nil then
+        if model:FindFirstChild("HumanoidRootPart") or model:FindFirstChild("Head") then
+            return true
+        end
+    end
+    return false
+end
+
+local function getAllTargets()
+    local targets = {}
+
+    if config.masterTarget == "Players" or config.masterTarget == "Both" then
+        for _, pl in ipairs(Players:GetPlayers()) do
+            if pl ~= localPlayer then
+                table.insert(targets, pl)
+            end
+        end
+    end
+
+    if config.masterTarget == "NPCs" or config.masterTarget == "Both" then
+        for _, obj in ipairs(Workspace:GetDescendants()) do
+            if obj:IsA("Model") and isNPCModel(obj) then
+                if not Players:GetPlayerFromCharacter(obj) then
+                    table.insert(targets, obj)
+                end
+            end
+        end
+    end
+
+    return targets
+end
+
+local function getTargetCharacter(target)
+    if not target then return nil end
+    if typeof(target) == "Instance" then
+        if target:IsA("Player") then
+            return target.Character
+        elseif target:IsA("Model") then
+            return target
+        end
+    end
+    return nil
+end
+
+local function getTargetName(target)
+    if not target then return "Unknown" end
+    if typeof(target) == "Instance" then
+        return target.Name
+    end
+    return tostring(target)
+end
 
 local function isTeammate(p)
     if not (localPlayer and p) then return false end
-    if localPlayer.Team and p.Team then
-        return localPlayer.Team == p.Team
+    if typeof(p) == "Instance" and p:IsA("Player") then
+        if localPlayer.Team and p.Team then
+            return localPlayer.Team == p.Team
+        end
     end
     return false
 end
 
 local function addesp(targetPlayer)
     if not targetPlayer then return false end
-    if targetPlayer == localPlayer then return false end
+    if typeof(targetPlayer) == "Instance" and targetPlayer:IsA("Player") and targetPlayer == localPlayer then return false end
 
     local mode = config.targetMode or "Enemies"
     if mode == "Enemies" then
-        if isTeammate(targetPlayer) then
-            return false
+        if typeof(targetPlayer) == "Instance" and targetPlayer:IsA("Player") then
+            if isTeammate(targetPlayer) then
+                return false
+            else
+                return true
+            end
         else
             return true
         end
     elseif mode == "Teams" then
-        return isTeammate(targetPlayer)
+        if typeof(targetPlayer) == "Instance" and targetPlayer:IsA("Player") then
+            return isTeammate(targetPlayer)
+        else
+            return false
+        end
     elseif mode == "All" then
         return true
     else
-        if isTeammate(targetPlayer) then
-            return false
+        if typeof(targetPlayer) == "Instance" and targetPlayer:IsA("Player") then
+            if isTeammate(targetPlayer) then
+                return false
+            else
+                return true
+            end
         else
             return true
         end
     end
 end
 
-local function plralive(targetPlayer)
-    if not targetPlayer then return false end
-    if targetPlayer == localPlayer then
-        local character = targetPlayer.Character
+local function plralive(target)
+    if not target then return false end
+
+    if typeof(target) == "Instance" and target:IsA("Player") then
+        local character = target.Character
         if not character then return false end
         local humanoid = character:FindFirstChildOfClass("Humanoid")
         if not humanoid then return false end
         return humanoid.Health > 0
     end
-    local character = targetPlayer.Character
-    if not character then return false end
-    local humanoid = character:FindFirstChildOfClass("Humanoid")
-    if not humanoid then return false end
-    return humanoid.Health > 0
+
+    if typeof(target) == "Instance" and target:IsA("Model") then
+        local humanoid = target:FindFirstChildOfClass("Humanoid")
+        if not humanoid then return false end
+        return humanoid.Health > 0
+    end
+
+    return false
 end
 
 
-local function saveTargetOriginalPosition(targetPlayer)
-    if not targetPlayer or not targetPlayer.Character then return end
-    local targetRoot = targetPlayer.Character:FindFirstChild("HumanoidRootPart")
+local function saveTargetOriginalPosition(target)
+    local targetChar = getTargetCharacter(target)
+    if not targetChar then return end
+    local targetRoot = targetChar:FindFirstChild("HumanoidRootPart")
     if not targetRoot then return end
     
-    config.autoFarmOriginalPositions[targetPlayer] = {
+    config.autoFarmOriginalPositions[target] = {
         position = targetRoot.Position,
         cframe = targetRoot.CFrame,
         timestamp = tick()
     }
 end
 
-local function restoreTargetOriginalPosition(targetPlayer)
-    if not targetPlayer or not targetPlayer.Character then return end
-    local targetRoot = targetPlayer.Character:FindFirstChild("HumanoidRootPart")
+local function restoreTargetOriginalPosition(target)
+    local targetChar = getTargetCharacter(target)
+    if not targetChar then return end
+    local targetRoot = targetChar:FindFirstChild("HumanoidRootPart")
     if not targetRoot then return end
     
-    local savedData = config.autoFarmOriginalPositions[targetPlayer]
+    local savedData = config.autoFarmOriginalPositions[target]
     if savedData then
         pcall(function()
             targetRoot.CFrame = savedData.cframe
         end)
-        config.autoFarmOriginalPositions[targetPlayer] = nil
+        config.autoFarmOriginalPositions[target] = nil
     end
 end
 
 local function getValidAutoFarmTargets()
     local validTargets = {}
     
-    for _, player in ipairs(Players:GetPlayers()) do
-        if player ~= localPlayer and player.Character and plralive(player) then
+    local candidates = getAllTargets()
+    for _, t in ipairs(candidates) do
+        if t ~= localPlayer and plralive(t) then
             local shouldTarget = false
-            if config.masterTeamTarget == "Enemies" then
-                shouldTarget = not isTeammate(player)
-            elseif config.masterTeamTarget == "Teams" then
-                shouldTarget = isTeammate(player)
-            elseif config.masterTeamTarget == "All" then
+            if config.masterTarget == "NPCs" then
+                if typeof(t) == "Instance" and t:IsA("Model") then
+                    shouldTarget = true
+                else
+                    shouldTarget = false
+                end
+            elseif config.masterTarget == "Players" then
+                if typeof(t) == "Instance" and t:IsA("Player") then
+                    if not isTeammate(t) or config.masterTeamTarget == "All" then
+                        shouldTarget = true
+                    else
+                        shouldTarget = false
+                    end
+                else
+                    shouldTarget = false
+                end
+            elseif config.masterTarget == "Both" then
                 shouldTarget = true
             end
-            
+
             if shouldTarget then
-                local humanoid = player.Character:FindFirstChildOfClass("Humanoid")
+                local humanoid = nil
+                local char = getTargetCharacter(t)
+                if char then
+                    humanoid = char:FindFirstChildOfClass("Humanoid")
+                end
                 if humanoid and humanoid.Health > 0 then
-                    if not config.autoFarmCompleted[player] then
-                        table.insert(validTargets, player)
+                    if not config.autoFarmCompleted[t] then
+                        table.insert(validTargets, t)
                     end
                 end
             end
         end
     end
+
     table.sort(validTargets, function(a, b)
-        local charA = a.Character
-        local charB = b.Character
-        local rootA = charA and charA:FindFirstChild("HumanoidRootPart")
-        local rootB = charB and charB:FindFirstChild("HumanoidRootPart")
-        local localRoot = localPlayer.Character and localPlayer.Character:FindFirstChild("HumanoidRootPart")
+        local charA = getTargetCharacter(a)
+        local charB = getTargetCharacter(b)
+        local rootA = charA and (charA:FindFirstChild("HumanoidRootPart") or charA:FindFirstChild("Head"))
+        local rootB = charB and (charB:FindFirstChild("HumanoidRootPart") or charB:FindFirstChild("Head"))
+        local localRoot = localPlayer.Character and (localPlayer.Character:FindFirstChild("HumanoidRootPart") or localPlayer.Character:FindFirstChild("Head"))
         
         if not localRoot then return false end
         if not rootA then return false end
@@ -309,13 +424,14 @@ local function getValidAutoFarmTargets()
     return validTargets
 end
 
-local function tptocross(targetPlayer)
-    if not targetPlayer or not targetPlayer.Character or not localPlayer.Character or not camera then 
+local function tptocross(target)
+    local targetChar = getTargetCharacter(target)
+    if not targetChar or not localPlayer.Character or not camera then 
         return false 
     end
     
-    local targetRoot = targetPlayer.Character:FindFirstChild("HumanoidRootPart")
-    local targetHead = targetPlayer.Character:FindFirstChild("Head")
+    local targetRoot = targetChar:FindFirstChild("HumanoidRootPart")
+    local targetHead = targetChar:FindFirstChild("Head")
     if not targetRoot then return false end
     local targetPart = nil
     if config.autoFarmTargetPart == "Head" and targetHead then
@@ -333,7 +449,7 @@ local function tptocross(targetPlayer)
     local newRootPosition = crosshairWorldPos - partOffset
     pcall(function()
         targetRoot.CFrame = CFrame.new(newRootPosition)
-        local humanoid = targetPlayer.Character:FindFirstChildOfClass("Humanoid")
+        local humanoid = targetChar:FindFirstChildOfClass("Humanoid")
         if humanoid then
             humanoid:MoveTo(cameraPos)
         end
@@ -342,13 +458,14 @@ local function tptocross(targetPlayer)
     return true
 end
 
-local function tptocrossExact(targetPlayer)
-    if not targetPlayer or not targetPlayer.Character or not localPlayer.Character or not camera then 
+local function tptocrossExact(target)
+    local targetChar = getTargetCharacter(target)
+    if not targetChar or not localPlayer.Character or not camera then 
         return false 
     end
     
-    local targetRoot = targetPlayer.Character:FindFirstChild("HumanoidRootPart")
-    local targetHead = targetPlayer.Character:FindFirstChild("Head")
+    local targetRoot = targetChar:FindFirstChild("HumanoidRootPart")
+    local targetHead = targetChar:FindFirstChild("Head")
     if not targetRoot then return false end
     
     local targetPart = nil
@@ -370,7 +487,7 @@ local function tptocrossExact(targetPlayer)
     pcall(function()
         targetRoot.CFrame = CFrame.new(newRootPosition)
         
-        local humanoid = targetPlayer.Character:FindFirstChildOfClass("Humanoid")
+        local humanoid = targetChar:FindFirstChildOfClass("Humanoid")
         if humanoid then
             local lookAt = CFrame.new(targetRoot.Position, camera.CFrame.Position)
             targetRoot.CFrame = lookAt
@@ -379,17 +496,18 @@ local function tptocrossExact(targetPlayer)
     
     return true
 end
-local function tptocrossWithAlignment(targetPlayer)
-    if not targetPlayer or not targetPlayer.Character or not localPlayer.Character or not camera then 
+local function tptocrossWithAlignment(target)
+    local targetChar = getTargetCharacter(target)
+    if not targetChar or not localPlayer.Character or not camera then 
         return false 
     end
     
-    local targetRoot = targetPlayer.Character:FindFirstChild("HumanoidRootPart")
-    local targetHead = targetPlayer.Character:FindFirstChild("Head")
+    local targetRoot = targetChar:FindFirstChild("HumanoidRootPart")
+    local targetHead = targetChar:FindFirstChild("Head")
     if not targetRoot then return false end
     
-    if not config.autoFarmOriginalPositions[targetPlayer] then
-        saveTargetOriginalPosition(targetPlayer)
+    if not config.autoFarmOriginalPositions[target] then
+        saveTargetOriginalPosition(target)
     end
 
     local cameraCFrame = camera.CFrame
@@ -418,9 +536,11 @@ local function tptocrossWithAlignment(targetPlayer)
 end
 
 
-local function checkTargetHealth(targetPlayer)
-    if not targetPlayer or not targetPlayer.Character then return false end
-    local humanoid = targetPlayer.Character:FindFirstChildOfClass("Humanoid")
+local function checkTargetHealth(target)
+    if not target then return false end
+    local char = getTargetCharacter(target)
+    if not char then return false end
+    local humanoid = char:FindFirstChildOfClass("Humanoid")
     if not humanoid then return false end
     
     return humanoid.Health > 0
@@ -467,7 +587,7 @@ local function autoFarmProcess()
             end
         end
         
-        if config.currentAutoFarmTarget and config.currentAutoFarmTarget.Character then
+        if config.currentAutoFarmTarget and getTargetCharacter(config.currentAutoFarmTarget) then
             if not checkTargetHealth(config.currentAutoFarmTarget) then
                 restoreTargetOriginalPosition(config.currentAutoFarmTarget)
                 config.autoFarmCompleted[config.currentAutoFarmTarget] = true
@@ -493,9 +613,9 @@ local function stopAutoFarm()
         config.autoFarmLoop = nil
     end
     
-    for targetPlayer, _ in pairs(config.autoFarmOriginalPositions) do
-        if targetPlayer and targetPlayer.Character then
-            restoreTargetOriginalPosition(targetPlayer)
+    for target, _ in pairs(config.autoFarmOriginalPositions) do
+        if target and getTargetCharacter(target) then
+            restoreTargetOriginalPosition(target)
         end
     end
     
@@ -506,12 +626,13 @@ local function stopAutoFarm()
     config.autoFarmEnabled = false
 end
 
-local function teleportTargetToLocalPlayerFront(targetPlayer)
-    if not targetPlayer or not targetPlayer.Character or not localPlayer.Character then 
+local function teleportTargetToLocalPlayerFront(target)
+    local targetChar = getTargetCharacter(target)
+    if not targetChar or not localPlayer.Character then 
         return false 
     end
     
-    local targetRoot = targetPlayer.Character:FindFirstChild("HumanoidRootPart")
+    local targetRoot = targetChar:FindFirstChild("HumanoidRootPart")
     local localRoot = localPlayer.Character:FindFirstChild("HumanoidRootPart")
     if not targetRoot or not localRoot then return false end
     
@@ -588,9 +709,10 @@ local function returnToOriginalPosition()
     config.currentAntiAimTarget = nil
 end
 
-local function teleportAboveTarget(targetPlayer)
-    if not targetPlayer or not targetPlayer.Character or not localPlayer.Character then return end
-    local targetRoot = targetPlayer.Character:FindFirstChild("HumanoidRootPart")
+local function teleportAboveTarget(target)
+    local targetChar = getTargetCharacter(target)
+    if not targetChar or not localPlayer.Character then return end
+    local targetRoot = targetChar:FindFirstChild("HumanoidRootPart")
     local localRoot = localPlayer.Character:FindFirstChild("HumanoidRootPart")
     if not targetRoot or not localRoot then return end
     
@@ -605,13 +727,14 @@ local function teleportAboveTarget(targetPlayer)
         localRoot.CFrame = CFrame.new(abovePos)
     end)
     
-    config.currentAntiAimTarget = targetPlayer
+    config.currentAntiAimTarget = target
     config.isTeleported = true
 end
 
-local function teleportBehindTarget(targetPlayer)
-    if not targetPlayer or not targetPlayer.Character or not localPlayer.Character then return end
-    local targetRoot = targetPlayer.Character:FindFirstChild("HumanoidRootPart")
+local function teleportBehindTarget(target)
+    local targetChar = getTargetCharacter(target)
+    if not targetChar or not localPlayer.Character then return end
+    local targetRoot = targetChar:FindFirstChild("HumanoidRootPart")
     local localRoot = localPlayer.Character:FindFirstChild("HumanoidRootPart")
     if not targetRoot or not localRoot then return end
     
@@ -627,7 +750,7 @@ local function teleportBehindTarget(targetPlayer)
         localRoot.CFrame = CFrame.new(behindPos)
     end)
     
-    config.currentAntiAimTarget = targetPlayer
+    config.currentAntiAimTarget = target
     config.isTeleported = true
 end
 
@@ -637,34 +760,56 @@ local function findClosestEnemy()
     local localRoot = localPlayer.Character:FindFirstChild("HumanoidRootPart")
     if not localRoot then return nil end
     
-    local closestPlayer = nil
+    local closest = nil
     local closestDistance = math.huge
     
-    for _, player in ipairs(Players:GetPlayers()) do
-        if player ~= localPlayer and player.Character and plralive(player) then
+    local candidates = getAllTargets()
+    for _, t in ipairs(candidates) do
+        if t ~= localPlayer and plralive(t) then
             local shouldTarget = false
-            if config.targetMode == "Enemies" then
-                shouldTarget = not isTeammate(player)
-            elseif config.targetMode == "Teams" then
-                shouldTarget = isTeammate(player)
-            elseif config.targetMode == "All" then
-                shouldTarget = true
+            if config.masterTarget == "NPCs" then
+                if typeof(t) == "Instance" and t:IsA("Model") then
+                    shouldTarget = true
+                end
+            elseif config.masterTarget == "Players" then
+                if typeof(t) == "Instance" and t:IsA("Player") then
+                    if config.targetMode == "Enemies" then
+                        shouldTarget = not isTeammate(t)
+                    elseif config.targetMode == "Teams" then
+                        shouldTarget = isTeammate(t)
+                    elseif config.targetMode == "All" then
+                        shouldTarget = true
+                    end
+                end
+            elseif config.masterTarget == "Both" then
+                if typeof(t) == "Instance" and t:IsA("Player") then
+                    if config.targetMode == "Enemies" then
+                        shouldTarget = not isTeammate(t)
+                    elseif config.targetMode == "Teams" then
+                        shouldTarget = isTeammate(t)
+                    elseif config.targetMode == "All" then
+                        shouldTarget = true
+                    end
+                else
+                    shouldTarget = true
+                end
             end
             
             if shouldTarget then
-                local playerRoot = player.Character:FindFirstChild("HumanoidRootPart")
+                local tgtChar = getTargetCharacter(t)
+                local playerRoot = tgtChar and (tgtChar:FindFirstChild("HumanoidRootPart") or tgtChar:FindFirstChild("Head"))
                 if playerRoot then
                     local distance = (localRoot.Position - playerRoot.Position).Magnitude
                     if distance < closestDistance then
                         closestDistance = distance
-                        closestPlayer = player
+                        closest = t
                     end
                 end
             end
         end
     end
     
-    return closestPlayer
+    return closest
 end
 
 local function antiAimUpdate()
@@ -732,9 +877,9 @@ local function antiAimUpdate()
 end
 
 local function RFD(targetPlayer)
-    if not targetPlayer or not targetPlayer.Character then return end
-    local character = targetPlayer.Character
-    local head = character:FindFirstChild("Head")
+    local char = getTargetCharacter(targetPlayer)
+    if not char then return end
+    local head = char:FindFirstChild("Head")
     if head then
         for _, child in ipairs(head:GetChildren()) do
             if child:IsA("Decal") then
@@ -781,7 +926,7 @@ local function wallCheck(targetPos, sourcePos)
 end
 
 local function high(targetPlayer)
-    if not targetPlayer or not targetPlayer.Character then return end
+    if not targetPlayer or not getTargetCharacter(targetPlayer) then return end
     if not addesp(targetPlayer) then return end
 
     if config.highlightData[targetPlayer] then
@@ -798,7 +943,7 @@ local function high(targetPlayer)
         end
     end
 
-    local character = targetPlayer.Character
+    local character = getTargetCharacter(targetPlayer)
     if not character then return end
 
     local highlight = Instance.new("Highlight")
@@ -842,36 +987,80 @@ local function removeESPLabel(targetPlayer)
     config.espData[targetPlayer] = nil
 end
 
+local function healthColor(humanoid)
+    if not humanoid then return config.espc end
+    local maxH = humanoid.MaxHealth or 100
+    local health = math.clamp(humanoid.Health / maxH, 0, 1)
+    local r = 1 - health
+    local g = health
+    return Color3.new(r, g, 0)
+end
+
 local function makeesp(targetPlayer)
     if not targetPlayer then return end
     if not addesp(targetPlayer) then return end
 
     if config.espData[targetPlayer] then
-        local data = config.espData[targetPlayer]
-        if data and data.label and data.label.Parent then
-            return
-        else
-            removeESPLabel(targetPlayer)
-        end
+        removeESPLabel(targetPlayer)
     end
 
     local screenGui = Instance.new("ScreenGui")
-    screenGui.Name = "ESP_" .. targetPlayer.Name
+    screenGui.Name = "ESP_" .. getTargetName(targetPlayer)
     screenGui.ResetOnSpawn = false
     screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+    screenGui.IgnoreGuiInset = true
     screenGui.Parent = localPlayer:WaitForChild("PlayerGui")
 
     local label = Instance.new("TextLabel")
     label.Name = "ESPLabel"
     label.BackgroundTransparency = 1
-    label.Text = targetPlayer.Name
+    label.Text = getTargetName(targetPlayer)
     label.TextSize = 14
     label.Font = Enum.Font.GothamBold
     label.TextStrokeTransparency = 0
     label.TextStrokeColor3 = Color3.new(0, 0, 0)
     label.Visible = false
     label.Size = UDim2.new(0, 200, 0, 20)
+    label.AnchorPoint = Vector2.new(0.5, 1)
+    label.TextXAlignment = Enum.TextXAlignment.Center
     label.Parent = screenGui
+
+    local boxFrame = Instance.new("Frame")
+    boxFrame.Name = "ESPBox"
+    boxFrame.AnchorPoint = Vector2.new(0, 0)
+    boxFrame.Size = UDim2.new(0, 0, 0, 0)
+    boxFrame.Position = UDim2.new(0, 0, 0, 0)
+    boxFrame.BackgroundTransparency = 0.6
+    boxFrame.BorderSizePixel = 0
+    boxFrame.Visible = false
+    boxFrame.Parent = screenGui
+
+    local boxOutline = Instance.new("UIStroke")
+    boxOutline.Thickness = 1
+    boxOutline.LineJoinMode = Enum.LineJoinMode.Round
+    boxOutline.Color = config.espc
+    boxOutline.Transparency = 0.1
+    boxOutline.Parent = boxFrame
+
+    local healthBg = Instance.new("Frame")
+    healthBg.Name = "HealthBG"
+    healthBg.AnchorPoint = Vector2.new(0, 0)
+    healthBg.Size = UDim2.new(0, 4, 0, 0)
+    healthBg.Position = UDim2.new(0, 0, 0, 0)
+    healthBg.BackgroundTransparency = 0.6
+    healthBg.BackgroundColor3 = Color3.fromRGB(0,0,0)
+    healthBg.BorderSizePixel = 0
+    healthBg.Visible = false
+    healthBg.Parent = screenGui
+
+    local healthFill = Instance.new("Frame")
+    healthFill.Name = "HealthFill"
+    healthFill.AnchorPoint = Vector2.new(0, 1)
+    healthFill.Size = UDim2.new(1, 0, 0, 0)
+    healthFill.Position = UDim2.new(0, 0, 1, 0)
+    healthFill.BackgroundColor3 = Color3.fromRGB(0,255,0)
+    healthFill.BorderSizePixel = 0
+    healthFill.Parent = healthBg
 
     label.TextColor3 = config.espc
     if targetPlayer == config.currentTarget or targetPlayer == config.aimbotCurrentTarget then
@@ -879,70 +1068,138 @@ local function makeesp(targetPlayer)
     end
 
     local function startUpdater()
-        if not targetPlayer.Character then
-            label.Visible = false
-            return
-        end
-        local head = targetPlayer.Character:FindFirstChild("Head")
-        if not head then
-            label.Visible = false
-            return
-        end
-
         if config.espData[targetPlayer] and config.espData[targetPlayer].connection then
             pcall(function() config.espData[targetPlayer].connection:Disconnect() end)
         end
 
         local conn = RunService.RenderStepped:Connect(function()
-            if not targetPlayer or not targetPlayer.Character or not head or not head.Parent then
+            local tchar = getTargetCharacter(targetPlayer)
+            if not targetPlayer or not tchar or not tchar.Parent then
                 label.Visible = false
+                boxFrame.Visible = false
+                healthBg.Visible = false
                 return
             end
 
             if not addesp(targetPlayer) then
                 label.Visible = false
+                boxFrame.Visible = false
+                healthBg.Visible = false
                 return
             end
 
-            local headPosition = head.Position + Vector3.new(0, 2, 0)
-            local screenPos, onScreen = camera:WorldToViewportPoint(headPosition)
-            if onScreen then
+            local head = tchar:FindFirstChild("Head")
+            local root = tchar:FindFirstChild("HumanoidRootPart") or tchar:FindFirstChild("Torso") or tchar:FindFirstChild("UpperTorso")
+            if not head or not root then
+                label.Visible = false
+                boxFrame.Visible = false
+                healthBg.Visible = false
+                return
+            end
+
+            local topPos = head.Position + Vector3.new(0, 0.4, 0)
+            local bottomPos = root.Position - Vector3.new(0, 1.0, 0)
+            local midPos = (topPos + bottomPos) * 0.5
+            local topV3, onTop = camera:WorldToViewportPoint(topPos)
+            local bottomV3, onBottom = camera:WorldToViewportPoint(bottomPos)
+            local midV3, onMid = camera:WorldToViewportPoint(midPos)
+            local onScreen = onTop and onBottom and onMid and topV3.Z > 0 and bottomV3.Z > 0 and midV3.Z > 0
+            local topScreenY = topV3.Y
+            local bottomScreenY = bottomV3.Y
+            local centerX = midV3.X
+            local heightPx = math.abs(bottomScreenY - topScreenY)
+            if heightPx <= 2 then heightPx = 2 end
+            local widthPx = math.clamp(heightPx * 0.45, 4, 400)
+
+            local humanoid = tchar:FindFirstChildOfClass("Humanoid")
+            local hpRatio = 1
+            if humanoid then
+                local maxH = humanoid.MaxHealth or 100
+                if maxH > 0 then
+                    hpRatio = math.clamp(humanoid.Health / maxH, 0, 1)
+                end
+            end
+
+            local hpColor = Color3.new(1,1,1)
+            if humanoid then
+                hpColor = healthColor(humanoid)
+            end
+
+            if config.espMasterEnabled and config.prefTextESP then
+                local text = string.format("%s [%d]", getTargetName(targetPlayer), humanoid and math.floor(humanoid.Health) or 0)
+                label.Text = text
+
                 local absWidth = 200
                 pcall(function()
-                    if label.AbsoluteSize and label.AbsoluteSize.X and label.AbsoluteSize.X > 0 then
+                    if label.TextBounds and label.TextBounds.X and label.TextBounds.X > 0 then
+                        absWidth = label.TextBounds.X + 8
+                    elseif label.AbsoluteSize and label.AbsoluteSize.X and label.AbsoluteSize.X > 0 then
                         absWidth = label.AbsoluteSize.X
                     end
                 end)
-                label.Position = UDim2.new(0, screenPos.X - absWidth / 2, 0, screenPos.Y - 30)
-                local distance = (camera.CFrame.Position - headPosition).Magnitude
-                label.Text = string.format("%s [%d]", targetPlayer.Name, math.floor(distance))
 
-                if targetPlayer == config.currentTarget or targetPlayer == config.aimbotCurrentTarget then
-                    label.TextColor3 = config.esptargetc
+                label.Size = UDim2.new(0, absWidth, 0, 18)
+                label.Position = UDim2.new(0, centerX, 0, topScreenY - 4)
+                label.Visible = onScreen
+                if config.prefColorByHealth and humanoid then
+                    label.TextColor3 = hpColor
                 else
-                    label.TextColor3 = config.espc
+                    label.TextColor3 = ((targetPlayer == config.currentTarget) or (targetPlayer == config.aimbotCurrentTarget)) and config.esptargetc or config.espc
                 end
-
-                label.Visible = true
             else
                 label.Visible = false
             end
+
+            if config.espMasterEnabled and config.prefBoxESP then
+                boxFrame.Size = UDim2.new(0, widthPx, 0, math.max(2, heightPx))
+                boxFrame.Position = UDim2.new(0, centerX - widthPx / 2, 0, topScreenY)
+                boxFrame.Visible = onScreen
+                boxFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+                boxFrame.BackgroundTransparency = 0.7
+
+                if config.prefColorByHealth and humanoid then
+                    boxOutline.Color = hpColor
+                else
+                    boxOutline.Color = ((targetPlayer == config.currentTarget) or (targetPlayer == config.aimbotCurrentTarget)) and config.esptargetc or config.espc
+                end
+            else
+                boxFrame.Visible = false
+            end
+
+            if config.espMasterEnabled and config.prefHealthESP and humanoid then
+                healthBg.Size = UDim2.new(0, 4, 0, math.max(2, heightPx))
+                healthBg.Position = UDim2.new(0, centerX + widthPx / 2 + 4, 0, topScreenY)
+                healthBg.Visible = onScreen
+                healthFill.Size = UDim2.new(1, 0, hpRatio, 0)
+                healthFill.Position = UDim2.new(0, 0, 1, 0)
+                healthFill.BackgroundColor3 = healthColor(humanoid)
+            else
+                healthBg.Visible = false
+            end
+
         end)
 
         config.espData[targetPlayer] = {
             label = label,
             screenGui = screenGui,
-            connection = conn
+            connection = conn,
+            box = boxFrame,
+            boxOutline = boxOutline,
+            healthBG = healthBg,
+            healthFill = healthFill
         }
     end
 
-    if targetPlayer.Character and targetPlayer.Character:FindFirstChild("Head") then
+    local char = getTargetCharacter(targetPlayer)
+    if char and (char:FindFirstChild("Head") or char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso") or char:FindFirstChild("UpperTorso")) then
         startUpdater()
     else
         spawn(function()
-            if targetPlayer.Character then
-                local head = targetPlayer.Character:WaitForChild("Head", 2)
-                if head then
+            local c = getTargetCharacter(targetPlayer)
+            if c then
+                local okHead = c:WaitForChild("Head", 2)
+                local okRoot = c:FindFirstChild("HumanoidRootPart") or c:FindFirstChild("Torso") or c:FindFirstChild("UpperTorso")
+                if okHead or okRoot then
                     startUpdater()
                 end
             end
@@ -951,28 +1208,68 @@ local function makeesp(targetPlayer)
 end
 
 local function updateESPColors()
+    local toRemove = {}
     for targetPlayer, data in pairs(config.espData) do
-        if not targetPlayer or not data or not data.label then
-            config.espData[targetPlayer] = nil
+        if (not targetPlayer) or (not data) or (not data.label) then
+            toRemove[#toRemove+1] = targetPlayer
         else
             if not addesp(targetPlayer) then
-                removeESPLabel(targetPlayer)
+                toRemove[#toRemove+1] = targetPlayer
             else
-                if targetPlayer == config.currentTarget or targetPlayer == config.aimbotCurrentTarget then
-                    data.label.TextColor3 = config.esptargetc
-                else
-                    data.label.TextColor3 = config.espc
+                local tchar = getTargetCharacter(targetPlayer)
+                local humanoid = tchar and tchar:FindFirstChildOfClass("Humanoid")
+                local hpColor = (humanoid and config.prefColorByHealth) and healthColor(humanoid) or nil
+
+                if data.label then
+                    if config.espMasterEnabled and config.prefTextESP then
+                        if hpColor then
+                            data.label.TextColor3 = hpColor
+                        else
+                            data.label.TextColor3 = ((targetPlayer == config.currentTarget) or (targetPlayer == config.aimbotCurrentTarget)) and config.esptargetc or config.espc
+                        end
+                        data.label.Visible = true
+                    else
+                        data.label.Visible = false
+                    end
+                end
+
+                if data.box then
+                    if config.espMasterEnabled and config.prefBoxESP then
+                        data.box.Visible = true
+                        if data.boxOutline then
+                            data.boxOutline.Color = hpColor or ((targetPlayer == config.currentTarget or targetPlayer == config.aimbotCurrentTarget) and config.esptargetc or config.espc)
+                        end
+                    else
+                        data.box.Visible = false
+                    end
+                end
+
+                if data.healthBG then
+                    if config.espMasterEnabled and config.prefHealthESP and humanoid then
+                        data.healthBG.Visible = true
+                        local maxH = humanoid.MaxHealth or 100
+                        local hRatio = math.clamp(humanoid.Health / maxH, 0, 1)
+                        data.healthFill.Size = UDim2.new(1, 0, hRatio, 0)
+                        data.healthFill.BackgroundColor3 = healthColor(humanoid)
+                    else
+                        data.healthBG.Visible = false
+                    end
                 end
             end
         end
     end
 
+    for _, targetPlayer in ipairs(toRemove) do
+        config.espData[targetPlayer] = nil
+    end
+
+    local toRemoveHighlights = {}
     for targetPlayer, highlight in pairs(config.highlightData) do
         if not targetPlayer or not highlight or not highlight.Parent then
-            config.highlightData[targetPlayer] = nil
+            toRemoveHighlights[#toRemoveHighlights+1] = targetPlayer
         else
             if not addesp(targetPlayer) then
-                removeHighlightESP(targetPlayer)
+                toRemoveHighlights[#toRemoveHighlights+1] = targetPlayer
             else
                 if targetPlayer == config.currentTarget or targetPlayer == config.aimbotCurrentTarget then
                     highlight.FillColor = config.esptargetc
@@ -982,15 +1279,20 @@ local function updateESPColors()
             end
         end
     end
+
+    for _, targetPlayer in ipairs(toRemoveHighlights) do
+        config.highlightData[targetPlayer] = nil
+    end
 end
 
 local function toggleHighlightESP(enabled)
-    config.highlightesp = enabled
+    config.prefHighlightESP = enabled
+    config.highlightesp = enabled and config.espMasterEnabled or false
 
-    if enabled then
-        for _, targetPlayer in ipairs(Players:GetPlayers()) do
-            if addesp(targetPlayer) and targetPlayer.Character then
-                high(targetPlayer)
+    if config.espMasterEnabled and enabled then
+        for _, target in ipairs(getAllTargets()) do
+            if addesp(target) and target.Character then
+                high(target)
             end
         end
     else
@@ -1001,13 +1303,14 @@ local function toggleHighlightESP(enabled)
     end
 end
 
-local function toggleESP(enabled)
-    config.espEnabled = enabled
+local function toggleTextESP(enabled)
+    config.prefTextESP = enabled
+    config.espEnabled = enabled and config.espMasterEnabled or false
 
-    if enabled then
-        for _, targetPlayer in ipairs(Players:GetPlayers()) do
-            if addesp(targetPlayer) then
-                makeesp(targetPlayer)
+    if config.espMasterEnabled and enabled then
+        for _, target in ipairs(getAllTargets()) do
+            if addesp(target) then
+                makeesp(target)
             end
         end
     else
@@ -1018,11 +1321,84 @@ local function toggleESP(enabled)
     end
 end
 
-local function removeAllFaceDecals()
-    for _, targetPlayer in ipairs(Players:GetPlayers()) do
-        if targetPlayer ~= localPlayer then
-            RFD(targetPlayer)
+local function toggleBoxESP(enabled)
+    config.prefBoxESP = enabled
+    if config.espMasterEnabled then
+        for _, target in ipairs(getAllTargets()) do
+            if addesp(target) then
+                if not config.espData[target] then
+                    makeesp(target)
+                end
+            end
         end
+        updateESPColors()
+    else
+        for targetPlayer, _ in pairs(config.espData) do
+            removeESPLabel(targetPlayer)
+        end
+        config.espData = {}
+    end
+end
+
+local function toggleHealthESP(enabled)
+    config.prefHealthESP = enabled
+    if config.espMasterEnabled then
+        for _, target in ipairs(getAllTargets()) do
+            if addesp(target) then
+                if not config.espData[target] then
+                    makeesp(target)
+                end
+            end
+        end
+        updateESPColors()
+    else
+    end
+end
+
+local function applyESPMaster(state)
+    config.espMasterEnabled = state
+
+    if not state then
+        for targetPlayer, _ in pairs(config.espData) do
+            removeESPLabel(targetPlayer)
+        end
+        config.espData = {}
+
+        for targetPlayer, _ in pairs(config.highlightData) do
+            removeHighlightESP(targetPlayer)
+        end
+        config.highlightData = {}
+        config.espEnabled = false
+        config.highlightesp = false
+    else
+        if config.prefHighlightESP then
+            for _, target in ipairs(getAllTargets()) do
+                if addesp(target) and target.Character then
+                    high(target)
+                end
+            end
+        end
+        if config.prefTextESP or config.prefBoxESP or config.prefHealthESP then
+            for _, target in ipairs(getAllTargets()) do
+                if addesp(target) then
+                    makeesp(target)
+                end
+            end
+            config.espEnabled = config.prefTextESP
+            config.highlightesp = config.prefHighlightESP
+        end
+    end
+
+    updateESPColors()
+end
+
+local function toggleESP(enabled)
+    toggleTextESP(enabled)
+end
+
+local function removeAllFaceDecals()
+    for _, target in ipairs(getAllTargets()) do
+        RFD(target)
     end
 end
 
@@ -1034,10 +1410,10 @@ local function saveOriginalPartInfo(targetPlayer, part)
     }
 end
 
-local function chooseBodyPartInstance(targetPlayer)
-    if not targetPlayer or not targetPlayer.Character then return nil, "Head" end
+local function chooseBodyPartInstance(target)
+    local char = getTargetCharacter(target)
+    if not char then return nil, "Head" end
 
-    local char = targetPlayer.Character
     local bp = config.bodypart or "Head"
 
     if bp == "Head" then
@@ -1068,7 +1444,8 @@ local function chooseBodyPartInstance(targetPlayer)
 end
 
 local function applySizeToPart(targetPlayer, targetDiameter, chosenPart)
-    if not targetPlayer or not targetPlayer.Character or targetPlayer == localPlayer then return end
+    local char = getTargetCharacter(targetPlayer)
+    if not char or targetPlayer == localPlayer then return end
     if not plralive(targetPlayer) then return end
 
     local part = chosenPart
@@ -1121,7 +1498,7 @@ end
 local function restorePartForPlayer(targetPlayer)
     if not targetPlayer or targetPlayer == localPlayer then return end
 
-    local char = targetPlayer.Character
+    local char = getTargetCharacter(targetPlayer)
     local original = config.originalSizes[targetPlayer]
     if not original then
         config.activeApplied[targetPlayer] = nil
@@ -1154,9 +1531,9 @@ local function restorePartForPlayer(targetPlayer)
 end
 
 local function tnormalsize(targetPlayer)
-    if not targetPlayer or not targetPlayer.Character then return end  
+    local char = getTargetCharacter(targetPlayer)
+    if not char then return end  
 
-    local char = targetPlayer.Character  
     local torso = char:FindFirstChild("Torso") or char:FindFirstChild("UpperTorso")
 
     if torso and not config.hitboxOriginalSizes[targetPlayer] then
@@ -1167,10 +1544,12 @@ local function tnormalsize(targetPlayer)
     end
 end
 local function expandhb(targetPlayer, size)
-    if not targetPlayer or not targetPlayer.Character or targetPlayer == localPlayer then return end  
+    if not targetPlayer then return end
+    if targetPlayer == localPlayer then return end
     if not plralive(targetPlayer) then return end  
 
-    local char = targetPlayer.Character  
+    local char = getTargetCharacter(targetPlayer)
+    if not char then return end
     local torso = char:FindFirstChild("Torso") or char:FindFirstChild("UpperTorso")  
     if not torso then return end  
 
@@ -1218,10 +1597,10 @@ local function updateHitboxes()
     end
 
     for player, data in pairs(config.hitboxExpandedParts) do
-        if not player or not plralive(player) or not player.Character then
+        if not player or not plralive(player) or not getTargetCharacter(player) then
             restoreTorso(player)
         else
-            local torso = player.Character:FindFirstChild("Torso") or player.Character:FindFirstChild("UpperTorso")
+            local torso = getTargetCharacter(player):FindFirstChild("Torso") or getTargetCharacter(player):FindFirstChild("UpperTorso")
             if torso and data.targetSize then
                 pcall(function()
                     torso.Size = data.targetSize
@@ -1240,6 +1619,13 @@ local function targethb(player)
 
     local mode = config.hitboxTeamTarget or "Enemies"
 
+    if typeof(player) == "Instance" and player:IsA("Model") then
+        if mode == "Teams" then
+            return false
+        end
+        return true
+    end
+
     if mode == "Enemies" then
         return not isTeammate(player)
     elseif mode == "Teams" then
@@ -1254,13 +1640,13 @@ end
 local function applyhb()
     if not config.hitboxEnabled then return end  
 
-    for _, player in ipairs(Players:GetPlayers()) do  
-        if targethb(player) then
+    for _, target in ipairs(getAllTargets()) do  
+        if targethb(target) then
             local size = config.hitboxSize
-            config.hitboxLastSize[player] = size
-            expandhb(player, size)
+            config.hitboxLastSize[target] = size
+            expandhb(target, size)
         else
-            restoreTorso(player)
+            restoreTorso(target)
         end
     end
 end
@@ -1293,13 +1679,13 @@ RunService.Heartbeat:Connect(updateHitboxes)
 
 local function hb()
     for playerObj, targetSize in pairs(config.targethbSizes) do
-        if playerObj and playerObj ~= localPlayer and playerObj.Character and plralive(playerObj) then
-            local part = playerObj.Character:FindFirstChild(config.originalSizes[playerObj] and config.originalSizes[playerObj].partName) 
-                         or playerObj.Character:FindFirstChild(config.bodypart) 
-                         or playerObj.Character:FindFirstChild("Head")
+        if playerObj and playerObj ~= localPlayer and getTargetCharacter(playerObj) and plralive(playerObj) then
+            local part = getTargetCharacter(playerObj):FindFirstChild(config.originalSizes[playerObj] and config.originalSizes[playerObj].partName) 
+                         or getTargetCharacter(playerObj):FindFirstChild(config.bodypart) 
+                         or getTargetCharacter(playerObj):FindFirstChild("Head")
             if not part then
-                local p1 = playerObj.Character:FindFirstChild("HumanoidRootPart")
-                local p2 = playerObj.Character:FindFirstChild("Head")
+                local p1 = getTargetCharacter(playerObj):FindFirstChild("HumanoidRootPart")
+                local p2 = getTargetCharacter(playerObj):FindFirstChild("Head")
                 part = p1 or p2
             end
 
@@ -1325,15 +1711,24 @@ local function hb()
     updateHitboxes()
 end
 
-local function shouldTargetAimbot(player)
-    if not player or player == localPlayer then return false end
-    if not plralive(player) then return false end
+local function shouldTargetAimbot(target)
+    if not target then return false end
+    if target == localPlayer then return false end
+    if not plralive(target) then return false end
     
+    if typeof(target) == "Instance" and target:IsA("Model") then
+        if config.masterTarget == "NPCs" or config.masterTarget == "Both" then
+            return true
+        else
+            return false
+        end
+    end
+
     local mode = config.aimbotTeamTarget or "Enemies"
     if mode == "Enemies" then
-        return not isTeammate(player)
+        return not isTeammate(target)
     elseif mode == "Teams" then
-        return isTeammate(player)
+        return isTeammate(target)
     elseif mode == "All" then
         return true
     end
@@ -1369,11 +1764,11 @@ local function aimbotWallCheck(targetPos, sourcePos)
     return true
 end
 
-local function getAimbotTargetPart(player)
-    if not player or not player.Character then return nil end
-    
+local function getAimbotTargetPart(target)
+    if not target then return nil end
     local partName = config.aimbotTargetPart or "Head"
-    local char = player.Character
+    local char = getTargetCharacter(target)
+    if not char then return nil end
     
     if partName == "Head" then
         return char:FindFirstChild("Head")
@@ -1411,9 +1806,9 @@ local function aimbotUpdate()
     local bestPart = nil
     local bestAngle = 180
     
-    for _, player in ipairs(Players:GetPlayers()) do
-        if shouldTargetAimbot(player) and player.Character then
-            local targetPart = getAimbotTargetPart(player)
+    for _, target in ipairs(getAllTargets()) do
+        if shouldTargetAimbot(target) then
+            local targetPart = getAimbotTargetPart(target)
             if targetPart then
                 local screenPos, onScreen = camera:WorldToViewportPoint(targetPart.Position)
                 if config.aimbot360Enabled or onScreen then
@@ -1431,14 +1826,14 @@ local function aimbotUpdate()
                         local isBehind = angle > 90
                         
                         if config.aimbot360Omnidirectional then
-                            bestTarget = player
+                            bestTarget = target
                             bestScreenDist = distPx
                             bestPart = targetPart
                             bestAngle = angle
                         else
                             if distPx < bestScreenDist or (distPx == bestScreenDist and angle < bestAngle) then
                                 if aimbotWallCheck(targetPart.Position, cameraPos) then
-                                    bestTarget = player
+                                    bestTarget = target
                                     bestScreenDist = distPx
                                     bestPart = targetPart
                                     bestAngle = angle
@@ -1616,56 +2011,58 @@ local function onRenderStep()
     local best = nil
     local bestWorldDist = math.huge
 
-    for _, pl in ipairs(Players:GetPlayers()) do
-        if pl ~= localPlayer and pl.Character then
-            local bodyPart, chosenName = chooseBodyPartInstance(pl)
-            local humanoid = pl.Character:FindFirstChildOfClass("Humanoid")
+    for _, pl in ipairs(getAllTargets()) do
+        local bodyPart, chosenName = chooseBodyPartInstance(pl)
+        local humanoid = nil
+        local char = getTargetCharacter(pl)
+        if char then
+            humanoid = char:FindFirstChildOfClass("Humanoid")
+        end
 
-            if bodyPart and humanoid and humanoid.Health > 0 then
-                local mode = config.targetMode or "Enemies"
-                local skip = false
-                if mode == "Enemies" then
-                    if isTeammate(pl) then
-                        skip = true
-                    end
-                elseif mode == "Teams" then
-                    if not isTeammate(pl) then
-                        skip = true
-                    end
-                elseif mode == "All" then
-                    skip = false
+        if bodyPart and humanoid and humanoid.Health > 0 then
+            local mode = config.targetMode or "Enemies"
+            local skip = false
+            if mode == "Enemies" then
+                if typeof(pl) == "Instance" and pl:IsA("Player") and isTeammate(pl) then
+                    skip = true
                 end
+            elseif mode == "Teams" then
+                if typeof(pl) == "Instance" and pl:IsA("Player") and not isTeammate(pl) then
+                    skip = true
+                end
+            elseif mode == "All" then
+                skip = false
+            end
 
-                if not skip then
-                    local screenPos3, onScreen = camera:WorldToViewportPoint(bodyPart.Position)
-                    if onScreen then
-                        local screenVec = Vector2.new(screenPos3.X, screenPos3.Y)
-                        local distPx = (screenVec - center).Magnitude
-                        if distPx <= radiusPx then
-                            local cameraPos = camera.CFrame.Position
-                            local targetPos = bodyPart.Position
-                            if wallCheck(targetPos, cameraPos) then
-                                local worldDist = (cameraPos - targetPos).Magnitude
-                                if worldDist < bestWorldDist then
-                                    best = {
-                                        player = pl,
-                                        part = bodyPart,
-                                        partName = chosenName,
-                                        screenDist = distPx,
-                                        worldDist = worldDist,
-                                        screenPos = screenVec,
-                                        screenPos3 = screenPos3
-                                    }
-                                    bestWorldDist = worldDist
-                                end
+            if not skip then
+                local screenPos3, onScreen = camera:WorldToViewportPoint(bodyPart.Position)
+                if onScreen then
+                    local screenVec = Vector2.new(screenPos3.X, screenPos3.Y)
+                    local distPx = (screenVec - center).Magnitude
+                    if distPx <= radiusPx then
+                        local cameraPos = camera.CFrame.Position
+                        local targetPos = bodyPart.Position
+                        if wallCheck(targetPos, cameraPos) then
+                            local worldDist = (cameraPos - targetPos).Magnitude
+                            if worldDist < bestWorldDist then
+                                best = {
+                                    player = pl,
+                                    part = bodyPart,
+                                    partName = chosenName,
+                                    screenDist = distPx,
+                                    worldDist = worldDist,
+                                    screenPos = screenVec,
+                                    screenPos3 = screenPos3
+                                }
+                                bestWorldDist = worldDist
                             end
                         end
                     end
                 end
-            else
-                if config.activeApplied[pl] then
-                    restorePartForPlayer(pl)
-                end
+            end
+        else
+            if config.activeApplied[pl] then
+                restorePartForPlayer(pl)
             end
         end
     end
@@ -1703,7 +2100,7 @@ local function onRenderStep()
         diameter = math.max(0.01, diameter)
 
         local localChar = localPlayer.Character
-        local targetChar = best.player.Character
+        local targetChar = getTargetCharacter(best.player)
         local distance = math.huge
 
         if localChar and targetChar then
@@ -1778,10 +2175,10 @@ local function onRenderStep()
 end
 
 local function setupDeathListener(targetPlayer)
-    if targetPlayer == localPlayer then return end
-    if not targetPlayer.Character then return end
+    local char = getTargetCharacter(targetPlayer)
+    if not char then return end
 
-    local humanoid = targetPlayer.Character:FindFirstChildOfClass("Humanoid")
+    local humanoid = char:FindFirstChildOfClass("Humanoid")
     if not humanoid then return end
 
     if config.characterConnections[targetPlayer] then
@@ -1868,10 +2265,10 @@ local function setupPlayerListeners(pl)
     removeESPLabel(pl)
     removeHighlightESP(pl)
 
-    if config.espEnabled and addesp(pl) then
+    if config.espMasterEnabled and config.prefTextESP and addesp(pl) then
         makeesp(pl)
     end
-    if config.highlightesp and pl.Character and addesp(pl) then
+    if config.espMasterEnabled and config.prefHighlightESP and pl.Character and addesp(pl) then
         high(pl)
     end
     if config.rfd then
@@ -1885,13 +2282,13 @@ local function setupPlayerListeners(pl)
         restoreTorso(pl)
 
         removeESPLabel(pl)
-        if config.espEnabled and addesp(pl) then
+        if config.espMasterEnabled and config.prefTextESP and addesp(pl) then
             task.wait(0.05)
             makeesp(pl)
         end
 
         removeHighlightESP(pl)
-        if config.highlightesp and addesp(pl) then
+        if config.espMasterEnabled and config.prefHighlightESP and addesp(pl) then
             task.wait(0.05)
             high(pl)
         end
@@ -1914,13 +2311,13 @@ local function setupPlayerListeners(pl)
             removeESPLabel(pl)
             removeHighlightESP(pl)
         else
-            if config.espEnabled then
+            if config.espMasterEnabled and config.prefTextESP then
                 removeESPLabel(pl)
                 if addesp(pl) then
                     makeesp(pl)
                 end
             end
-            if config.highlightesp and pl.Character then
+            if config.espMasterEnabled and config.prefHighlightESP and pl.Character then
                 removeHighlightESP(pl)
                 if addesp(pl) and pl.Character then
                     high(pl)
@@ -1948,19 +2345,199 @@ local function lrfd()
     end)
 end
 
+local function safeGetCharacter()
+    if not localPlayer then return nil end
+    local character = localPlayer.Character or localPlayer.CharacterAdded:Wait()
+    local humanoid = character:FindFirstChildOfClass("Humanoid")
+    local rootPart = character:FindFirstChild("HumanoidRootPart")
+    return character, humanoid, rootPart
+end
+
+local function TpWalkStart()
+    if config._tpwalking then return end
+    config._tpwalking = true
+
+    task.spawn(function()
+        while config._tpwalking and localPlayer and localPlayer.Character and localPlayer.Character.Parent do
+            local character, humanoid, rootPart = safeGetCharacter()
+            if not humanoid or humanoid.Health <= 0 or not rootPart then
+                task.wait(0.1)
+            else
+                local delta = RunService.Heartbeat:Wait()
+                if humanoid.MoveDirection.Magnitude > 0 then
+                    local moveDirection = humanoid.MoveDirection.Unit
+                    local velocity = moveDirection * (config.clientCFrameSpeed or 1) * 50
+                    pcall(function()
+                        rootPart.CFrame = rootPart.CFrame + velocity * delta
+                    end)
+                end
+            end
+            task.wait()
+        end
+        config._tpwalking = false
+    end)
+end
+
+local function TpWalkStop()
+    config._tpwalking = false
+end
+
+local _noclipConn
+local function startNoclip()
+    if _noclipConn then return end
+    _noclipConn = RunService.Stepped:Connect(function()
+        local char = localPlayer.Character
+        if not char then return end
+        for _, part in ipairs(char:GetDescendants()) do
+            if part:IsA("BasePart") then
+                pcall(function() part.CanCollide = false end)
+            end
+        end
+    end)
+    config.clientConnections.noclip = _noclipConn
+end
+
+local function stopNoclip()
+    if _noclipConn then
+        pcall(function() _noclipConn:Disconnect() end)
+        _noclipConn = nil
+        config.clientConnections.noclip = nil
+    end
+end
+
+local function applyClientWalkSpeed(val)
+    local character, humanoid = safeGetCharacter()
+    if humanoid then
+        if config.clientOriginals.WalkSpeed == nil then
+            config.clientOriginals.WalkSpeed = humanoid.WalkSpeed
+        end
+        pcall(function() humanoid.WalkSpeed = val end)
+    end
+end
+
+local function applyClientJumpPower(val)
+    local character, humanoid = safeGetCharacter()
+    if humanoid then
+        if config.clientOriginals.JumpPower == nil then
+            config.clientOriginals.JumpPower = humanoid.JumpPower or humanoid.JumpHeight or 0
+        end
+        pcall(function()
+            if humanoid.JumpPower ~= nil then
+                humanoid.JumpPower = val
+            else
+                humanoid.JumpHeight = val
+            end
+        end)
+    end
+end
+
+local function restoreClientValues()
+    local character, humanoid = safeGetCharacter()
+    if humanoid then
+        if config.clientOriginals.WalkSpeed then
+            pcall(function() humanoid.WalkSpeed = config.clientOriginals.WalkSpeed end)
+            config.clientOriginals.WalkSpeed = nil
+        end
+        if config.clientOriginals.JumpPower then
+            pcall(function()
+                if humanoid.JumpPower ~= nil then
+                    humanoid.JumpPower = config.clientOriginals.JumpPower
+                else
+                    humanoid.JumpHeight = config.clientOriginals.JumpPower
+                end
+            end)
+            config.clientOriginals.JumpPower = nil
+        end
+    end
+    if config.clientCFrameWalkEnabled then
+        TpWalkStop()
+        config.clientCFrameWalkEnabled = false
+    end
+    if config.clientNoclip then
+        stopNoclip()
+        config.clientNoclip = false
+    end
+end
+
+local function applyClientMaster(state)
+    if config.clientMasterEnabled == state then
+        return
+    end
+    config.clientMasterEnabled = state
+
+    if state then
+        if config.clientNoclipEnabled then
+            startNoclip()
+            config.clientNoclip = true
+        end
+        if config.clientCFrameWalkToggle then
+            TpWalkStart()
+            config.clientCFrameWalkEnabled = true
+        end
+        if config.clientWalkEnabled and config.clientWalkSpeed and config.clientWalkSpeed > 0 then
+            applyClientWalkSpeed(config.clientWalkSpeed)
+        end
+        if config.clientJumpEnabled and config.clientJumpPower and config.clientJumpPower > 0 then
+            applyClientJumpPower(config.clientJumpPower)
+        end
+        safeNotify({
+            Title = "Client Master",
+            Content = "Client features enabled",
+            Audio = "rbxassetid://17208361335",
+            Length = 1,
+            Image = "rbxassetid://4483362458",
+            BarColor = Color3.fromRGB(0, 170, 255)
+        })
+    else
+        restoreClientValues()
+        safeNotify({
+            Title = "Client Master",
+            Content = "Client features disabled",
+            Audio = "rbxassetid://17208361335",
+            Length = 1,
+            Image = "rbxassetid://4483362458",
+            BarColor = Color3.fromRGB(255, 0, 0)
+        })
+    end
+end
+
 local function makeui()
     lib:SetTitle("Gravel.cc")
     lib:SetIcon("http://www.roblox.com/asset/?id=132214308111067")
     lib:SetTheme("HighContrast")
-    local T0 = lib:CreateTab("Main")
-    local T1 = lib:CreateTab("SilentAim")
-    local T2 = lib:CreateTab("Visuals")
-    local T3 = lib:CreateTab("Aimbot")
-    local T4 = lib:CreateTab("Hitbox")
-    local T5 = lib:CreateTab("AntiAim")
+    local T0 = lib:CreateTab("Client")
+    local T1 = lib:CreateTab("Main")
+    local T2 = lib:CreateTab("SilentAim")
+    local T3 = lib:CreateTab("Visuals")
+    local T4 = lib:CreateTab("Aimbot")
+    local T5 = lib:CreateTab("Hitbox")
+    local T6 = lib:CreateTab("AntiAim")
 
     lib:Tab("Visuals")
-    lib:AddToggle("Toggle Highlight ESP (V)", function(state)
+    lib:AddToggle("Enable ESP (Z)", function(state)
+        applyESPMaster(state)
+        if state then
+            safeNotify({
+                Title = "ESP Master",
+                Content = "ESP Enabled",
+                Audio = "rbxassetid://17208361335",
+                Length = 1,
+                Image = "rbxassetid://",
+                BarColor = Color3.fromRGB(0, 170, 255)
+            })
+        else
+            safeNotify({
+                Title = "ESP Master",
+                Content = "ESP Disabled",
+                Audio = "rbxassetid://17208361335",
+                Length = 1,
+                Image = "rbxassetid://",
+                BarColor = Color3.fromRGB(255, 0, 0)
+            })
+        end
+    end, false)
+
+    lib:AddToggle("Toggle Highlight ESP", function(state)
         toggleHighlightESP(state)
         if state then
             safeNotify({
@@ -1983,8 +2560,8 @@ local function makeui()
         end
     end, false)
     
-    lib:AddToggle("Toggle Text ESP (Z)", function(state)
-        toggleESP(state)
+    lib:AddToggle("Toggle Text ESP", function(state)
+        toggleTextESP(state)
         if state then
             safeNotify({
                 Title = "Text ESP",
@@ -2005,6 +2582,77 @@ local function makeui()
             })
         end
     end, false)
+
+    lib:AddToggle("Toggle Box ESP", function(state)
+        toggleBoxESP(state)
+        if state then
+            safeNotify({
+                Title = "Box ESP",
+                Content = "Enabled",
+                Audio = "rbxassetid://17208361335",
+                Length = 1,
+                Image = "rbxassetid://",
+                BarColor = Color3.fromRGB(0, 170, 255)
+            })
+        else
+            safeNotify({
+                Title = "Box ESP",
+                Content = "Disabled",
+                Audio = "rbxassetid://17208361335",
+                Length = 1,
+                Image = "rbxassetid://",
+                BarColor = Color3.fromRGB(255, 0, 0)
+            })
+        end
+    end, false)
+
+    lib:AddToggle("Toggle Health ESP", function(state)
+        toggleHealthESP(state)
+        if state then
+            safeNotify({
+                Title = "Health ESP",
+                Content = "Enabled",
+                Audio = "rbxassetid://17208361335",
+                Length = 1,
+                Image = "rbxassetid://",
+                BarColor = Color3.fromRGB(0, 170, 255)
+            })
+        else
+            safeNotify({
+                Title = "Health ESP",
+                Content = "Disabled",
+                Audio = "rbxassetid://17208361335",
+                Length = 1,
+                Image = "rbxassetid://",
+                BarColor = Color3.fromRGB(255, 0, 0)
+            })
+        end
+    end, false)
+
+    lib:AddToggle("ESP Based On Health", function(state)
+        config.prefColorByHealth = state
+        updateESPColors()
+        if state then
+            safeNotify({
+                Title = "ESP Color By Health",
+                Content = "Enabled",
+                Audio = "rbxassetid://17208361335",
+                Length = 1,
+                Image = "rbxassetid://",
+                BarColor = Color3.fromRGB(0, 200, 0)
+            })
+        else
+            safeNotify({
+                Title = "ESP Color By Health",
+                Content = "Disabled",
+                Audio = "rbxassetid://17208361335",
+                Length = 1,
+                Image = "rbxassetid://",
+                BarColor = Color3.fromRGB(200, 0, 0)
+            })
+        end
+    end, false)
+
     lib:Tab("AntiAim")
     
     lib:AddToggle("Toggle AntiAim (L)", function(state)
@@ -2187,7 +2835,7 @@ local function makeui()
                 Content = "Enabled",
                 Audio = "rbxassetid://17208361335",
                 Length = 1,
-                Image = "rbxassetid://",
+                Image = "rbxassetid://4483362458",
                 BarColor = Color3.fromRGB(0, 170, 255)
             })
         else
@@ -2196,7 +2844,7 @@ local function makeui()
                 Content = "Disabled",
                 Audio = "rbxassetid://17208361335",
                 Length = 1,
-                Image = "rbxassetid://",
+                Image = "rbxassetid://4483362458",
                 BarColor = Color3.fromRGB(255, 0, 0)
             })
         end
@@ -2337,7 +2985,7 @@ end, "Enter Size...", "10", {
                 Content = "Enabled",
                 Audio = "rbxassetid://17208361335",
                 Length = 1,
-                Image = "rbxassetid://",
+                Image = "rbxassetid://255",
                 BarColor = Color3.fromRGB(255, 100, 0)
             })
             if gui.RingHolder then
@@ -2435,6 +3083,121 @@ end, "Enter Size...", "10", {
         isNumber = true
     })
 
+    lib:Tab("Client")
+    lib:AddToggle("Enable Client Configuration (V)", function(state)
+        applyClientMaster(state)
+    end, false)
+
+    lib:AddInputBox("WalkSpeed Value", function(text)
+        local n = tonumber(text)
+        if n and n > 0 then
+            config.clientWalkSpeed = n
+            if config.clientMasterEnabled and config.clientWalkEnabled then
+                applyClientWalkSpeed(n)
+            end
+        end
+        return tostring(config.clientWalkSpeed)
+    end, "Enter WalkSpeed...", tostring(config.clientWalkSpeed), {
+        min = 1,
+        max = 1000,
+        isNumber = true
+    })
+
+    lib:AddToggle("Enable WalkSpeed", function(state)
+        config.clientWalkEnabled = state
+        if config.clientMasterEnabled then
+            if state then
+                applyClientWalkSpeed(config.clientWalkSpeed or 16)
+            else
+                if config.clientOriginals.WalkSpeed then
+                    local _, humanoid = safeGetCharacter()
+                    pcall(function() humanoid.WalkSpeed = config.clientOriginals.WalkSpeed end)
+                    config.clientOriginals.WalkSpeed = nil
+                end
+            end
+        end
+    end, false)
+
+    lib:AddInputBox("JumpPower Value", function(text)
+        local n = tonumber(text)
+        if n and n >= 0 then
+            config.clientJumpPower = n
+            if config.clientMasterEnabled and config.clientJumpEnabled then
+                applyClientJumpPower(n)
+            end
+        end
+        return tostring(config.clientJumpPower)
+    end, "Enter JumpPower...", tostring(config.clientJumpPower), {
+        min = 0,
+        max = 1000,
+        isNumber = true
+    })
+
+    lib:AddToggle("Enable JumpPower", function(state)
+        config.clientJumpEnabled = state
+        if config.clientMasterEnabled then
+            if state then
+                applyClientJumpPower(config.clientJumpPower or 50)
+            else
+                if config.clientOriginals.JumpPower then
+                    local _, humanoid = safeGetCharacter()
+                    pcall(function()
+                        if humanoid.JumpPower ~= nil then
+                            humanoid.JumpPower = config.clientOriginals.JumpPower
+                        else
+                            humanoid.JumpHeight = config.clientOriginals.JumpPower
+                        end
+                    end)
+                    config.clientOriginals.JumpPower = nil
+                end
+            end
+        end
+    end, false)
+
+    lib:AddToggle("Noclip", function(state)
+        config.clientNoclipEnabled = state
+        if config.clientMasterEnabled then
+            if state then
+                startNoclip()
+                config.clientNoclip = true
+            else
+                stopNoclip()
+                config.clientNoclip = false
+            end
+        else
+            stopNoclip()
+            config.clientNoclip = false
+        end
+    end, false)
+
+    lib:AddInputBox("CFrame Walk Speed", function(text)
+        local n = tonumber(text)
+        if n and n > 0 then
+            config.clientCFrameSpeed = n
+        end
+        return tostring(config.clientCFrameSpeed)
+    end, "Enter Speed...", tostring(config.clientCFrameSpeed), {
+        min = 1,
+        max = 1000,
+        isNumber = true
+    })
+
+    lib:AddToggle("CFrame Walk (TP-like)", function(state)
+        config.clientCFrameWalkToggle = state
+        if config.clientMasterEnabled then
+            if state then
+                TpWalkStart()
+                config.clientCFrameWalkEnabled = true
+            else
+                TpWalkStop()
+                config.clientCFrameWalkEnabled = false
+            end
+        else
+            TpWalkStop()
+            config.clientCFrameWalkEnabled = false
+        end
+    end, false)
+
     lib:Tab("Main")
     lib:AddComboBox("Master Team Target", {"Enemies", "Teams", "All"}, function(selection)
         if selection == "Enemies" then
@@ -2452,6 +3215,37 @@ end, "Enter Size...", "10", {
         end
         
         updateTeamTargetModes()
+    end)
+
+    lib:AddComboBox("(might not work well) Target", {"Players", "NPCs", "Both"}, function(selection)
+        if selection == "Players" then
+            config.masterTarget = "Players"
+        elseif selection == "NPCs" then
+            config.masterTarget = "NPCs"
+        elseif selection == "Both" then
+            config.masterTarget = "Both"
+        else
+            config.masterTarget = "Players"
+        end
+
+        config.currentTarget = nil
+        config.aimbotCurrentTarget = nil
+        if config.hitboxEnabled then
+            applyhb()
+        else
+            for player, _ in pairs(config.hitboxExpandedParts) do
+                restoreTorso(player)
+            end
+        end
+        updateESPColors()
+        safeNotify({
+            Title = "Target Selection",
+            Content = "Now targeting: " .. config.masterTarget,
+            Audio = "rbxassetid://17208361335",
+            Length = 2,
+            Image = "rbxassetid://4483362458",
+            BarColor = Color3.fromRGB(0, 170, 255)
+        })
     end)
 
     lib:AddToggle("Toggle AutoFarm (P)", function(state)
@@ -2616,10 +3410,11 @@ local function init()
                     })
                 end
             elseif kc == Enum.KeyCode.Z then
-                toggleESP(not config.espEnabled)
-                if config.espEnabled then
+                config.espMasterEnabled = not config.espMasterEnabled
+                applyESPMaster(config.espMasterEnabled)
+                if config.espMasterEnabled then
                     safeNotify({
-                        Title = "Text ESP",
+                        Title = "ESP Master",
                         Content = "Enabled (Hotkey)",
                         Audio = "rbxassetid://17208361335",
                         Length = 1,
@@ -2628,28 +3423,7 @@ local function init()
                     })
                 else
                     safeNotify({
-                        Title = "Text ESP",
-                        Content = "Disabled (Hotkey)",
-                        Audio = "rbxassetid://17208361335",
-                        Length = 1,
-                        Image = "rbxassetid://",
-                        BarColor = Color3.fromRGB(255, 0, 0)
-                    })
-                end
-            elseif kc == Enum.KeyCode.V then
-                toggleHighlightESP(not config.highlightesp)
-                if config.highlightesp then
-                    safeNotify({
-                        Title = "Highlight ESP",
-                        Content = "Enabled (Hotkey)",
-                        Audio = "rbxassetid://17208361335",
-                        Length = 1,
-                        Image = "rbxassetid://",
-                        BarColor = Color3.fromRGB(0, 170, 255)
-                    })
-                else
-                    safeNotify({
-                        Title = "Highlight ESP",
+                        Title = "ESP Master",
                         Content = "Disabled (Hotkey)",
                         Audio = "rbxassetid://17208361335",
                         Length = 1,
@@ -2751,7 +3525,7 @@ local function init()
                         Content = "Enabled (Hotkey)",
                         Audio = "rbxassetid://17208361335",
                         Length = 1,
-                        Image = "rbxassetid://",
+                        Image = "rbxassetid://4483362458",
                         BarColor = Color3.fromRGB(0, 170, 255)
                     })
                 else
@@ -2760,7 +3534,7 @@ local function init()
                         Content = "Disabled (Hotkey)",
                         Audio = "rbxassetid://17208361335",
                         Length = 1,
-                        Image = "rbxassetid://",
+                        Image = "rbxassetid://4483362458",
                         BarColor = Color3.fromRGB(255, 0, 0)
                     })
                 end
@@ -2811,8 +3585,6 @@ local function init()
                         BarColor = Color3.fromRGB(255, 100, 0)
                     })
                 end
-            elseif kc == Enum.KeyCode.T then
-                updateTeamTargetModes()
             end
         end
     end)
@@ -2877,6 +3649,7 @@ local function cleanup()
     config.currentAntiAimTarget = nil
     config.hitboxExpandedParts = {}
     config.hitboxOriginalSizes = {}
+    restoreClientValues()
 end
 
 init()
