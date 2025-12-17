@@ -2514,7 +2514,7 @@ local function makeui()
     local T6 = lib:CreateTab("AntiAim")
 
     lib:Tab("Visuals")
-    lib:AddToggle("Enable ESP (Z)", function(state)
+    lib:AddToggle("Enable ESP (Ctrl+'Z')", function(state)
         applyESPMaster(state)
         if state then
             safeNotify({
@@ -2655,7 +2655,7 @@ local function makeui()
 
     lib:Tab("AntiAim")
     
-    lib:AddToggle("Toggle AntiAim (L)", function(state)
+    lib:AddToggle("Toggle AntiAim (Ctrl+'L')", function(state)
         config.antiAimEnabled = state
         if not state then
             returnToOriginalPosition()
@@ -2792,7 +2792,7 @@ local function makeui()
         isNumber = true
     })
     lib:Tab("Aimbot")
-    lib:AddToggle("Toggle Aimbot (G)", function(state)
+    lib:AddToggle("Toggle Aimbot (Crtl+'Q')", function(state)
         config.aimbotEnabled = state
         if not state and config.aimbot360Enabled then
             toggle360Aimbot(false)
@@ -2827,7 +2827,7 @@ local function makeui()
             })
         end
     end, false)
-    lib:AddToggle("Wall Check (H)", function(state)
+    lib:AddToggle("WallCheck AB (Ctrl+'B')", function(state)
         config.aimbotWallCheck = state
         if state then
             safeNotify({
@@ -2896,7 +2896,7 @@ local function makeui()
         isNumber = true
     })
     lib:Tab("Hitbox")
-    lib:AddToggle("Toggle Hitbox (F)", function(state)
+    lib:AddToggle("Toggle Hitbox (Ctrl+'G')", function(state)
         config.hitboxEnabled = state
         if state then
             applyhb()
@@ -2961,7 +2961,7 @@ end, "Enter Size...", "10", {
         end
     end)
     lib:Tab("SilentAim")
-    lib:AddToggle("Toggle SS (X)", function(state)
+    lib:AddToggle("Toggle SilentAim (Ctrl+'E')", function(state)
         config.Enabled = state
 
         if not config.Enabled then
@@ -2995,7 +2995,7 @@ end, "Enter Size...", "10", {
         end
     end, false)
     
-    lib:AddToggle("Toggle Wall Check (B)", function(state)
+    lib:AddToggle("WallCheck SA (B)", function(state)
         config.wallc = state
         if state then
             safeNotify({
@@ -3084,7 +3084,7 @@ end, "Enter Size...", "10", {
     })
 
     lib:Tab("Client")
-    lib:AddToggle("Enable Client Configuration (V)", function(state)
+    lib:AddToggle("Enable Client Configuration (Ctrl+'V')", function(state)
         applyClientMaster(state)
     end, false)
 
@@ -3248,7 +3248,7 @@ end, "Enter Size...", "10", {
         })
     end)
 
-    lib:AddToggle("Toggle AutoFarm (P)", function(state)
+    lib:AddToggle("Toggle AutoFarm (Ctrl+'F')", function(state)
         config.autoFarmEnabled = state
         
         if state then
@@ -3356,6 +3356,10 @@ local notif1 = (function()
     end)
 end)()
 
+local function isCtrlDown()
+    return UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) or UserInputService:IsKeyDown(Enum.KeyCode.RightControl)
+end
+
 local function init()
     makeui()
 
@@ -3375,7 +3379,7 @@ local function init()
     end)
 
     RunService:BindToRenderStep("FOVhbUpdater_Modern", Enum.RenderPriority.First.Value, onRenderStep)
-
+-- keyz
     if config.hotkeyConnection and config.hotkeyConnection.Connected then
         pcall(function() config.hotkeyConnection:Disconnect() end)
         config.hotkeyConnection = nil
@@ -3388,11 +3392,11 @@ local function init()
 
         if input.UserInputType == Enum.UserInputType.Keyboard then
             local kc = input.KeyCode
-            if kc == Enum.KeyCode.B then
+            if kc == Enum.KeyCode.B and not isCtrlDown() and not UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) and not UserInputService:IsKeyDown(Enum.KeyCode.RightShift) then
                 config.wallc = not config.wallc
                 if config.wallc then
                     safeNotify({
-                        Title = "Wall Check",
+                        Title = "SilentAim Wall Check",
                         Content = "Enabled (Hotkey)",
                         Audio = "rbxassetid://17208361335",
                         Length = 1,
@@ -3401,7 +3405,7 @@ local function init()
                     })
                 else
                     safeNotify({
-                        Title = "Wall Check",
+                        Title = "SilentAim Wall Check",
                         Content = "Disabled (Hotkey)",
                         Audio = "rbxassetid://17208361335",
                         Length = 1,
@@ -3409,7 +3413,7 @@ local function init()
                         BarColor = Color3.fromRGB(255, 0, 0)
                     })
                 end
-            elseif kc == Enum.KeyCode.Z then
+            elseif kc == Enum.KeyCode.Z and isCtrlDown() then
                 config.espMasterEnabled = not config.espMasterEnabled
                 applyESPMaster(config.espMasterEnabled)
                 if config.espMasterEnabled then
@@ -3431,7 +3435,7 @@ local function init()
                         BarColor = Color3.fromRGB(255, 0, 0)
                     })
                 end
-            elseif kc == Enum.KeyCode.P then
+            elseif kc == Enum.KeyCode.F and isCtrlDown() then
                 config.autoFarmEnabled = not config.autoFarmEnabled
                 
                 if config.autoFarmEnabled then
@@ -3456,7 +3460,7 @@ local function init()
                         BarColor = Color3.fromRGB(255, 0, 0)
                     })
                 end
-            elseif kc == Enum.KeyCode.X then
+            elseif kc == Enum.KeyCode.E and isCtrlDown() then
                 config.Enabled = not config.Enabled
                 if not config.Enabled then
                     if gui.RingHolder then
@@ -3487,7 +3491,7 @@ local function init()
                         BarColor = Color3.fromRGB(255, 100, 0)
                     })
                 end
-            elseif kc == Enum.KeyCode.G then
+            elseif kc == Enum.KeyCode.Q and isCtrlDown() then
                 config.aimbotEnabled = not config.aimbotEnabled
                 if config.aimbotFOVRing and config.aimbotFOVRing.RingFrame then
                     config.aimbotFOVRing.RingFrame.Visible = config.aimbotEnabled
@@ -3517,7 +3521,7 @@ local function init()
                         BarColor = Color3.fromRGB(255, 0, 0)
                     })
                 end
-            elseif kc == Enum.KeyCode.H then
+            elseif kc == Enum.KeyCode.B and isCtrlDown() then
                 config.aimbotWallCheck = not config.aimbotWallCheck
                 if config.aimbotWallCheck then
                     safeNotify({
@@ -3538,7 +3542,7 @@ local function init()
                         BarColor = Color3.fromRGB(255, 0, 0)
                     })
                 end
-            elseif kc == Enum.KeyCode.F then
+            elseif kc == Enum.KeyCode.G and isCtrlDown() then
                 config.hitboxEnabled = not config.hitboxEnabled
                 if config.hitboxEnabled then
                     applyhb()
@@ -3563,7 +3567,7 @@ local function init()
                         BarColor = Color3.fromRGB(255, 0, 0)
                     })
                 end
-            elseif kc == Enum.KeyCode.L then
+            elseif kc == Enum.KeyCode.L and isCtrlDown() then
                 config.antiAimEnabled = not config.antiAimEnabled
                 if not config.antiAimEnabled then
                     returnToOriginalPosition()
