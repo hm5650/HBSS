@@ -30,6 +30,7 @@ local config = {
     prefHealthESP = false,
     prefColorByHealth = false,
     espMasterEnabled = false,
+    prefHeadDotESP = false,
     originalSizes = {},
     activeApplied = {},
     espData = {},
@@ -70,6 +71,10 @@ local config = {
     originalPosition = nil,
     isTeleported = false,
     currentAntiAimTarget = nil,
+    antiAimOrbitEnabled = false,
+    antiAimOrbitSpeed = 20,
+    antiAimOrbitRadius = 5,
+    antiAimOrbitHeight = 0,
     masterTeamTarget = "Enemies",
     autoFarmEnabled = false,
     autoFarmDistance = 10,
@@ -820,6 +825,45 @@ local function antiAimUpdate()
         return
     end
     
+    if config.antiAimOrbitEnabled then
+        local closestEnemy = findClosestEnemy()
+        if closestEnemy and getTargetCharacter(closestEnemy) then
+            local targetChar = getTargetCharacter(closestEnemy)
+            local targetPart = targetChar:FindFirstChild("Head") or targetChar:FindFirstChild("HumanoidRootPart")
+            if targetPart and localPlayer.Character then
+                config.currentAntiAimTarget = closestEnemy
+                if not config.originalPosition then
+                    local localRoot = localPlayer.Character:FindFirstChild("HumanoidRootPart")
+                    if localRoot then
+                        config.originalPosition = localRoot.Position
+                    end
+                end
+                local tpos = targetPart.Position
+                local angle = tick() * (config.antiAimOrbitSpeed or 8)
+                local radius = config.antiAimOrbitRadius or 5
+                local height = config.antiAimOrbitHeight or 0
+                local offset = Vector3.new(math.cos(angle) * radius, height, math.sin(angle) * radius)
+                local newPos = tpos + offset
+                pcall(function()
+                    local localRoot = localPlayer.Character and localPlayer.Character:FindFirstChild("HumanoidRootPart")
+                    if localRoot then
+                        localRoot.CFrame = CFrame.new(newPos, tpos)
+                    end
+                    if camera and targetPart then
+                        camera.CFrame = CFrame.lookAt(camera.CFrame.Position, targetPart.Position)
+                    end
+                end)
+                config.isTeleported = true
+            end
+        else
+            if config.isTeleported then
+                returnToOriginalPosition()
+            end
+            config.currentAntiAimTarget = nil
+        end
+        return
+    end
+
     if config.antiAimAbovePlayer then
         local closestEnemy = findClosestEnemy()
         if closestEnemy then
@@ -974,16 +1018,19 @@ local function removeHighlightESP(targetPlayer)
     end
     config.highlightData[targetPlayer] = nil
 end
-
 local function removeESPLabel(targetPlayer)
-    if not targetPlayer or not config.espData[targetPlayer] then return end
+    if not targetPlayer then return end
     local data = config.espData[targetPlayer]
+    if not data then return end
     if data.connection then
         pcall(function() data.connection:Disconnect() end)
+        data.connection = nil
     end
+    
     if data.screenGui and data.screenGui.Parent then
         pcall(function() data.screenGui:Destroy() end)
     end
+    
     config.espData[targetPlayer] = nil
 end
 
@@ -995,14 +1042,31 @@ local function healthColor(humanoid)
     local g = health
     return Color3.new(r, g, 0)
 end
-
 local function makeesp(targetPlayer)
     if not targetPlayer then return end
     if not addesp(targetPlayer) then return end
-
+    
     if config.espData[targetPlayer] then
-        removeESPLabel(targetPlayer)
+        local oldData = config.espData[targetPlayer]
+        if oldData.connection then
+            pcall(function() oldData.connection:Disconnect() end)
+        end
+        if oldData.screenGui and oldData.screenGui.Parent then
+            pcall(function() oldData.screenGui:Destroy() end)
+        end
     end
+    
+    local screenGui = Instance.new("ScreenGui")
+    screenGui.Name = "ESP_" .. getTargetName(targetPlayer) .. "_" .. tostring(math.random(10000, 99999))
+    screenGui.ResetOnSpawn = false
+    screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+    screenGui.IgnoreGuiInset = true
+    
+    local parent = localPlayer:FindFirstChild("PlayerGui")
+    if not parent then
+        parent = game:GetService("CoreGui")
+    end
+    screenGui.Parent = parent
 
     local screenGui = Instance.new("ScreenGui")
     screenGui.Name = "ESP_" .. getTargetName(targetPlayer)
@@ -1015,7 +1079,7 @@ local function makeesp(targetPlayer)
     label.Name = "ESPLabel"
     label.BackgroundTransparency = 1
     label.Text = getTargetName(targetPlayer)
-    label.TextSize = 14
+    label.TextSize = 6
     label.Font = Enum.Font.GothamBold
     label.TextStrokeTransparency = 0
     label.TextStrokeColor3 = Color3.new(0, 0, 0)
@@ -1062,22 +1126,33 @@ local function makeesp(targetPlayer)
     healthFill.BorderSizePixel = 0
     healthFill.Parent = healthBg
 
+    local headDot = Instance.new("Frame")
+    headDot.Name = "HeadDot"
+    headDot.Size = UDim2.new(0, 6, 0, 6)
+    headDot.AnchorPoint = Vector2.new(0.5, 0.5)
+    headDot.BackgroundColor3 = config.espc
+    headDot.BorderSizePixel = 0
+    headDot.Visible = false
+    headDot.Parent = screenGui
+
     label.TextColor3 = config.espc
     if targetPlayer == config.currentTarget or targetPlayer == config.aimbotCurrentTarget then
         label.TextColor3 = config.esptargetc
     end
-
     local function startUpdater()
         if config.espData[targetPlayer] and config.espData[targetPlayer].connection then
             pcall(function() config.espData[targetPlayer].connection:Disconnect() end)
         end
-
+        
         local conn = RunService.RenderStepped:Connect(function()
             local tchar = getTargetCharacter(targetPlayer)
-            if not targetPlayer or not tchar or not tchar.Parent then
-                label.Visible = false
-                boxFrame.Visible = false
-                healthBg.Visible = false
+            local charExists = tchar and tchar.Parent
+            
+            if not charExists then
+                if label then label.Visible = false end
+                if boxFrame then boxFrame.Visible = false end
+                if healthBg then healthBg.Visible = false end
+                if headDot then headDot.Visible = false end
                 return
             end
 
@@ -1085,6 +1160,7 @@ local function makeesp(targetPlayer)
                 label.Visible = false
                 boxFrame.Visible = false
                 healthBg.Visible = false
+                headDot.Visible = false
                 return
             end
 
@@ -1094,6 +1170,7 @@ local function makeesp(targetPlayer)
                 label.Visible = false
                 boxFrame.Visible = false
                 healthBg.Visible = false
+                headDot.Visible = false
                 return
             end
 
@@ -1177,6 +1254,23 @@ local function makeesp(targetPlayer)
                 healthBg.Visible = false
             end
 
+            if config.espMasterEnabled and config.prefHeadDotESP and head then
+                local headV3, onHead = camera:WorldToViewportPoint(head.Position)
+                if onHead and headV3.Z > 0 then
+                    headDot.Position = UDim2.new(0, headV3.X, 0, headV3.Y)
+                    headDot.Visible = true
+                    if config.prefColorByHealth and humanoid then
+                        headDot.BackgroundColor3 = hpColor
+                    else
+                        headDot.BackgroundColor3 = ((targetPlayer == config.currentTarget) or (targetPlayer == config.aimbotCurrentTarget)) and config.esptargetc or config.espc
+                    end
+                else
+                    headDot.Visible = false
+                end
+            else
+                headDot.Visible = false
+            end
+
         end)
 
         config.espData[targetPlayer] = {
@@ -1186,7 +1280,8 @@ local function makeesp(targetPlayer)
             box = boxFrame,
             boxOutline = boxOutline,
             healthBG = healthBg,
-            healthFill = healthFill
+            healthFill = healthFill,
+            headDot = headDot
         }
     end
 
@@ -1253,6 +1348,19 @@ local function updateESPColors()
                         data.healthFill.BackgroundColor3 = healthColor(humanoid)
                     else
                         data.healthBG.Visible = false
+                    end
+                end
+
+                if data.headDot then
+                    if config.espMasterEnabled and config.prefHeadDotESP then
+                        data.headDot.Visible = true
+                        if hpColor then
+                            data.headDot.BackgroundColor3 = hpColor
+                        else
+                            data.headDot.BackgroundColor3 = ((targetPlayer == config.currentTarget or targetPlayer == config.aimbotCurrentTarget) and config.esptargetc or config.espc)
+                        end
+                    else
+                        data.headDot.Visible = false
                     end
                 end
             end
@@ -1378,7 +1486,7 @@ local function applyESPMaster(state)
                 end
             end
         end
-        if config.prefTextESP or config.prefBoxESP or config.prefHealthESP then
+        if config.prefTextESP or config.prefBoxESP or config.prefHealthESP or config.prefHeadDotESP then
             for _, target in ipairs(getAllTargets()) do
                 if addesp(target) then
                     makeesp(target)
@@ -2244,89 +2352,77 @@ local function cleanplrdata(targetPlayer)
         updateESPColors()
     end
 end
-
 local function setupPlayerListeners(pl)
     if pl == localPlayer then return end
     if config.playerConnections[pl] then
-        return
+        for _, conn in ipairs(config.playerConnections[pl]) do
+            pcall(function() conn:Disconnect() end)
+        end
     end
-
+    
     config.playerConnections[pl] = {}
     
-    local charAddedConn = pl.CharacterAdded:Connect(function(char)
-        task.wait(0.25)
-        config.autoFarmOriginalPositions[pl] = nil
-        config.autoFarmCompleted[pl] = nil
-        
-    end)
-    table.insert(config.playerConnections[pl], charAddedConn)
-
-    config.playerConnections[pl] = {}
-    removeESPLabel(pl)
-    removeHighlightESP(pl)
-
-    if config.espMasterEnabled and config.prefTextESP and addesp(pl) then
-        makeesp(pl)
-    end
-    if config.espMasterEnabled and config.prefHighlightESP and pl.Character and addesp(pl) then
-        high(pl)
-    end
-    if config.rfd then
-        RFD(pl)
-    end
-
-    local charAddedConn = pl.CharacterAdded:Connect(function(char)
-        task.wait(0.25)
-        setupDeathListener(pl)
-        restorePartForPlayer(pl)
-        restoreTorso(pl)
-
-        removeESPLabel(pl)
-        if config.espMasterEnabled and config.prefTextESP and addesp(pl) then
-            task.wait(0.05)
-            makeesp(pl)
-        end
-
-        removeHighlightESP(pl)
-        if config.espMasterEnabled and config.prefHighlightESP and addesp(pl) then
-            task.wait(0.05)
-            high(pl)
-        end
-
-        if config.rfd then
-            RFD(pl)
-        end
-    end)
-    table.insert(config.playerConnections[pl], charAddedConn)
-
-    local charRemovingConn = pl.CharacterRemoving:Connect(function(char)
-        restorePartForPlayer(pl)
-        restoreTorso(pl)
-    end)
-    table.insert(config.playerConnections[pl], charRemovingConn)
-
-    local teamChangedConn = pl:GetPropertyChangedSignal("Team"):Connect(function()
-        task.wait(0.05)
-        if not addesp(pl) then
+    local function updateESPForPlayer()
+        if config.espMasterEnabled then
             removeESPLabel(pl)
             removeHighlightESP(pl)
-        else
-            if config.espMasterEnabled and config.prefTextESP then
-                removeESPLabel(pl)
+            
+            if config.prefTextESP or config.prefBoxESP or config.prefHealthESP or config.prefHeadDotESP then
                 if addesp(pl) then
                     makeesp(pl)
                 end
             end
-            if config.espMasterEnabled and config.prefHighlightESP and pl.Character then
-                removeHighlightESP(pl)
+            
+            if config.prefHighlightESP and pl.Character then
+                if addesp(pl) then
+                    high(pl)
+                end
+            end
+        end
+    end
+    updateESPForPlayer()
+    
+    local charAddedConn = pl.CharacterAdded:Connect(function(char)
+        task.wait(0.25)
+        setupDeathListener(pl)
+        removeESPLabel(pl)
+        removeHighlightESP(pl)
+        task.wait(0.1)
+        
+        if config.espMasterEnabled then
+            if config.prefTextESP or config.prefBoxESP or config.prefHealthESP or config.prefHeadDotESP then
+                if addesp(pl) then
+                    makeesp(pl)
+                end
+            end
+            
+            if config.prefHighlightESP then
                 if addesp(pl) and pl.Character then
                     high(pl)
                 end
             end
         end
     end)
+    table.insert(config.playerConnections[pl], charAddedConn)
+    
+    local charRemovingConn = pl.CharacterRemoving:Connect(function(char)
+        if config.espData[pl] then
+            local data = config.espData[pl]
+            if data.label then data.label.Visible = false end
+            if data.box then data.box.Visible = false end
+            if data.healthBG then data.healthBG.Visible = false end
+            if data.headDot then data.headDot.Visible = false end
+        end
+        removeHighlightESP(pl)
+    end)
+    table.insert(config.playerConnections[pl], charRemovingConn)
+    
+    local teamChangedConn = pl:GetPropertyChangedSignal("Team"):Connect(function()
+        task.wait(0.05)
+        updateESPForPlayer()
+    end)
     table.insert(config.playerConnections[pl], teamChangedConn)
-
+    
     if pl.Character then
         setupDeathListener(pl)
     end
@@ -2628,8 +2724,40 @@ local function makeui()
             })
         end
     end, false)
+    lib:AddToggle("Toggle Head Dot ESP", function(state)
+        config.prefHeadDotESP = state
+        if config.espMasterEnabled then
+            for _, target in ipairs(getAllTargets()) do
+                if addesp(target) then
+                    if not config.espData[target] then
+                        makeesp(target)
+                    end
+                end
+            end
+            updateESPColors()
+        end
 
-    lib:AddToggle("ESP Based On Health", function(state)
+        if state then
+            safeNotify({
+                Title = "HeadDot ESP",
+                Content = "Enabled",
+                Audio = "rbxassetid://17208361335",
+                Length = 1,
+                Image = "rbxassetid://",
+                BarColor = Color3.fromRGB(0, 200, 255)
+            })
+        else
+            safeNotify({
+                Title = "HeadDot ESP",
+                Content = "Disabled",
+                Audio = "rbxassetid://17208361335",
+                Length = 1,
+                Image = "rbxassetid://",
+                BarColor = Color3.fromRGB(255, 0, 0)
+            })
+        end
+    end, false)
+    lib:AddToggle("ESP Colour Based On Health", function(state)
         config.prefColorByHealth = state
         updateESPColors()
         if state then
@@ -2652,7 +2780,6 @@ local function makeui()
             })
         end
     end, false)
-
     lib:Tab("AntiAim")
     
     lib:AddToggle("Toggle AntiAim (Ctrl+'L')", function(state)
@@ -2684,6 +2811,7 @@ local function makeui()
         if state then
             config.antiAimAbovePlayer = false
             config.antiAimBehindPlayer = false
+            config.antiAimOrbitEnabled = false
             safeNotify({
                 Title = "Raycast AntiAim",
                 Content = "Enabled",
@@ -2703,8 +2831,89 @@ local function makeui()
             })
         end
     end, false)
-    
-    lib:AddInputBox("Teleport Distance", function(text)
+    lib:AddToggle("Above Player", function(state)
+        config.antiAimAbovePlayer = state
+        if state then
+            config.raycastAntiAim = false
+            config.antiAimBehindPlayer = false
+            config.antiAimOrbitEnabled = false
+            safeNotify({
+                Title = "Above Player",
+                Content = "Enabled",
+                Audio = "rbxassetid://17208361335",
+                Length = 1,
+                Image = "rbxassetid://4483362458",
+                BarColor = Color3.fromRGB(0, 170, 255)
+            })
+        else
+            returnToOriginalPosition()
+            safeNotify({
+                Title = "Above Player",
+                Content = "Disabled",
+                Audio = "rbxassetid://17208361335",
+                Length = 1,
+                Image = "rbxassetid://4483362458",
+                BarColor = Color3.fromRGB(255, 0, 0)
+            })
+        end
+    end, false)
+    lib:AddToggle("Behind Player", function(state)
+        config.antiAimBehindPlayer = state
+        if state then
+            config.raycastAntiAim = false
+            config.antiAimAbovePlayer = false
+            config.antiAimOrbitEnabled = false
+            safeNotify({
+                Title = "Behind Player",
+                Content = "Enabled",
+                Audio = "rbxassetid://17208361335",
+                Length = 1,
+                Image = "rbxassetid://4483362458",
+                BarColor = Color3.fromRGB(0, 170, 255)
+            })
+        else
+            returnToOriginalPosition()
+            safeNotify({
+                Title = "Behind Player",
+                Content = "Disabled",
+                Audio = "rbxassetid://17208361335",
+                Length = 1,
+                Image = "rbxassetid://4483362458",
+                BarColor = Color3.fromRGB(255, 0, 0)
+            })
+        end
+    end, false)
+
+    lib:AddToggle("Orbit Players", function(state)
+        config.antiAimOrbitEnabled = state
+        if state then
+            config.raycastAntiAim = false
+            config.antiAimAbovePlayer = false
+            config.antiAimBehindPlayer = false
+            if not config.antiAimEnabled then
+                config.antiAimEnabled = true
+            end
+            safeNotify({
+                Title = "Orbit Players",
+                Content = "Enabled - orbiting nearest target",
+                Audio = "rbxassetid://17208361335",
+                Length = 2,
+                Image = "rbxassetid://4483362458",
+                BarColor = Color3.fromRGB(0, 200, 255)
+            })
+        else
+            returnToOriginalPosition()
+            safeNotify({
+                Title = "Orbit Players",
+                Content = "Disabled",
+                Audio = "rbxassetid://17208361335",
+                Length = 1,
+                Image = "rbxassetid://4483362458",
+                BarColor = Color3.fromRGB(255, 0, 0)
+            })
+        end
+    end, false)
+    lib:AddInputBox("Teleport Distance (Raycast)", function(text)
         local n = tonumber(text)
         if n and n > 0 then
             config.antiAimTPDistance = n
@@ -2712,37 +2921,10 @@ local function makeui()
         return tostring(config.antiAimTPDistance)
     end, "Enter Distance...", "3", {
         min = 1,
-        max = 9999,
+        max = math.huge,
         isNumber = true
     })
-    
-    lib:AddToggle("Above Player", function(state)
-        config.antiAimAbovePlayer = state
-        if state then
-            config.raycastAntiAim = false
-            config.antiAimBehindPlayer = false
-            safeNotify({
-                Title = "Above Player",
-                Content = "Enabled",
-                Audio = "rbxassetid://17208361335",
-                Length = 1,
-                Image = "rbxassetid://4483362458",
-                BarColor = Color3.fromRGB(0, 170, 255)
-            })
-        else
-            returnToOriginalPosition()
-            safeNotify({
-                Title = "Above Player",
-                Content = "Disabled",
-                Audio = "rbxassetid://17208361335",
-                Length = 1,
-                Image = "rbxassetid://4483362458",
-                BarColor = Color3.fromRGB(255, 0, 0)
-            })
-        end
-    end, false)
-    
-    lib:AddInputBox("Above Height", function(text)
+    lib:AddInputBox("Above Height (Above Player)", function(text)
         local n = tonumber(text)
         if n and n > 0 then
             config.antiAimAboveHeight = n
@@ -2750,37 +2932,11 @@ local function makeui()
         return tostring(config.antiAimAboveHeight)
     end, "Enter Height...", "10", {
         min = 1,
-        max = 9999,
+        max = math.huge,
         isNumber = true
     })
     
-    lib:AddToggle("Behind Player", function(state)
-        config.antiAimBehindPlayer = state
-        if state then
-            config.raycastAntiAim = false
-            config.antiAimAbovePlayer = false
-            safeNotify({
-                Title = "Behind Player",
-                Content = "Enabled",
-                Audio = "rbxassetid://17208361335",
-                Length = 1,
-                Image = "rbxassetid://4483362458",
-                BarColor = Color3.fromRGB(0, 170, 255)
-            })
-        else
-            returnToOriginalPosition()
-            safeNotify({
-                Title = "Behind Player",
-                Content = "Disabled",
-                Audio = "rbxassetid://17208361335",
-                Length = 1,
-                Image = "rbxassetid://4483362458",
-                BarColor = Color3.fromRGB(255, 0, 0)
-            })
-        end
-    end, false)
-    
-    lib:AddInputBox("Behind Distance", function(text)
+    lib:AddInputBox("Behind Distance (Behind Player)", function(text)
         local n = tonumber(text)
         if n and n > 0 then
             config.antiAimBehindDistance = n
@@ -2788,9 +2944,46 @@ local function makeui()
         return tostring(config.antiAimBehindDistance)
     end, "Enter Distance...", "5", {
         min = 1,
+        max = math.huge,
+        isNumber = true
+    })
+
+    lib:AddInputBox("Orbit Speed (Orbit)", function(text)
+        local n = tonumber(text)
+        if n and n > 0 then
+            config.antiAimOrbitSpeed = n
+        end
+        return tostring(config.antiAimOrbitSpeed)
+    end, "Angular speed multiplier", tostring(config.antiAimOrbitSpeed), {
+        min = 1,
+        max = math.huge,
+        isNumber = true
+    })
+
+    lib:AddInputBox("Orbit Radius (Orbit)", function(text)
+        local n = tonumber(text)
+        if n and n >= 0 then
+            config.antiAimOrbitRadius = n
+        end
+        return tostring(config.antiAimOrbitRadius)
+    end, "Distance from target", tostring(config.antiAimOrbitRadius), {
+        min = 0,
+        max = math.huge,
+        isNumber = true
+    })
+
+    lib:AddInputBox("Orbit Height (Orbit)", function(text)
+        local n = tonumber(text)
+        if n then
+            config.antiAimOrbitHeight = n
+        end
+        return tostring(config.antiAimOrbitHeight)
+    end, "Vertical offset", tostring(config.antiAimOrbitHeight), {
+        min = -9999,
         max = 9999,
         isNumber = true
     })
+
     lib:Tab("Aimbot")
     lib:AddToggle("Toggle Aimbot (Crtl+'Q')", function(state)
         config.aimbotEnabled = state
@@ -2892,7 +3085,7 @@ local function makeui()
         return tostring(config.aimbotFOVSize)
     end, "Enter Value...", "100", {
         min = 1,
-        max = 9999,
+        max = math.huge,
         isNumber = true
     })
     lib:Tab("Hitbox")
@@ -2943,7 +3136,7 @@ lib:AddInputBox("Hitbox Size", function(text)
     return tostring(config.hitboxSize)
 end, "Enter Size...", "10", {
     min = 1,
-    max = 99999,
+    max = math.huge,
     isNumber = true
 })
     
@@ -3079,7 +3272,7 @@ end, "Enter Size...", "10", {
         end
     end, "Enter Value...", tostring(config.fovsize), {
         min = 0,
-        max = 9999,
+        max = math.huge,
         isNumber = true
     })
 
@@ -3087,21 +3280,21 @@ end, "Enter Size...", "10", {
     lib:AddToggle("Enable Client Configuration (Ctrl+'V')", function(state)
         applyClientMaster(state)
     end, false)
-
-    lib:AddInputBox("WalkSpeed Value", function(text)
-        local n = tonumber(text)
-        if n and n > 0 then
-            config.clientWalkSpeed = n
-            if config.clientMasterEnabled and config.clientWalkEnabled then
-                applyClientWalkSpeed(n)
+    lib:AddToggle("Noclip", function(state)
+        config.clientNoclipEnabled = state
+        if config.clientMasterEnabled then
+            if state then
+                startNoclip()
+                config.clientNoclip = true
+            else
+                stopNoclip()
+                config.clientNoclip = false
             end
+        else
+            stopNoclip()
+            config.clientNoclip = false
         end
-        return tostring(config.clientWalkSpeed)
-    end, "Enter WalkSpeed...", tostring(config.clientWalkSpeed), {
-        min = 1,
-        max = 1000,
-        isNumber = true
-    })
+    end, false)
 
     lib:AddToggle("Enable WalkSpeed", function(state)
         config.clientWalkEnabled = state
@@ -3117,21 +3310,6 @@ end, "Enter Size...", "10", {
             end
         end
     end, false)
-
-    lib:AddInputBox("JumpPower Value", function(text)
-        local n = tonumber(text)
-        if n and n >= 0 then
-            config.clientJumpPower = n
-            if config.clientMasterEnabled and config.clientJumpEnabled then
-                applyClientJumpPower(n)
-            end
-        end
-        return tostring(config.clientJumpPower)
-    end, "Enter JumpPower...", tostring(config.clientJumpPower), {
-        min = 0,
-        max = 1000,
-        isNumber = true
-    })
 
     lib:AddToggle("Enable JumpPower", function(state)
         config.clientJumpEnabled = state
@@ -3154,35 +3332,7 @@ end, "Enter Size...", "10", {
         end
     end, false)
 
-    lib:AddToggle("Noclip", function(state)
-        config.clientNoclipEnabled = state
-        if config.clientMasterEnabled then
-            if state then
-                startNoclip()
-                config.clientNoclip = true
-            else
-                stopNoclip()
-                config.clientNoclip = false
-            end
-        else
-            stopNoclip()
-            config.clientNoclip = false
-        end
-    end, false)
-
-    lib:AddInputBox("CFrame Walk Speed", function(text)
-        local n = tonumber(text)
-        if n and n > 0 then
-            config.clientCFrameSpeed = n
-        end
-        return tostring(config.clientCFrameSpeed)
-    end, "Enter Speed...", tostring(config.clientCFrameSpeed), {
-        min = 1,
-        max = 1000,
-        isNumber = true
-    })
-
-    lib:AddToggle("CFrame Walk (TP-like)", function(state)
+    lib:AddToggle("CFrame Walk", function(state)
         config.clientCFrameWalkToggle = state
         if config.clientMasterEnabled then
             if state then
@@ -3197,6 +3347,47 @@ end, "Enter Size...", "10", {
             config.clientCFrameWalkEnabled = false
         end
     end, false)
+    lib:AddInputBox("WalkSpeed Value", function(text)
+        local n = tonumber(text)
+        if n and n > 0 then
+            config.clientWalkSpeed = n
+            if config.clientMasterEnabled and config.clientWalkEnabled then
+                applyClientWalkSpeed(n)
+            end
+        end
+        return tostring(config.clientWalkSpeed)
+    end, "Enter WalkSpeed...", tostring(config.clientWalkSpeed), {
+        min = 1,
+        max = math.huge,
+        isNumber = true
+    })
+
+    lib:AddInputBox("JumpPower Value", function(text)
+        local n = tonumber(text)
+        if n and n >= 0 then
+            config.clientJumpPower = n
+            if config.clientMasterEnabled and config.clientJumpEnabled then
+                applyClientJumpPower(n)
+            end
+        end
+        return tostring(config.clientJumpPower)
+    end, "Enter JumpPower...", tostring(config.clientJumpPower), {
+        min = 0,
+        max = math.huge,
+        isNumber = true
+    })
+
+    lib:AddInputBox("CFrame Walk Speed", function(text)
+        local n = tonumber(text)
+        if n and n > 0 then
+            config.clientCFrameSpeed = n
+        end
+        return tostring(config.clientCFrameSpeed)
+    end, "Enter Speed...", tostring(config.clientCFrameSpeed), {
+        min = 1,
+        max = math.huge,
+        isNumber = true
+    })
 
     lib:Tab("Main")
     lib:AddComboBox("Master Team Target", {"Enemies", "Teams", "All"}, function(selection)
@@ -3286,7 +3477,7 @@ end, "Enter Size...", "10", {
         return tostring(config.autoFarmDistance)
     end, "1-100", "10", {
         min = 1,
-        max = 9999,
+        max = math.huge,
         isNumber = true
     })
     
@@ -3377,7 +3568,42 @@ local function init()
     Players.PlayerRemoving:Connect(function(pl)
         cleanplrdata(pl)
     end)
-
+    for _, pl in ipairs(Players:GetPlayers()) do
+        if pl ~= localPlayer then
+            setupPlayerListeners(pl)
+            if config.espMasterEnabled then
+                if config.prefTextESP or config.prefBoxESP or config.prefHealthESP then
+                    if addesp(pl) then
+                        makeesp(pl)
+                    end
+                end
+                if config.prefHighlightESP and pl.Character then
+                    if addesp(pl) then
+                        high(pl)
+                    end
+                end
+            end
+        end
+    end
+    Players.PlayerAdded:Connect(function(pl)
+        if pl ~= localPlayer then
+            setupPlayerListeners(pl)
+            task.wait(0.5)
+            
+            if config.espMasterEnabled then
+                if config.prefTextESP or config.prefBoxESP or config.prefHealthESP then
+                    if addesp(pl) then
+                        makeesp(pl)
+                    end
+                end
+                if config.prefHighlightESP and pl.Character then
+                    if addesp(pl) then
+                        high(pl)
+                    end
+                end
+            end
+        end
+    end)
     RunService:BindToRenderStep("FOVhbUpdater_Modern", Enum.RenderPriority.First.Value, onRenderStep)
 -- keyz
     if config.hotkeyConnection and config.hotkeyConnection.Connected then
@@ -3662,3 +3888,4 @@ return {
     cleanup = cleanup
 }
 -- fin
+
