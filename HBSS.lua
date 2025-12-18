@@ -72,7 +72,7 @@ local config = {
     isTeleported = false,
     currentAntiAimTarget = nil,
     antiAimOrbitEnabled = false,
-    antiAimOrbitSpeed = 20,
+    antiAimOrbitSpeed = 5,
     antiAimOrbitRadius = 5,
     antiAimOrbitHeight = 0,
     masterTeamTarget = "Enemies",
@@ -3888,4 +3888,3 @@ return {
     cleanup = cleanup
 }
 -- fin
-
