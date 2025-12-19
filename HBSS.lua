@@ -105,7 +105,11 @@ local config = {
     clientWalkEnabled = false,
     clientJumpEnabled = false,
     clientNoclipEnabled = false,
-    clientCFrameWalkToggle = false
+    clientCFrameWalkToggle = false,
+    masterGetTarget = "Closest",
+    aimbotGetTarget = "Closest",
+    silentGetTarget = "Closest",
+    antiAimGetTarget = "Closest",
 }
 
 local Alurt = loadstring(game:HttpGet("https://raw.githubusercontent.com/azir-py/project/refs/heads/main/Zwolf/AlurtUI.lua"))()
@@ -189,6 +193,12 @@ local function updateTeamTargetModes()
         config.hitboxTeamTarget = masterSelection
     end
     
+    if config.masterGetTarget then
+        config.aimbotGetTarget = config.masterGetTarget
+        config.silentGetTarget = config.masterGetTarget
+        config.antiAimGetTarget = config.masterGetTarget
+    end
+
     if config.espMasterEnabled then
         for _, pl in ipairs(Players:GetPlayers()) do
             if pl ~= localPlayer then
@@ -765,11 +775,11 @@ local function findClosestEnemy()
     local localRoot = localPlayer.Character:FindFirstChild("HumanoidRootPart")
     if not localRoot then return nil end
     
-    local closest = nil
-    local closestDistance = math.huge
-    
-    local candidates = getAllTargets()
-    for _, t in ipairs(candidates) do
+    local best = nil
+    local bestMetric = nil
+    local mode = config.antiAimGetTarget or config.masterGetTarget or "Closest"
+
+    for _, t in ipairs(getAllTargets()) do
         if t ~= localPlayer and plralive(t) then
             local shouldTarget = false
             if config.masterTarget == "NPCs" then
@@ -803,18 +813,30 @@ local function findClosestEnemy()
             if shouldTarget then
                 local tgtChar = getTargetCharacter(t)
                 local playerRoot = tgtChar and (tgtChar:FindFirstChild("HumanoidRootPart") or tgtChar:FindFirstChild("Head"))
+                local humanoid = tgtChar and tgtChar:FindFirstChildOfClass("Humanoid")
                 if playerRoot then
                     local distance = (localRoot.Position - playerRoot.Position).Magnitude
-                    if distance < closestDistance then
-                        closestDistance = distance
-                        closest = t
+                    if mode == "Closest" then
+                        if best == nil or distance < bestMetric then
+                            bestMetric = distance
+                            best = t
+                        end
+                    else
+                        local healthVal = 1e6
+                        if humanoid then
+                            healthVal = humanoid.Health
+                        end
+                        if best == nil or healthVal < bestMetric then
+                            bestMetric = healthVal
+                            best = t
+                        end
                     end
                 end
             end
         end
     end
     
-    return closest
+    return best
 end
 
 local function antiAimUpdate()
@@ -946,23 +968,17 @@ local function wallCheck(targetPos, sourcePos)
     if (targetPos - sourcePos).Magnitude <= 0 then return true end
 
     local rayDirection = (targetPos - sourcePos)
-    local ray = Ray.new(sourcePos, rayDirection.Unit * rayDirection.Magnitude)
-    local ignoreList = {}
-
+    local params = RaycastParams.new()
+    params.FilterDescendantsInstances = {}
+    params.FilterType = Enum.RaycastFilterType.Blacklist
     if localPlayer and localPlayer.Character then
-        table.insert(ignoreList, localPlayer.Character)
+        table.insert(params.FilterDescendantsInstances, localPlayer.Character)
     end
 
-    for _, otherPlayer in ipairs(Players:GetPlayers()) do
-        if otherPlayer.Character then
-            table.insert(ignoreList, otherPlayer.Character)
-        end
-    end
-
-    local hit, position = Workspace:FindPartOnRayWithIgnoreList(ray, ignoreList)
-    if hit and position then
-        local distanceToTarget = (targetPos - sourcePos).Magnitude
-        local distanceToHit = (position - sourcePos).Magnitude
+    local rayResult = Workspace:Raycast(sourcePos, rayDirection, params)
+    if rayResult and rayResult.Position then
+        local distanceToTarget = rayDirection.Magnitude
+        local distanceToHit = (rayResult.Position - sourcePos).Magnitude
         return distanceToHit >= (distanceToTarget - 2)
     end
 
@@ -1843,34 +1859,45 @@ local function shouldTargetAimbot(target)
     return false
 end
 
-local function aimbotWallCheck(targetPos, sourcePos)
-    if not config.aimbotWallCheck then return true end
-    
-    if (targetPos - sourcePos).Magnitude <= 0 then return true end
+function aimbotWallCheck(targetPos, sourcePos)
+    if not config.aimbotWallCheck then
+        return true
+    end
+
+    if (targetPos - sourcePos).Magnitude <= 0 then
+        return true
+    end
 
     local rayDirection = (targetPos - sourcePos)
-    local ray = Ray.new(sourcePos, rayDirection.Unit * rayDirection.Magnitude)
-    local ignoreList = {}
-
-    if localPlayer and localPlayer.Character then
-        table.insert(ignoreList, localPlayer.Character)
-    end
-
-    for _, otherPlayer in ipairs(Players:GetPlayers()) do
-        if otherPlayer.Character then
-            table.insert(ignoreList, otherPlayer.Character)
+    local params = RaycastParams.new()
+    
+    local function shouldFilter(instance)
+        if instance:IsA("BasePart") and not instance.CanCollide then
+            return true
         end
+        return false
     end
 
-    local hit, position = Workspace:FindPartOnRayWithIgnoreList(ray, ignoreList)
-    if hit and position then
-        local distanceToTarget = (targetPos - sourcePos).Magnitude
-        local distanceToHit = (position - sourcePos).Magnitude
+    params.FilterDescendantsInstances = {}
+    params.FilterType = Enum.RaycastFilterType.Blacklist
+    if localPlayer and localPlayer.Character then
+        table.insert(params.FilterDescendantsInstances, localPlayer.Character)
+    end
+    local result = Workspace:Raycast(sourcePos, rayDirection, params)
+    if result and result.Position then
+        if result.Instance:IsA("BasePart") and not result.Instance.CanCollide then
+            return true
+        end
+
+        local distanceToTarget = rayDirection.Magnitude
+        local distanceToHit = (result.Position - sourcePos).Magnitude
+
         return distanceToHit >= (distanceToTarget - 2)
     end
 
     return true
 end
+
 
 local function getAimbotTargetPart(target)
     if not target then return nil end
@@ -1908,52 +1935,65 @@ local function aimbotUpdate()
     local viewportSize = camera.ViewportSize
     local center = Vector2.new(viewportSize.X / 2, viewportSize.Y / 2)
     local radiusPx = config.aimbot360Enabled and math.huge or config.aimbotFOVSize
-    
-    local bestTarget = nil
-    local bestScreenDist = math.huge
-    local bestPart = nil
-    local bestAngle = 180
-    
+
+    local candidates = {}
+
+    local cameraCFrame = camera.CFrame
+    local cameraPos = cameraCFrame.Position
+
     for _, target in ipairs(getAllTargets()) do
         if shouldTargetAimbot(target) then
             local targetPart = getAimbotTargetPart(target)
             if targetPart then
                 local screenPos, onScreen = camera:WorldToViewportPoint(targetPart.Position)
-                if config.aimbot360Enabled or onScreen then
-                    local screenVec = Vector2.new(screenPos.X, screenPos.Y)
-                    local distPx = (screenVec - center).Magnitude
-                    
-                    if distPx <= radiusPx and distPx < bestScreenDist then
-                        local cameraCFrame = camera.CFrame
-                        local cameraPos = cameraCFrame.Position
-                        local cameraForward = cameraCFrame.LookVector
-                        local targetDirection = (targetPart.Position - cameraPos).Unit
-                        
-                        local dotProduct = cameraForward:Dot(targetDirection)
-                        local angle = math.deg(math.acos(math.clamp(dotProduct, -1, 1)))
-                        local isBehind = angle > 90
-                        
-                        if config.aimbot360Omnidirectional then
-                            bestTarget = target
-                            bestScreenDist = distPx
-                            bestPart = targetPart
-                            bestAngle = angle
-                        else
-                            if distPx < bestScreenDist or (distPx == bestScreenDist and angle < bestAngle) then
-                                if aimbotWallCheck(targetPart.Position, cameraPos) then
-                                    bestTarget = target
-                                    bestScreenDist = distPx
-                                    bestPart = targetPart
-                                    bestAngle = angle
-                                end
-                            end
-                        end
+                local screenVec = Vector2.new(screenPos.X, screenPos.Y)
+                local distPx = (screenVec - center).Magnitude
+                if config.aimbot360Enabled or (onScreen and distPx <= radiusPx) then
+                    local worldDist = (targetPart.Position - cameraPos).Magnitude
+                    if aimbotWallCheck(targetPart.Position, cameraPos) then
+                        local humanoid = getTargetCharacter(target) and getTargetCharacter(target):FindFirstChildOfClass("Humanoid")
+                        table.insert(candidates, {
+                            target = target,
+                            part = targetPart,
+                            worldDist = worldDist,
+                            screenDist = distPx,
+                            humanoid = humanoid
+                        })
                     end
                 end
             end
         end
     end
-    
+
+    local bestCandidate = nil
+    local selectionMode = config.aimbotGetTarget or config.masterGetTarget or "Closest"
+    if #candidates > 0 then
+        if selectionMode == "Lowest Health" then
+            local bestHealth = math.huge
+            for _, c in ipairs(candidates) do
+                local h = math.huge
+                if c.humanoid then
+                    h = c.humanoid.Health
+                end
+                if bestCandidate == nil or h < bestHealth then
+                    bestHealth = h
+                    bestCandidate = c
+                end
+            end
+        else
+            local bestDist = math.huge
+            for _, c in ipairs(candidates) do
+                if c.worldDist < bestDist then
+                    bestDist = c.worldDist
+                    bestCandidate = c
+                end
+            end
+        end
+    end
+
+    local bestTarget = bestCandidate and bestCandidate.target or nil
+    local bestPart = bestCandidate and bestCandidate.part or nil
+
     if config.aimbotCurrentTarget ~= bestTarget then
         config.aimbotCurrentTarget = bestTarget
         updateESPColors()
@@ -2116,8 +2156,7 @@ local function onRenderStep()
         radiusPx = currentSize / 2
     end
 
-    local best = nil
-    local bestWorldDist = math.huge
+    local candidates = {}
 
     for _, pl in ipairs(getAllTargets()) do
         local bodyPart, chosenName = chooseBodyPartInstance(pl)
@@ -2143,7 +2182,8 @@ local function onRenderStep()
             end
 
             if not skip then
-                local screenPos3, onScreen = camera:WorldToViewportPoint(bodyPart.Position)
+                local topPos = bodyPart.Position
+                local screenPos3, onScreen = camera:WorldToViewportPoint(topPos)
                 if onScreen then
                     local screenVec = Vector2.new(screenPos3.X, screenPos3.Y)
                     local distPx = (screenVec - center).Magnitude
@@ -2152,18 +2192,16 @@ local function onRenderStep()
                         local targetPos = bodyPart.Position
                         if wallCheck(targetPos, cameraPos) then
                             local worldDist = (cameraPos - targetPos).Magnitude
-                            if worldDist < bestWorldDist then
-                                best = {
-                                    player = pl,
-                                    part = bodyPart,
-                                    partName = chosenName,
-                                    screenDist = distPx,
-                                    worldDist = worldDist,
-                                    screenPos = screenVec,
-                                    screenPos3 = screenPos3
-                                }
-                                bestWorldDist = worldDist
-                            end
+                            table.insert(candidates, {
+                                player = pl,
+                                part = bodyPart,
+                                partName = chosenName,
+                                screenDist = distPx,
+                                worldDist = worldDist,
+                                screenPos = screenVec,
+                                screenPos3 = screenPos3,
+                                humanoid = humanoid
+                            })
                         end
                     end
                 end
@@ -2171,6 +2209,29 @@ local function onRenderStep()
         else
             if config.activeApplied[pl] then
                 restorePartForPlayer(pl)
+            end
+        end
+    end
+
+    local best = nil
+    local selectionMode = config.silentGetTarget or config.masterGetTarget or "Closest"
+    if #candidates > 0 then
+        if selectionMode == "Lowest Health" then
+            local bestHealth = math.huge
+            for _, c in ipairs(candidates) do
+                local h = c.humanoid and c.humanoid.Health or math.huge
+                if best == nil or h < bestHealth then
+                    bestHealth = h
+                    best = c
+                end
+            end
+        else 
+            local bestWorldDist = math.huge
+            for _, c in ipairs(candidates) do
+                if c.worldDist < bestWorldDist then
+                    bestWorldDist = c.worldDist
+                    best = c
+                end
             end
         end
     end
@@ -2913,6 +2974,11 @@ local function makeui()
             })
         end
     end, false)
+
+    lib:AddComboBox("GetTarget", {"Closest", "Lowest Health"}, function(selection)
+        config.antiAimGetTarget = selection
+    end)
+
     lib:AddInputBox("Teleport Distance (Raycast)", function(text)
         local n = tonumber(text)
         if n and n > 0 then
@@ -3063,6 +3129,10 @@ local function makeui()
         config.aimbotTargetPart = selection
     end)
     
+    lib:AddComboBox("GetTarget", {"Closest", "Lowest Health"}, function(selection)
+        config.aimbotGetTarget = selection
+    end)
+    
     lib:AddInputBox("Aim Strength", function(text)
         local n = tonumber(text)
         if n and n >= 0 and n <= 1 then
@@ -3115,31 +3185,6 @@ local function makeui()
             })
         end
     end, false)
-    
-lib:AddInputBox("Hitbox Size", function(text)
-    local n = tonumber(text)
-    if n and n > 0 then
-        config.hitboxSize = n
-        if config.hitboxEnabled then
-            for player, data in pairs(config.hitboxExpandedParts) do
-                if player and targethb(player) and data and data.part and data.part.Parent then
-                    local newSize = Vector3.new(n, n, n)
-                    data.targetSize = newSize
-                    config.hitboxLastSize[player] = n
-                    pcall(function()
-                        data.part.Size = newSize
-                    end)
-                end
-            end
-        end
-    end
-    return tostring(config.hitboxSize)
-end, "Enter Size...", "10", {
-    min = 1,
-    max = math.huge,
-    isNumber = true
-})
-    
     lib:AddComboBox("Team Target", {"Enemies", "Teams", "All"}, function(selection)
         if config.masterTeamTarget == "All" then
             return
@@ -3153,6 +3198,30 @@ end, "Enter Size...", "10", {
             updateTeamTargetModes()
         end
     end)
+    lib:AddInputBox("Hitbox Size", function(text)
+        local n = tonumber(text)
+        if n and n > 0 then
+            config.hitboxSize = n
+            if config.hitboxEnabled then
+                for player, data in pairs(config.hitboxExpandedParts) do
+                    if player and targethb(player) and data and data.part and data.part.Parent then
+                        local newSize = Vector3.new(n, n, n)
+                        data.targetSize = newSize
+                        config.hitboxLastSize[player] = n
+                        pcall(function()
+                            data.part.Size = newSize
+                        end)
+                    end
+                end
+            end
+        end
+        return tostring(config.hitboxSize)
+    end, "Enter Size...", "10", {
+        min = 1,
+        max = math.huge,
+        isNumber = true
+    })
+    
     lib:Tab("SilentAim")
     lib:AddToggle("Toggle SilentAim (Ctrl+'E')", function(state)
         config.Enabled = state
@@ -3245,6 +3314,10 @@ end, "Enter Size...", "10", {
         else
             config.bodypart = "Head"
         end
+    end)
+    
+    lib:AddComboBox("GetTarget", {"Closest", "Lowest Health"}, function(selection)
+        config.silentGetTarget = selection
     end)
     
     lib:AddInputBox("HitChance", function(text)
@@ -3390,6 +3463,65 @@ end, "Enter Size...", "10", {
     })
 
     lib:Tab("Main")
+
+    lib:AddToggle("FirstPerson Toggle", function(enabled)
+        if enabled then
+            local camera = workspace.CurrentCamera
+            camera.CameraType = Enum.CameraType.Custom
+            localPlayer.CameraMode = Enum.CameraMode.LockFirstPerson
+            
+            if getgenv().cameraLockConnection then
+                getgenv().cameraLockConnection:Disconnect()
+                getgenv().cameraLockConnection = nil
+            end
+            safeNotify({
+                Title = "FirstPerson Lock",
+                Content = "Enabled",
+                Audio = "rbxassetid://17208361335",
+                Length = 3,
+                Image = "rbxassetid://4483362458",
+                BarColor = Color3.fromRGB(0, 255, 0)
+            })
+        else
+            localPlayer.CameraMode = Enum.CameraMode.Classic
+            safeNotify({
+                Title = "FirstPerson Lock",
+                Content = "Disabled",
+                Audio = "rbxassetid://17208361335",
+                Length = 1,
+                Image = "rbxassetid://4483362458",
+                BarColor = Color3.fromRGB(255, 0, 0)
+            })
+        end
+    end, false)
+
+
+    lib:AddToggle("Toggle AutoFarm (Ctrl+'F')", function(state)
+        config.autoFarmEnabled = state
+        
+        if state then
+            autoFarmProcess()
+            safeNotify({
+                Title = "AutoFarm",
+                Content = "Enabled",
+                Audio = "rbxassetid://17208361335",
+                Length = 3,
+                Image = "rbxassetid://4483362458",
+                BarColor = Color3.fromRGB(0, 255, 0)
+            })
+        else
+            stopAutoFarm()
+            safeNotify({
+                Title = "AutoFarm",
+                Content = "Disabled",
+                Audio = "rbxassetid://17208361335",
+                Length = 1,
+                Image = "rbxassetid://4483362458",
+                BarColor = Color3.fromRGB(255, 0, 0)
+            })
+        end
+    end, false)
+
     lib:AddComboBox("Master Team Target", {"Enemies", "Teams", "All"}, function(selection)
         if selection == "Enemies" then
             config.masterTeamTarget = "Enemies"
@@ -3439,37 +3571,18 @@ end, "Enter Size...", "10", {
         })
     end)
 
-    lib:AddToggle("Toggle AutoFarm (Ctrl+'F')", function(state)
-        config.autoFarmEnabled = state
-        
-        if state then
-            autoFarmProcess()
-            safeNotify({
-                Title = "AutoFarm",
-                Content = "Enabled",
-                Audio = "rbxassetid://17208361335",
-                Length = 3,
-                Image = "rbxassetid://4483362458",
-                BarColor = Color3.fromRGB(0, 255, 0)
-            })
-        else
-            stopAutoFarm()
-            safeNotify({
-                Title = "AutoFarm",
-                Content = "Disabled",
-                Audio = "rbxassetid://17208361335",
-                Length = 1,
-                Image = "rbxassetid://4483362458",
-                BarColor = Color3.fromRGB(255, 0, 0)
-            })
-        end
-    end, false)
+    lib:AddComboBox("Master GetTarget", {"Closest", "Lowest Health"}, function(selection)
+        config.masterGetTarget = selection
+        config.aimbotGetTarget = selection
+        config.silentGetTarget = selection
+        config.antiAimGetTarget = selection
+    end)
     
-    lib:AddComboBox("Align Part", {"Head", "HumanoidRootPart"}, function(selection)
+    lib:AddComboBox("Align Part (Autofarm)", {"Head", "HumanoidRootPart"}, function(selection)
         config.autoFarmTargetPart = selection
     end)
     
-    lib:AddInputBox("TP Distance", function(text)
+    lib:AddInputBox("TP Distance (Autofarm)", function(text)
         local n = tonumber(text)
         if n and n >= 1 and n <= 100 then
             config.autoFarmDistance = n
@@ -3481,7 +3594,7 @@ end, "Enter Size...", "10", {
         isNumber = true
     })
     
-    lib:AddInputBox("Vertical Offset", function(text)
+    lib:AddInputBox("Vertical Offset (Autofarm)", function(text)
         local n = tonumber(text)
         if n then
             config.autoFarmVerticalOffset = n
