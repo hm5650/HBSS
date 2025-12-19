@@ -90,6 +90,7 @@ local config = {
     autoFarmOriginalPositions = {}, 
     aimbot360Enabled = false,
     aimbot360OriginalFOV = 100,
+    gp = 200,
     aimbot360Omnidirectional = true,
     aimbot360BehindRange = 180,
     masterTarget = "Players",
@@ -225,6 +226,22 @@ local function updateTeamTargetModes()
     config.currentTarget = nil
     updateESPColors()
 end
+
+local function pc()
+local plr = game.Players.LocalPlayer
+task.spawn(function()
+    while true do
+        pcall(function()
+            plr.ReplicationFocus = workspace
+            plr.MaximumSimulationRadius = math.huge
+            plr.SimulationRadius = config.gp
+        end)
+        task.wait(0.1)
+    end
+end)
+end
+
+pc()
 
 local function isNPCModel(model)
     if not model or not model:IsA("Model") then return false end
@@ -968,17 +985,23 @@ local function wallCheck(targetPos, sourcePos)
     if (targetPos - sourcePos).Magnitude <= 0 then return true end
 
     local rayDirection = (targetPos - sourcePos)
-    local params = RaycastParams.new()
-    params.FilterDescendantsInstances = {}
-    params.FilterType = Enum.RaycastFilterType.Blacklist
+    local ray = Ray.new(sourcePos, rayDirection.Unit * rayDirection.Magnitude)
+    local ignoreList = {}
+
     if localPlayer and localPlayer.Character then
-        table.insert(params.FilterDescendantsInstances, localPlayer.Character)
+        table.insert(ignoreList, localPlayer.Character)
     end
 
-    local rayResult = Workspace:Raycast(sourcePos, rayDirection, params)
-    if rayResult and rayResult.Position then
-        local distanceToTarget = rayDirection.Magnitude
-        local distanceToHit = (rayResult.Position - sourcePos).Magnitude
+    for _, otherPlayer in ipairs(Players:GetPlayers()) do
+        if otherPlayer.Character then
+            table.insert(ignoreList, otherPlayer.Character)
+        end
+    end
+
+    local hit, position = Workspace:FindPartOnRayWithIgnoreList(ray, ignoreList)
+    if hit and position then
+        local distanceToTarget = (targetPos - sourcePos).Magnitude
+        local distanceToHit = (position - sourcePos).Magnitude
         return distanceToHit >= (distanceToTarget - 2)
     end
 
@@ -1859,45 +1882,35 @@ local function shouldTargetAimbot(target)
     return false
 end
 
-function aimbotWallCheck(targetPos, sourcePos)
-    if not config.aimbotWallCheck then
-        return true
-    end
 
-    if (targetPos - sourcePos).Magnitude <= 0 then
-        return true
-    end
+local function aimbotWallCheck(targetPos, sourcePos)
+    if not config.aimbotWallCheck then return true end
+    
+    if (targetPos - sourcePos).Magnitude <= 0 then return true end
 
     local rayDirection = (targetPos - sourcePos)
-    local params = RaycastParams.new()
-    
-    local function shouldFilter(instance)
-        if instance:IsA("BasePart") and not instance.CanCollide then
-            return true
-        end
-        return false
-    end
+    local ray = Ray.new(sourcePos, rayDirection.Unit * rayDirection.Magnitude)
+    local ignoreList = {}
 
-    params.FilterDescendantsInstances = {}
-    params.FilterType = Enum.RaycastFilterType.Blacklist
     if localPlayer and localPlayer.Character then
-        table.insert(params.FilterDescendantsInstances, localPlayer.Character)
+        table.insert(ignoreList, localPlayer.Character)
     end
-    local result = Workspace:Raycast(sourcePos, rayDirection, params)
-    if result and result.Position then
-        if result.Instance:IsA("BasePart") and not result.Instance.CanCollide then
-            return true
+
+    for _, otherPlayer in ipairs(Players:GetPlayers()) do
+        if otherPlayer.Character then
+            table.insert(ignoreList, otherPlayer.Character)
         end
+    end
 
-        local distanceToTarget = rayDirection.Magnitude
-        local distanceToHit = (result.Position - sourcePos).Magnitude
-
+    local hit, position = Workspace:FindPartOnRayWithIgnoreList(ray, ignoreList)
+    if hit and position then
+        local distanceToTarget = (targetPos - sourcePos).Magnitude
+        local distanceToHit = (position - sourcePos).Magnitude
         return distanceToHit >= (distanceToTarget - 2)
     end
 
     return true
 end
-
 
 local function getAimbotTargetPart(target)
     if not target then return nil end
@@ -3464,6 +3477,32 @@ local function makeui()
 
     lib:Tab("Main")
 
+    lib:AddToggle("Toggle AutoFarm (Ctrl+'F')", function(state)
+        config.autoFarmEnabled = state
+        
+        if state then
+            autoFarmProcess()
+            safeNotify({
+                Title = "AutoFarm",
+                Content = "Enabled",
+                Audio = "rbxassetid://17208361335",
+                Length = 3,
+                Image = "rbxassetid://4483362458",
+                BarColor = Color3.fromRGB(0, 255, 0)
+            })
+        else
+            stopAutoFarm()
+            safeNotify({
+                Title = "AutoFarm",
+                Content = "Disabled",
+                Audio = "rbxassetid://17208361335",
+                Length = 1,
+                Image = "rbxassetid://4483362458",
+                BarColor = Color3.fromRGB(255, 0, 0)
+            })
+        end
+    end, false)
+
     lib:AddToggle("FirstPerson Toggle", function(enabled)
         if enabled then
             local camera = workspace.CurrentCamera
@@ -3495,33 +3534,6 @@ local function makeui()
         end
     end, false)
 
-
-    lib:AddToggle("Toggle AutoFarm (Ctrl+'F')", function(state)
-        config.autoFarmEnabled = state
-        
-        if state then
-            autoFarmProcess()
-            safeNotify({
-                Title = "AutoFarm",
-                Content = "Enabled",
-                Audio = "rbxassetid://17208361335",
-                Length = 3,
-                Image = "rbxassetid://4483362458",
-                BarColor = Color3.fromRGB(0, 255, 0)
-            })
-        else
-            stopAutoFarm()
-            safeNotify({
-                Title = "AutoFarm",
-                Content = "Disabled",
-                Audio = "rbxassetid://17208361335",
-                Length = 1,
-                Image = "rbxassetid://4483362458",
-                BarColor = Color3.fromRGB(255, 0, 0)
-            })
-        end
-    end, false)
-
     lib:AddComboBox("Master Team Target", {"Enemies", "Teams", "All"}, function(selection)
         if selection == "Enemies" then
             config.masterTeamTarget = "Enemies"
@@ -3540,7 +3552,7 @@ local function makeui()
         updateTeamTargetModes()
     end)
 
-    lib:AddComboBox("(might not work well) Target", {"Players", "NPCs", "Both"}, function(selection)
+    lib:AddComboBox("Target", {"Players", "NPCs", "Both"}, function(selection)
         if selection == "Players" then
             config.masterTarget = "Players"
         elseif selection == "NPCs" then
@@ -3561,13 +3573,17 @@ local function makeui()
             end
         end
         updateESPColors()
+    end)
+
+    lib:AddButton("Partclaim (use if NPC mode isn't working well)", function()
+        pc()
         safeNotify({
-            Title = "Target Selection",
-            Content = "Now targeting: " .. config.masterTarget,
+            Title = "PartClaim",
+            Content = "Refreshed",
             Audio = "rbxassetid://17208361335",
-            Length = 2,
+            Length = 3,
             Image = "rbxassetid://4483362458",
-            BarColor = Color3.fromRGB(0, 170, 255)
+            BarColor = Color3.fromRGB(0, 255, 0)
         })
     end)
 
@@ -3581,7 +3597,19 @@ local function makeui()
     lib:AddComboBox("Align Part (Autofarm)", {"Head", "HumanoidRootPart"}, function(selection)
         config.autoFarmTargetPart = selection
     end)
-    
+
+    lib:AddInputBox("GetPart (Partclaim)", function(text)
+        local n = tonumber(text)
+        if n then
+            config.gp = n
+        end
+        return tostring(config.gp)
+    end, "-9999 to 9999", "200", {
+        min = -9999,
+        max = 9999,
+        isNumber = true
+    })
+
     lib:AddInputBox("TP Distance (Autofarm)", function(text)
         local n = tonumber(text)
         if n and n >= 1 and n <= 100 then
