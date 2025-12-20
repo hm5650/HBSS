@@ -3610,6 +3610,9 @@ local function makeui()
         config.silentGetTarget = selection
         config.antiAimGetTarget = selection
     end)
+    lib:AddComboBox("Align Part (Autofarm)", {"Head", "HumanoidRootPart"}, function(selection)
+        config.autoFarmTargetPart = selection
+    end)
     lib:AddInputBox("GetPart (Partclaim)", function(text)
         local n = tonumber(text)
         if n then
@@ -3621,10 +3624,6 @@ local function makeui()
         max = math.huge,
         isNumber = true
     })
-    lib:AddComboBox("Align Part (Autofarm)", {"Head", "HumanoidRootPart"}, function(selection)
-        config.autoFarmTargetPart = selection
-    end)
-
     lib:AddInputBox("TP Distance (Autofarm)", function(text)
         local n = tonumber(text)
         if n and n >= 1 and n <= 100 then
