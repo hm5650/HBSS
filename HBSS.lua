@@ -111,6 +111,8 @@ local config = {
     aimbotGetTarget = "Closest",
     silentGetTarget = "Closest",
     antiAimGetTarget = "Closest",
+    autoFarmPartClaimStarted = false,
+    autoFarmLastRefresh = 0,
 }
 
 local Alurt = loadstring(game:HttpGet("https://raw.githubusercontent.com/azir-py/project/refs/heads/main/Zwolf/AlurtUI.lua"))()
@@ -240,8 +242,6 @@ task.spawn(function()
     end
 end)
 end
-
-pc()
 
 local function isNPCModel(model)
     if not model or not model:IsA("Model") then return false end
@@ -596,7 +596,22 @@ local function autoFarmProcess()
         if #validTargets == 0 then
             config.currentAutoFarmTarget = nil
             config.autoFarmIndex = 1
-            config.autoFarmCompleted = {}
+
+            if not config.autoFarmPartClaimStarted then
+                config.autoFarmPartClaimStarted = true
+                pcall(pc)
+            else
+                if tick() - (config.autoFarmLastRefresh or 0) > 2 then
+                    config.autoFarmLastRefresh = tick()
+                    pcall(function()
+                        if localPlayer then
+                            localPlayer.ReplicationFocus = workspace
+                            localPlayer.SimulationRadius = config.gp
+                        end
+                    end)
+                end
+            end
+
             return
         end
         
@@ -656,6 +671,8 @@ local function stopAutoFarm()
     config.autoFarmCompleted = {}
     config.autoFarmOriginalPositions = {}
     config.autoFarmEnabled = false
+    config.autoFarmPartClaimStarted = false
+    config.autoFarmLastRefresh = 0
 end
 
 local function teleportTargetToLocalPlayerFront(target)
@@ -2784,7 +2801,7 @@ local function makeui()
                 Content = "Enabled",
                 Audio = "rbxassetid://17208361335",
                 Length = 1,
-                Image = "rbxassetid://",
+                Image = "rbxassetid://4483362458",
                 BarColor = Color3.fromRGB(0, 170, 255)
             })
         else
@@ -2793,7 +2810,7 @@ local function makeui()
                 Content = "Disabled",
                 Audio = "rbxassetid://17208361335",
                 Length = 1,
-                Image = "rbxassetid://",
+                Image = "rbxassetid://4483362458",
                 BarColor = Color3.fromRGB(255, 0, 0)
             })
         end
@@ -3593,22 +3610,20 @@ local function makeui()
         config.silentGetTarget = selection
         config.antiAimGetTarget = selection
     end)
-    
-    lib:AddComboBox("Align Part (Autofarm)", {"Head", "HumanoidRootPart"}, function(selection)
-        config.autoFarmTargetPart = selection
-    end)
-
     lib:AddInputBox("GetPart (Partclaim)", function(text)
         local n = tonumber(text)
         if n then
             config.gp = n
         end
         return tostring(config.gp)
-    end, "-9999 to 9999", "200", {
-        min = -9999,
-        max = 9999,
+    end, "Value", "200", {
+        min = 0,
+        max = math.huge,
         isNumber = true
     })
+    lib:AddComboBox("Align Part (Autofarm)", {"Head", "HumanoidRootPart"}, function(selection)
+        config.autoFarmTargetPart = selection
+    end)
 
     lib:AddInputBox("TP Distance (Autofarm)", function(text)
         local n = tonumber(text)
