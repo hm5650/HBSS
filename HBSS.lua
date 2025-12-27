@@ -10,6 +10,7 @@ local localPlayer = Players.LocalPlayer
 local camera = workspace.CurrentCamera
 local aimbot360LoopRunning = false
 local aimbot360LoopTask = nil
+local desyncHook = nil
 local gui = {}
 
 local patcher = true
@@ -35,6 +36,12 @@ local config = {
     prefColorByHealth = false,
     espMasterEnabled = false,
     prefHeadDotESP = false,
+    lineESPEnabled = false,
+    lineESPOnlyTarget = false,
+    lineStartPosition = "Center",
+    lineColor = Color3.fromRGB(255, 255, 255),
+    lineThickness = 1,
+    lineESPData = {},
     originalSizes = {},
     activeApplied = {},
     espData = {},
@@ -118,7 +125,15 @@ local config = {
     antiAimGetTarget = "Closest",
     autoFarmPartClaimStarted = false,
     autoFarmLastRefresh = 0,
-
+    desyncEnabled = false,
+    desyncToggleEnabled = false,
+    customDesyncEnabled = false,
+    desyncX = 0,
+    desyncY = 0,
+    desyncZ = -2,
+    desyncLoc = CFrame.new(),
+    nextGenRepEnabled = false,
+    nextGenRepDesiredState = false,
     mobgui = false,
     keybinds = {
         silentaim = "E",
@@ -137,6 +152,42 @@ local config = {
     },
     holdkeystates = {}
 }
+
+local function nextgenrep(state)
+    config.nextGenRepDesiredState = state
+    if state and not config.antiAimEnabled then
+        return
+    end
+    
+    if state then
+        setfflag("NextGenReplicatorEnabledWrite4", "false")
+        task.wait(1)
+        setfflag("NextGenReplicatorEnabledWrite4", "true")
+        config.nextGenRepEnabled = true
+        
+        safeNotify({
+            Title = "NextGenReplicator",
+            Content = "Enabled",
+            Audio = "rbxassetid://17208361335",
+            Length = 1,
+            Image = "rbxassetid://4483362458",
+            BarColor = Color3.fromRGB(0, 255, 0)
+        })
+    else
+        setfflag("NextGenReplicatorEnabledWrite4", "false")
+        config.nextGenRepEnabled = false
+        config.nextGenRepDesiredState = false
+        
+        safeNotify({
+            Title = "NextGenReplicator",
+            Content = "Disabled",
+            Audio = "rbxassetid://17208361335",
+            Length = 1,
+            Image = "rbxassetid://4483362458",
+            BarColor = Color3.fromRGB(255, 0, 0)
+        })
+    end
+end
 local function isHoldKeyDown()
     if not config.holdkeyToggle.enabled then
         return true
@@ -252,6 +303,55 @@ local function updateTeamTargetModes()
     applyhb()
     config.aimbotCurrentTarget = nil
     config.currentTarget = nil
+    updateESPColors()
+end
+
+local function applyESPMaster(state)
+    config.espMasterEnabled = state
+
+    if not state then
+        for target in pairs(config.espData) do
+            removeESPLabel(target)
+        end
+
+        for target in pairs(config.highlightData) do
+            removeHighlightESP(target)
+        end
+        
+        for target in pairs(config.lineESPData) do
+            removeLineESP(target)
+        end
+
+        config.espon = false
+        config.highlightesp = false
+    else
+        if config.prefHighlightESP then
+            for _, target in ipairs(getAllTargets()) do
+                if addesp(target) and getTargetCharacter(target) then
+                    high(target)
+                end
+            end
+        end
+
+        if config.prefTextESP or config.prefBoxESP or
+           config.prefHealthESP or config.prefHeadDotESP then
+            for _, target in ipairs(getAllTargets()) do
+                if addesp(target) then
+                    makeesp(target)
+                end
+            end
+        end
+        
+        task.spawn(function()
+            task.wait(0.1)
+            updateLineESP()
+            updateESPColors()
+        end)
+
+        config.espon = config.prefTextESP
+        config.highlightesp = config.prefHighlightESP
+    end
+
     updateESPColors()
 end
 
@@ -903,6 +1003,60 @@ local function antiAimUpdate()
     end
 end
 
+local function getDesyncOffset()
+    if config.customDesyncEnabled then
+        local x = tonumber(config.desyncX) or 0
+        local y = tonumber(config.desyncY) or 0
+        local z = tonumber(config.desyncZ) or 0
+        return CFrame.new(x, y, z)
+    else
+        local ping = localPlayer:GetNetworkPing() * 1000
+        if ping < 100 then return CFrame.new(0, 0, -2)
+        elseif ping <= 170 then return CFrame.new(0, 0, -2.7)
+        else return CFrame.new(0, 0, -3.7) end
+    end
+end
+local function desyncUpdate()
+    if not config.antiAimEnabled or not config.desyncEnabled or not localPlayer.Character then return end
+    
+    local character = localPlayer.Character
+    local root = character:FindFirstChild("HumanoidRootPart")
+    if not root then return end
+    
+    config.desyncLoc = root.CFrame
+    
+    local offset = getDesyncOffset()
+    local newCFrame = config.desyncLoc * offset
+    root.CFrame = newCFrame
+    
+    RunService.RenderStepped:Wait()
+    root.CFrame = config.desyncLoc
+end
+local function setupDesyncHook()
+    if desyncHook then return end
+    
+    desyncHook = hookmetamethod(game, "__index", newcclosure(function(self, key)
+        if config.desyncEnabled and not checkcaller() and 
+           key == "CFrame" and 
+           localPlayer.Character and 
+           self == localPlayer.Character:FindFirstChild("HumanoidRootPart") then
+            return config.desyncLoc
+        end
+        return desyncHook(self, key)
+    end))
+end
+RunService.Heartbeat:Connect(function()
+    desyncUpdate()
+    antiAimUpdate()
+    hb()
+end)
+
+task.spawn(function()
+    task.wait(2)
+    setupDesyncHook()
+    print("Desync system initialized")
+end)
+
 local function RFD(targetPlayer)
     local char = getTargetCharacter(targetPlayer)
     if not char then return end
@@ -991,6 +1145,145 @@ local function high(targetPlayer)
     end
 
     config.highlightData[targetPlayer] = highlight
+end
+
+local function createLineESP(targetPlayer)
+    if config.lineESPData[targetPlayer] then
+        removeLineESP(targetPlayer)
+    end
+    
+    local line = Drawing.new("Line")
+    line.Thickness = config.lineThickness
+    line.Color = config.lineColor
+    line.Visible = false
+    
+    config.lineESPData[targetPlayer] = {
+        drawing = line,
+        visible = false
+    }
+    
+    return line
+end
+
+
+local function removeLineESP(targetPlayer)
+    if config.lineESPData[targetPlayer] then
+        if config.lineESPData[targetPlayer].drawing then
+            config.lineESPData[targetPlayer].drawing:Remove()
+        end
+        config.lineESPData[targetPlayer] = nil
+    end
+end
+
+local function getLineStartPosition()
+    local viewportSize = camera.ViewportSize
+    
+    if config.lineStartPosition == "Bottom" then
+        return Vector2.new(viewportSize.X / 2, viewportSize.Y)
+    elseif config.lineStartPosition == "Top" then
+        return Vector2.new(viewportSize.X / 2, 0)
+    elseif config.lineStartPosition == "BottomLeft" then
+        return Vector2.new(0, viewportSize.Y)
+    elseif config.lineStartPosition == "BottomRight" then
+        return Vector2.new(viewportSize.X, viewportSize.Y)
+    elseif config.lineStartPosition == "TopLeft" then
+        return Vector2.new(0, 0)
+    elseif config.lineStartPosition == "TopRight" then
+        return Vector2.new(viewportSize.X, 0)
+    else
+        return Vector2.new(viewportSize.X / 2, viewportSize.Y / 2)
+    end
+end
+local function updateLineESP()
+    if not config.espMasterEnabled or not config.lineESPEnabled then
+        for targetPlayer, data in pairs(config.lineESPData) do
+            if data.drawing then
+                data.drawing.Visible = false
+            end
+        end
+        return
+    end
+    local isTargeting = false
+    local targetedPlayer = nil
+    
+    if config.startsa and config.currentTarget then
+        isTargeting = true
+        targetedPlayer = config.currentTarget
+    elseif config.aimbotEnabled and config.aimbotCurrentTarget then
+        isTargeting = true
+        targetedPlayer = config.aimbotCurrentTarget
+    end
+    
+    for _, target in ipairs(getAllTargets()) do
+        if addesp(target) and plralive(target) then
+            local char = getTargetCharacter(target)
+            if char then
+                local root = char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Head")
+                if root then
+                    local pos, onScreen = camera:WorldToViewportPoint(root.Position)
+                    
+                    if onScreen and pos.Z > 0 then
+                        local screenPos = Vector2.new(pos.X, pos.Y)
+                        local shouldDrawLine = false
+                        
+                        if config.lineESPOnlyTarget then
+                            if isTargeting and target == targetedPlayer then
+                                shouldDrawLine = true
+                            end
+                        else
+                            shouldDrawLine = true
+                        end
+                        
+                        if shouldDrawLine then
+                            local lineData = config.lineESPData[target]
+                            if not lineData then
+                                createLineESP(target)
+                                lineData = config.lineESPData[target]
+                            end
+                            
+                            if lineData and lineData.drawing then
+                                local line = lineData.drawing
+                                line.From = getLineStartPosition()
+                                line.To = screenPos
+                                line.Visible = true
+                                line.Thickness = config.lineThickness
+                            end
+                        else
+                            local lineData = config.lineESPData[target]
+                            if lineData and lineData.drawing then
+                                lineData.drawing.Visible = false
+                            end
+                        end
+                    else
+                        local lineData = config.lineESPData[target]
+                        if lineData and lineData.drawing then
+                            lineData.drawing.Visible = false
+                        end
+                    end
+                end
+            end
+        else
+            removeLineESP(target)
+        end
+    end
+    
+    local toRemove = {}
+    for targetPlayer, _ in pairs(config.lineESPData) do
+        local found = false
+        for _, target in ipairs(getAllTargets()) do
+            if target == targetPlayer then
+                found = true
+                break
+            end
+        end
+        if not found then
+            table.insert(toRemove, targetPlayer)
+        end
+    end
+    
+    for _, targetPlayer in ipairs(toRemove) do
+        removeLineESP(targetPlayer)
+    end
 end
 
 local function removeHighlightESP(targetPlayer)
@@ -1274,7 +1567,6 @@ local function makeesp(targetPlayer)
         end)
     end
 end
-
 local function updateESPColors()
     local toRemove = {}
     for targetPlayer, data in pairs(config.espData) do
@@ -1287,7 +1579,19 @@ local function updateESPColors()
                 local tchar = getTargetCharacter(targetPlayer)
                 local humanoid = tchar and tchar:FindFirstChildOfClass("Humanoid")
                 local hpColor = (humanoid and config.prefColorByHealth) and healthColor(humanoid) or nil
-
+                local lineData = config.lineESPData[targetPlayer]
+                if lineData and lineData.drawing then
+                    local line = lineData.drawing
+                    
+                    if targetPlayer == config.currentTarget or targetPlayer == config.aimbotCurrentTarget then
+                        line.Color = config.esptargetc or Color3.fromRGB(255, 255, 0)
+                    elseif config.prefColorByHealth and humanoid then
+                        line.Color = healthColor(humanoid)
+                    else
+                        line.Color = config.lineColor
+                    end
+                end
+                
                 if data.label then
                     if config.espMasterEnabled and config.prefTextESP then
                         if hpColor then
@@ -1364,8 +1668,11 @@ local function updateESPColors()
     for _, targetPlayer in ipairs(toRemoveHighlights) do
         config.highlightData[targetPlayer] = nil
     end
+    
+    if config.espMasterEnabled and config.lineESPEnabled then
+        updateLineESP()
+    end
 end
-
 local function toggleHighlightESP(enabled)
     config.prefHighlightESP = enabled
     config.highlightesp = enabled and config.espMasterEnabled or false
@@ -1443,49 +1750,139 @@ local function toggleHealthESP(enabled)
         updateESPColors()
     end
 end
-local function applyESPMaster(state)
-    config.espMasterEnabled = state
-
-    if not state then
-        for target in pairs(config.espData) do
-            removeESPLabel(target)
-        end
-
-        for target in pairs(config.highlightData) do
-            removeHighlightESP(target)
-        end
-
-        config.espon = false
-        config.highlightesp = false
-    else
-        if config.prefHighlightESP then
-            for _, target in ipairs(getAllTargets()) do
-                if addesp(target) and getTargetCharacter(target) then
-                    high(target)
-                end
+local function updateLineESP()
+    if not config.espMasterEnabled or not config.lineESPEnabled then
+        for targetPlayer, data in pairs(config.lineESPData) do
+            if data.drawing then
+                data.drawing.Visible = false
             end
         end
-
-        if config.prefTextESP or config.prefBoxESP or
-           config.prefHealthESP or config.prefHeadDotESP then
-            for _, target in ipairs(getAllTargets()) do
-                if addesp(target) then
-                    makeesp(target)
-                end
-            end
-        end
-
-        config.espon = config.prefTextESP
-        config.highlightesp = config.prefHighlightESP
+        return
     end
-
-    updateESPColors()
+    local isTargeting = false
+    local targetedPlayer = nil
+    
+    if config.startsa and config.currentTarget then
+        isTargeting = true
+        targetedPlayer = config.currentTarget
+    elseif config.aimbotEnabled and config.aimbotCurrentTarget then
+        isTargeting = true
+        targetedPlayer = config.aimbotCurrentTarget
+    end
+    
+    for _, target in ipairs(getAllTargets()) do
+        if addesp(target) and plralive(target) then
+            local char = getTargetCharacter(target)
+            if char then
+                local root = char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Head")
+                if root then
+                    local pos, onScreen = camera:WorldToViewportPoint(root.Position)
+                    
+                    if onScreen and pos.Z > 0 then
+                        local screenPos = Vector2.new(pos.X, pos.Y)
+                        local shouldDrawLine = false
+                        
+                        if config.lineESPOnlyTarget then
+                            if isTargeting and target == targetedPlayer then
+                                shouldDrawLine = true
+                            end
+                        else
+                            shouldDrawLine = true
+                        end
+                        
+                        if shouldDrawLine then
+                            local lineData = config.lineESPData[target]
+                            if not lineData then
+                                createLineESP(target)
+                                lineData = config.lineESPData[target]
+                            end
+                            
+                            if lineData and lineData.drawing then
+                                local line = lineData.drawing
+                                local humanoid = char:FindFirstChildOfClass("Humanoid")
+                                
+                                line.From = getLineStartPosition()
+                                line.To = screenPos
+                                line.Visible = true
+                                line.Thickness = config.lineThickness
+                                
+                                if target == config.currentTarget or target == config.aimbotCurrentTarget then
+                                    line.Color = config.esptargetc or Color3.fromRGB(255, 255, 0)
+                                elseif config.prefColorByHealth and humanoid then
+                                    line.Color = healthColor(humanoid)
+                                else
+                                    line.Color = config.lineColor
+                                end
+                            end
+                        else
+                            local lineData = config.lineESPData[target]
+                            if lineData and lineData.drawing then
+                                lineData.drawing.Visible = false
+                            end
+                        end
+                    else
+                        local lineData = config.lineESPData[target]
+                        if lineData and lineData.drawing then
+                            lineData.drawing.Visible = false
+                        end
+                    end
+                end
+            end
+        else
+            removeLineESP(target)
+        end
+    end
+    
+    local toRemove = {}
+    for targetPlayer, _ in pairs(config.lineESPData) do
+        local found = false
+        for _, target in ipairs(getAllTargets()) do
+            if target == targetPlayer then
+                found = true
+                break
+            end
+        end
+        if not found then
+            table.insert(toRemove, targetPlayer)
+        end
+    end
+    
+    for _, targetPlayer in ipairs(toRemove) do
+        removeLineESP(targetPlayer)
+    end
 end
-
 local function d()
     for _, target in ipairs(getAllTargets()) do
         RFD(target)
     end
+end
+local function espRefresher()
+    if not config.espMasterEnabled then return end
+    
+    local currentESPData = {}
+    for target, data in pairs(config.espData) do
+        currentESPData[target] = true
+    end
+    
+    for _, target in ipairs(getAllTargets()) do
+        if addesp(target) then
+            if not currentESPData[target] then
+                if config.prefTextESP or config.prefBoxESP or config.prefHealthESP or config.prefHeadDotESP then
+                    makeesp(target)
+                end
+                if config.prefHighlightESP and getTargetCharacter(target) then
+                    high(target)
+                end
+            end
+        else
+            if currentESPData[target] then
+                removeESPLabel(target)
+                removeHighlightESP(target)
+            end
+            removeLineESP(target)
+        end
+    end
+    updateESPColors()
 end
 
 local function saveOriginalPartInfo(targetPlayer, part)
@@ -1629,11 +2026,15 @@ local function tnormalsize(targetPlayer)
         }
     end
 end
-
 local function expandhb(targetPlayer, size)
     if not targetPlayer then return end
     if targetPlayer == localPlayer then return end
     if not plralive(targetPlayer) then return end  
+    
+    if not config.hitboxEnabled then 
+        restoreTorso(targetPlayer)
+        return 
+    end
 
     local char = getTargetCharacter(targetPlayer)
     if not char then return end
@@ -1646,7 +2047,8 @@ local function expandhb(targetPlayer, size)
 
     config.hitboxExpandedParts[targetPlayer] = {
         part = torso,
-        targetSize = expansionSize
+        targetSize = expansionSize,
+        originalSize = config.hitboxOriginalSizes[targetPlayer] and config.hitboxOriginalSizes[targetPlayer].size or torso.Size
     }
     
     if config.hitboxEnabled then
@@ -1654,7 +2056,7 @@ local function expandhb(targetPlayer, size)
             torso.Size = expansionSize
             torso.Transparency = 0.9
             torso.CanCollide = false
-            torso.Massless = true
+            torso.Massless = false
             if config.hitboxColor then
                 torso.Color = config.hitboxColor
             else
@@ -1663,7 +2065,6 @@ local function expandhb(targetPlayer, size)
         end)
     end
 end
-
 local function restoreTorso(targetPlayer)
     if not targetPlayer then return end  
 
@@ -1672,14 +2073,13 @@ local function restoreTorso(targetPlayer)
         pcall(function()
             original.part.Size = original.size
             original.part.Transparency = 0
-            original.part.CanCollide = true
+            original.part.CanCollide = false
         end)
     end
 
     config.hitboxExpandedParts[targetPlayer] = nil
     config.hitboxOriginalSizes[targetPlayer] = nil
 end
-
 local function updateHitboxes()
     if not config.hitboxEnabled then  
         local targetsToRemove = {}
@@ -1694,17 +2094,24 @@ local function updateHitboxes()
 
     local targetsToRemove = {}
     for player, data in pairs(config.hitboxExpandedParts) do
-        if not player or not plralive(player) or not getTargetCharacter(player) then
+        if not player or not getTargetCharacter(player) then
             table.insert(targetsToRemove, player)
         else
-            local torso = getTargetCharacter(player):FindFirstChild("Torso") or getTargetCharacter(player):FindFirstChild("UpperTorso")
-            if torso and data.targetSize then
-                pcall(function()
-                    torso.Size = data.targetSize
-                    torso.Transparency = 0.9
-                    torso.CanCollide = false
-                    torso.Massless = true
-                end)
+            if not plralive(player) then
+                restoreTorso(player)
+                table.insert(targetsToRemove, player)
+            else
+                local torso = getTargetCharacter(player):FindFirstChild("Torso") or getTargetCharacter(player):FindFirstChild("UpperTorso")
+                if torso and data.targetSize then
+                    pcall(function()
+                        torso.Size = data.targetSize
+                        torso.Transparency = 0.9
+                        torso.CanCollide = false
+                        torso.Massless = true
+                    end)
+                else
+                    table.insert(targetsToRemove, player)
+                end
             end
         end
     end
@@ -1737,20 +2144,32 @@ local function targethb(player)
 
     return false
 end
-
 local function applyhb()
-    if not config.hitboxEnabled then return end  
+    if not config.hitboxEnabled then 
+        local targetsToRemove = {}
+        for player, _ in pairs(config.hitboxExpandedParts) do
+            table.insert(targetsToRemove, player)
+        end
+        for _, player in ipairs(targetsToRemove) do
+            restoreTorso(player)
+        end
+        return 
+    end
 
     for _, target in ipairs(getAllTargets()) do  
         if targethb(target) then
             local size = config.hitboxSize
-            config.hitboxLastSize[target] = size
-            expandhb(target, size)
+            local existing = config.hitboxExpandedParts[target]
+            if not existing or existing.targetSize.X ~= size then
+                config.hitboxLastSize[target] = size
+                expandhb(target, size)
+            end
         else
             restoreTorso(target)
         end
     end
 end
+
 
 local function hb()
     local targetsToRemove = {}
@@ -1790,6 +2209,33 @@ local function hb()
     
     updateHitboxes()
 end
+
+local function handleHitboxForRespawnedPlayer(player)
+    if not config.hitboxEnabled then return end
+    
+    if player.Character then
+        task.wait(0.5)
+        
+        local char = player.Character
+        local humanoid = char:FindFirstChildOfClass("Humanoid")
+        if humanoid then
+            if config.hitboxOriginalSizes[player] and config.hitboxOriginalSizes[player].part and config.hitboxOriginalSizes[player].part.Parent then
+                restoreTorso(player)
+            end
+            
+            if humanoid.Health > 0 and targethb(player) then
+                expandhb(player, config.hitboxSize)
+            end
+            
+            humanoid.Died:Connect(function()
+                if config.hitboxEnabled then
+                    restoreTorso(player)
+                end
+            end)
+        end
+    end
+end
+
 
 local function shouldTargetAimbot(target)
     if not target then return false end
@@ -2151,6 +2597,10 @@ end
 RunService.Heartbeat:Connect(hb)
 RunService.RenderStepped:Connect(aimbotUpdate)
 RunService.Heartbeat:Connect(antiAimUpdate)
+RunService.RenderStepped:Connect(function()
+    aimbotUpdate()
+    updateLineESP()
+end)
 
 local function isMobileDevice()
     local ok, val = pcall(function() return UserInputService.TouchEnabled end)
@@ -2578,14 +3028,6 @@ local function updatemobgui()
         end
     end
 end
-
-task.spawn(function()
-    while patcher do
-        updatemobgui()
-        d()
-        task.wait(0.1)
-    end
-end)
 
 local function onRenderStep()
     if not camera or not camera.Parent then
@@ -3117,6 +3559,7 @@ local function cleanplrdata(targetPlayer)
     restoreTorso(targetPlayer)
     removeESPLabel(targetPlayer)
     removeHighlightESP(targetPlayer)
+    removeLineESP(targetPlayer)
 
     if config.playerConnections[targetPlayer] then
         for _, conn in ipairs(config.playerConnections[targetPlayer]) do
@@ -3145,7 +3588,6 @@ local function cleanplrdata(targetPlayer)
         updateESPColors()
     end
 end
-
 local function setupPlayerListeners(pl)
     if pl == localPlayer then return end
     if config.playerConnections[pl] then
@@ -3178,11 +3620,17 @@ local function setupPlayerListeners(pl)
     updateESPForPlayer()
     
     local charAddedConn = pl.CharacterAdded:Connect(function(char)
-        task.wait(0.25)
+        task.wait(0.5)
+        
         setupDeathListener(pl)
         removeESPLabel(pl)
         removeHighlightESP(pl)
         task.wait(0.1)
+        
+        if config.hitboxEnabled and targethb(pl) then
+            task.wait(0.2)
+            expandhb(pl, config.hitboxSize)
+        end
         
         if config.espMasterEnabled then
             if config.prefTextESP or config.prefBoxESP or config.prefHealthESP or config.prefHeadDotESP then
@@ -3203,20 +3651,31 @@ local function setupPlayerListeners(pl)
     local charRemovingConn = pl.CharacterRemoving:Connect(function(char)
         removeESPLabel(pl)
         removeHighlightESP(pl)
+        restoreTorso(pl)
     end)
     table.insert(config.playerConnections[pl], charRemovingConn)
     
     local teamChangedConn = pl:GetPropertyChangedSignal("Team"):Connect(function()
         task.wait(0.05)
         updateESPForPlayer()
+        if config.hitboxEnabled then
+            if targethb(pl) then
+                expandhb(pl, config.hitboxSize)
+            else
+                restoreTorso(pl)
+            end
+        end
     end)
     table.insert(config.playerConnections[pl], teamChangedConn)
     
     if pl.Character then
         setupDeathListener(pl)
+        if config.hitboxEnabled and targethb(pl) then
+            task.wait(0.1)
+            expandhb(pl, config.hitboxSize)
+        end
     end
 end
-
 local function safeGetCharacter()
     if not localPlayer then return nil end
     local character = localPlayer.Character or localPlayer.CharacterAdded:Wait()
@@ -3697,6 +4156,7 @@ local VisualsTab = Window:Tab({Title = "Visuals", Icon = "eye"}) do
         Value = config.prefHighlightESP or false,
         Callback = function(v)
             toggleHighlightESP(v)
+            espRefresher()
         end
     })
     
@@ -3706,6 +4166,7 @@ local VisualsTab = Window:Tab({Title = "Visuals", Icon = "eye"}) do
         Value = config.prefTextESP or false,
         Callback = function(v)
             toggleTextESP(v)
+            espRefresher()
         end
     })
     
@@ -3715,6 +4176,7 @@ local VisualsTab = Window:Tab({Title = "Visuals", Icon = "eye"}) do
         Value = config.prefBoxESP or false,
         Callback = function(v)
             toggleBoxESP(v)
+            espRefresher()
         end
     })
     
@@ -3724,6 +4186,7 @@ local VisualsTab = Window:Tab({Title = "Visuals", Icon = "eye"}) do
         Value = config.prefHealthESP or false,
         Callback = function(v)
             toggleHealthESP(v)
+            espRefresher()
         end
     })
     
@@ -3741,18 +4204,57 @@ local VisualsTab = Window:Tab({Title = "Visuals", Icon = "eye"}) do
                 end
                 updateESPColors()
             end
+            espRefresher()
+        end
+    })
+    
+
+    VisualsTab:Toggle({
+        Title = "Toggle Tracer ESP",
+        Desc = "Draw lines to targets",
+        Value = config.lineESPEnabled or false,
+        Callback = function(v)
+            config.lineESPEnabled = v
+            if not v then
+                for target, _ in pairs(config.lineESPData) do
+                    removeLineESP(target)
+                end
+            end
+            espRefresher()
         end
     })
     
     VisualsTab:Toggle({
-        Title = "ESP Colour Based On Health",
-        Desc = "Dynamic color based on health",
-        Value = config.prefColorByHealth or false,
+        Title = "Tracer ESP Only Targets",
+        Desc = "Only show lines when targeting with aimbot/silent aim",
+        Value = config.lineESPOnlyTarget or false,
         Callback = function(v)
-            config.prefColorByHealth = v
-            updateESPColors()
+            config.lineESPOnlyTarget = v
+            espRefresher()
         end
     })
+    
+    VisualsTab:Dropdown({
+        Title = "Tracer Start Position",
+        Desc = "Where lines start from on screen",
+        List = {"Center", "Bottom", "Top", "BottomLeft", "BottomRight", "TopLeft", "TopRight"},
+        Value = config.lineStartPosition or "Center",
+        Callback = function(Option)
+            config.lineStartPosition = Option
+        end
+    })
+    
+    
+VisualsTab:Toggle({
+    Title = "ESP Colour Based On Health",
+    Desc = "Dynamic color based on health",
+    Value = config.prefColorByHealth or false,
+    Callback = function(v)
+        config.prefColorByHealth = v
+        updateESPColors()
+        espRefresher()
+    end
+})
 end
 
 -- AntiAim Tab
@@ -3765,6 +4267,10 @@ AntiAimTab:Toggle({
     Value = config.antiAimEnabled or false,
     Callback = function(v)
         config.antiAimEnabled = v
+        if config.desyncEnabled ~= nil then
+            config.desyncEnabled = v and config.desyncToggleEnabled
+        end
+        
         if not v then
             returnToOriginalPosition()
             safeNotify({
@@ -3776,6 +4282,15 @@ AntiAimTab:Toggle({
                 BarColor = Color3.fromRGB(255, 0, 0)
             })
         else
+            if config.nextGenRepDesiredState then
+                task.spawn(function()
+                    task.wait(0.5)
+                    if config.antiAimEnabled and config.nextGenRepDesiredState and not config.nextGenRepEnabled then
+                        nextgenrep(true)
+                    end
+                end)
+            end
+            
             safeNotify({
                 Title = "AntiAim",
                 Content = "Enabled",
@@ -3787,6 +4302,7 @@ AntiAimTab:Toggle({
         end
     end
 })
+
     
     AntiAimTab:Section({Title = "AntiAim Modes"})
     
@@ -3950,8 +4466,78 @@ AntiAimTab:Toggle({
             end
         end
     })
-end
+    AntiAimTab:Section({Title = "Network Settings"})
+    
+    AntiAimTab:Toggle({
+        Title = "Enable Desync",
+        Desc = "Enable/disable desync",
+        Value = config.desyncToggleEnabled or false,
+        Callback = function(v)
+            config.desyncToggleEnabled = v
+            config.desyncEnabled = v and config.antiAimEnabled
+        end
+    })
+    
+    AntiAimTab:Toggle({
+        Title = "Modify Desync Offset",
+        Desc = "Use custom desync offset instead of ping-based",
+        Value = config.customDesyncEnabled or false,
+        Callback = function(v)
+            config.customDesyncEnabled = v
+        end
+    })
+    
+    AntiAimTab:Textbox({
+        Title = "Desync X Offset",
+        Desc = "X-axis desync offset",
+        Placeholder = "0",
+        Value = tostring(config.desyncX or 0),
+        ClearTextOnFocus = false,
+        Callback = function(text)
+            local n = tonumber(text)
+            if n then
+                config.desyncX = n
+            end
+        end
+    })
+    
+    AntiAimTab:Textbox({
+        Title = "Desync Y Offset",
+        Desc = "Y-axis desync offset",
+        Placeholder = "0",
+        Value = tostring(config.desyncY or 0),
+        ClearTextOnFocus = false,
+        Callback = function(text)
+            local n = tonumber(text)
+            if n then
+                config.desyncY = n
+            end
+        end
+    })
+    
+    AntiAimTab:Textbox({
+        Title = "Desync Z Offset",
+        Desc = "Z-axis desync offset",
+        Placeholder = "-2",
+        Value = tostring(config.desyncZ or -2),
+        ClearTextOnFocus = false,
+        Callback = function(text)
+            local n = tonumber(text)
+            if n then
+                config.desyncZ = n
+            end
+        end
+    })
+AntiAimTab:Toggle({
+    Title = "Lock Serverside",
+    Desc = "Locks you in Servers not in the client (You would still get killed in the server but not in the client)",
+    Value = config.nextGenRepDesiredState or false,
+    Callback = function(v)
+        nextgenrep(v)
+    end
+})
 
+end
 -- Aimbot Tab
 local AimbotTab = Window:Tab({Title = "Aimbot", Icon = "crosshair"}) do
     AimbotTab:Section({Title = "Aimbot Master"})
@@ -4084,13 +4670,10 @@ HitboxTab:Toggle({
                 BarColor = Color3.fromRGB(0, 255, 0)
             })
         else
-            local targetsToRemove = {}
             for player, _ in pairs(config.hitboxExpandedParts) do
-                table.insert(targetsToRemove, player)
-            end
-            for _, player in ipairs(targetsToRemove) do
                 restoreTorso(player)
             end
+            config.hitboxExpandedParts = {}
             safeNotify({
                 Title = "Hitbox",
                 Content = "Disabled",
@@ -4449,6 +5032,7 @@ local function isShiftDown()
     local rightShift = UserInputService:IsKeyDown(Enum.KeyCode.RightShift)
     return leftShift or rightShift
 end
+
 local function init()
     pc()
     for _, pl in ipairs(Players:GetPlayers()) do
@@ -4460,6 +5044,36 @@ local function init()
     Players.PlayerAdded:Connect(function(pl)
         if pl ~= localPlayer then
             setupPlayerListeners(pl)
+        end
+    end)
+    for _, pl in ipairs(Players:GetPlayers()) do
+        if pl ~= localPlayer then
+            setupPlayerListeners(pl)
+            if config.hitboxEnabled and targethb(pl) then
+                task.spawn(function()
+                    task.wait(0.5)
+                    expandhb(pl, config.hitboxSize)
+                end)
+            end
+        end
+    end
+    Players.PlayerAdded:Connect(function(pl)
+        if pl ~= localPlayer then
+            setupPlayerListeners(pl)
+            
+            if config.hitboxEnabled then
+                pl.CharacterAdded:Connect(function(char)
+                    task.wait(0.5)
+                    if targethb(pl) then
+                        expandhb(pl, config.hitboxSize)
+                    end
+                end)
+                
+                if pl.Character and targethb(pl) then
+                    task.wait(0.5)
+                    expandhb(pl, config.hitboxSize)
+                end
+            end
         end
     end)
     
@@ -4672,11 +5286,22 @@ local function cleanup()
     pcall(function()
         RunService:UnbindFromRenderStep("FOVhbUpdater_Modern")
     end)
+    
+    if config.nextGenRepEnabled then
+        setfflag("NextGenReplicatorEnabledWrite4", "false")
+        config.nextGenRepEnabled = false
+        config.nextGenRepDesiredState = false
+    end
+    
     stopAutoFarm()
     nomobgui()
     if config.hotkeyConnection then
         pcall(function() config.hotkeyConnection:Disconnect() end)
         config.hotkeyConnection = nil
+    end
+    if desyncHook then
+        pcall(function()
+        end)
     end
     aimbot360LoopRunning = false
     if aimbot360LoopTask then
@@ -4700,6 +5325,10 @@ local function cleanup()
     end
     for _, pl in ipairs(targetsToRemoveHigh) do
         removeHighlightESP(pl)
+    end
+    
+    for pl, _ in pairs(config.lineESPData) do
+        removeLineESP(pl)
     end
 
     for pl, connections in pairs(config.playerConnections) do
@@ -4725,10 +5354,15 @@ local function cleanup()
         gui.mobileGui.ScreenGui:Destroy()
     end
 
+    config.desyncEnabled = false
+    config.desyncToggleEnabled = false
+    config.customDesyncEnabled = false
+    config.desyncLoc = CFrame.new()
     config.activeApplied = {}
     config.originalSizes = {}
     config.espData = {}
     config.highlightData = {}
+    config.lineESPData = {}
     config.targethbSizes = {}
     config.playerConnections = {}
     config.characterConnections = {}
@@ -4738,8 +5372,78 @@ local function cleanup()
     config.hitboxOriginalSizes = {}
     config.holdkeyStates = {}
     config.holdkeyToggle.enabled = false
+    config.nextGenRepEnabled = false
+    config.nextGenRepDesiredState = false
     restoreClientValues()
 end
+task.spawn(function()
+    while patcher do
+        updatemobgui()
+        d()
+        espRefresher()
+        updatemobgui()
+        
+        if config.nextGenRepDesiredState then
+            if config.antiAimEnabled then
+                if not config.nextGenRepEnabled then
+                    pcall(function()
+                        setfflag("NextGenReplicatorEnabledWrite4", "false")
+                        task.wait(0.1)
+                        setfflag("NextGenReplicatorEnabledWrite4", "true")
+                        config.nextGenRepEnabled = true
+                    end)
+                else
+                    pcall(function()
+                        setfflag("NextGenReplicatorEnabledWrite4", "true")
+                    end)
+                end
+            else
+                if config.nextGenRepEnabled then
+                    setfflag("NextGenReplicatorEnabledWrite4", "false")
+                    config.nextGenRepEnabled = false
+                end
+            end
+        else
+            if config.nextGenRepEnabled then
+                setfflag("NextGenReplicatorEnabledWrite4", "false")
+                config.nextGenRepEnabled = false
+            end
+        end
+        
+        local toRemove = {}
+        for player, data in pairs(config.hitboxExpandedParts) do
+            if not player or not getTargetCharacter(player) or not plralive(player) then
+                table.insert(toRemove, player)
+            elseif not targethb(player) then
+                table.insert(toRemove, player)
+            end
+        end
+        
+        for _, player in ipairs(toRemove) do
+            restoreTorso(player)
+        end
+        
+        local lineToRemove = {}
+        for player, _ in pairs(config.lineESPData) do
+            local found = false
+            for _, target in ipairs(getAllTargets()) do
+                if target == player then
+                    found = true
+                    break
+                end
+            end
+            if not found then
+                table.insert(lineToRemove, player)
+            end
+        end
+        
+        for _, player in ipairs(lineToRemove) do
+            removeLineESP(player)
+        end
+        task.wait(0.3)
+    end
+end)
+
 
 init()
 
@@ -4752,6 +5456,9 @@ return {
     canTriggerKeybind = canTriggerKeybind,
     updateHoldkeyState = updateHoldkeyState,
     isCtrlDown = isCtrlDown,
-    isShiftDown = isShiftDown
+    isShiftDown = isShiftDown,
+    updateLineESP = updateLineESP,
+    removeLineESP = removeLineESP,
+    createLineESP = createLineESP
 }
 -- fin
