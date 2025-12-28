@@ -156,6 +156,48 @@ local config = {
     holdkeystates = {}
 }
 
+local function hasForcefield(character)
+    if not character then return false end
+    local forcefield = character:FindFirstChildOfClass("ForceField")
+    if forcefield then return true end
+    for _, child in ipairs(character:GetChildren()) do
+        if child:IsA("ForceField") then
+            return true
+        elseif child.Name:lower():find("shield") or 
+               child.Name:lower():find("forcefield") or
+               child.Name:lower():find("invincible") or
+               child.Name:lower():find("invulnerable") then
+            if child:IsA("BasePart") or child:IsA("Model") or child:IsA("Folder") then
+                for _, descendant in ipairs(child:GetDescendants()) do
+                    if descendant:IsA("ParticleEmitter") or 
+                       descendant:IsA("Beam") or 
+                       descendant:IsA("Trail") then
+                        return true
+                    end
+                end
+            end
+            return true
+        end
+    end
+    
+    -- Check humanoid for forcefield states
+    local humanoid = character:FindFirstChildOfClass("Humanoid")
+    if humanoid then
+        -- Some games set humanoid properties when invulnerable
+        if humanoid.MaxHealth == math.huge or humanoid.Health == math.huge then
+            return true
+        end
+        
+        -- Check for specific humanoid states that indicate invulnerability
+        if humanoid:GetState() == Enum.HumanoidStateType.Physics then
+            -- Sometimes forcefields put humanoid in physics state
+            return true
+        end
+    end
+    
+    return false
+end
+
 local function nextgenrep(state)
     config.nextGenRepDesiredState = state
     if state and not config.antiAimEnabled then
@@ -510,47 +552,6 @@ local function restoreTargetOriginalPosition(target)
         end)
         config.autoFarmOriginalPositions[target] = nil
     end
-end
-local function hasForcefield(character)
-    if not character then return false end
-    local forcefield = character:FindFirstChildOfClass("ForceField")
-    if forcefield then return true end
-    for _, child in ipairs(character:GetChildren()) do
-        if child:IsA("ForceField") then
-            return true
-        elseif child.Name:lower():find("shield") or 
-               child.Name:lower():find("forcefield") or
-               child.Name:lower():find("invincible") or
-               child.Name:lower():find("invulnerable") then
-            if child:IsA("BasePart") or child:IsA("Model") or child:IsA("Folder") then
-                for _, descendant in ipairs(child:GetDescendants()) do
-                    if descendant:IsA("ParticleEmitter") or 
-                       descendant:IsA("Beam") or 
-                       descendant:IsA("Trail") then
-                        return true
-                    end
-                end
-            end
-            return true
-        end
-    end
-    
-    -- Check humanoid for forcefield states
-    local humanoid = character:FindFirstChildOfClass("Humanoid")
-    if humanoid then
-        -- Some games set humanoid properties when invulnerable
-        if humanoid.MaxHealth == math.huge or humanoid.Health == math.huge then
-            return true
-        end
-        
-        -- Check for specific humanoid states that indicate invulnerability
-        if humanoid:GetState() == Enum.HumanoidStateType.Physics then
-            -- Sometimes forcefields put humanoid in physics state
-            return true
-        end
-    end
-    
-    return false
 end
 
 local function canSeeTarget(target)
@@ -5750,3 +5751,4 @@ return {
     createLineESP = createLineESP
 }
 -- fin
+
