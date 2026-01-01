@@ -1,6 +1,5 @@
 
 -- Gravel.cc
-return function(ExternalConfig)
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
@@ -8,17 +7,10 @@ local TweenService = game:GetService("TweenService")
 local Teams = game:GetService("Teams")
 local Workspace = game:GetService("Workspace")
 
-local localPlayer = Players.LocalPlayer
-local camera = workspace.CurrentCamera
-local aimbot360LoopRunning = false
-local aimbot360LoopTask = nil
-local desyncHook = nil
-local gui = {}
 
-local patcher = true
-
--- random stuff lololol
-local config = {
+-- Define the default configuration table
+local defaultConfig = {
+    -- All your existing config settings go here
     startsa = false,
     fovsize = 120,
     predic = 1,
@@ -159,6 +151,32 @@ local config = {
     holdkeystates = {}
 }
 
+-- Create a global config variable that can be overridden
+local config = table.clone(defaultConfig) -- Create a copy of default config
+
+-- Main function that accepts external configuration
+local function Main(ExternalConfig)
+    -- If external config is provided, merge it with default config
+    if ExternalConfig and type(ExternalConfig) == "table" then
+        for key, value in pairs(ExternalConfig) do
+            if config[key] ~= nil then
+                config[key] = value
+            else
+                -- Warn about unknown config keys
+                warn(string.format("Unknown config key: %s", tostring(key)))
+            end
+        end
+    end
+
+
+local localPlayer = Players.LocalPlayer
+local camera = workspace.CurrentCamera
+local aimbot360LoopRunning = false
+local aimbot360LoopTask = nil
+local desyncHook = nil
+local gui = {}
+
+local patcher = true
 
 -- Update the hasForcefield function to use the config setting
 local function hasForcefield(character)
@@ -5805,10 +5823,9 @@ task.spawn(function()
 end)
 
 
-    init()
-    
+init()
     return {
-        Config = config, -- Expose the config table
+        config = config, -- Return config so users can modify it after initialization
         cleanup = cleanup,
         toggle360Aimbot = toggle360Aimbot,
         updatemobgui = updatemobgui,
@@ -5820,7 +5837,37 @@ end)
         isShiftDown = isShiftDown,
         updateLineESP = updateLineESP,
         removeLineESP = removeLineESP,
-        createLineESP = createLineESP
+        createLineESP = createLineESP,
+        -- Add helper function to export current config
+        exportConfig = function()
+            local exportTable = {}
+            for key, value in pairs(config) do
+                -- Skip tables and functions that shouldn't be exported
+                if not (type(value) == "table" and (
+                    key == "lineESPData" or 
+                    key == "originalSizes" or 
+                    key == "activeApplied" or
+                    key == "espData" or
+                    key == "highlightData" or
+                    key == "targethbSizes" or
+                    key == "playerConnections" or
+                    key == "characterConnections" or
+                    key == "centerLocked" or
+                    key == "hitboxExpandedParts" or
+                    key == "hitboxOriginalSizes" or
+                    key == "hitboxLastSize" or
+                    key == "autoFarmOriginalPositions" or
+                    key == "holdkeystates" or
+                    key == "clientConnections" or
+                    key == "clientOriginals"
+                )) and not (type(value) == "function") then
+                    exportTable[key] = value
+                end
+            end
+            return exportTable
+        end
     }
 end
+
+return Main
 -- fin
