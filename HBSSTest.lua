@@ -1,19 +1,6 @@
--- Gravel.cc with External Configuration Support
-local function Gravel(ExternalConfig)
-    -- If ExternalConfig is provided, merge it with default config
-    if ExternalConfig and type(ExternalConfig) == "table" then
-        for key, value in pairs(ExternalConfig) do
-            if config[key] ~= nil then
-                config[key] = value
-            else
-                -- Allow adding new keys to config if they don't exist
-                config[key] = value
-            end
-        end
-    end
-
 
 -- Gravel.cc
+return function(ExternalConfig)
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
@@ -5818,10 +5805,10 @@ task.spawn(function()
 end)
 
 
-init()
-
+    init()
+    
     return {
-        Config = config,
+        Config = config, -- Expose the config table
         cleanup = cleanup,
         toggle360Aimbot = toggle360Aimbot,
         updatemobgui = updatemobgui,
@@ -5836,5 +5823,4 @@ init()
         createLineESP = createLineESP
     }
 end
-
-return Gravel
+-- fin
