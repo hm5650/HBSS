@@ -7,10 +7,17 @@ local TweenService = game:GetService("TweenService")
 local Teams = game:GetService("Teams")
 local Workspace = game:GetService("Workspace")
 
+local localPlayer = Players.LocalPlayer
+local camera = workspace.CurrentCamera
+local aimbot360LoopRunning = false
+local aimbot360LoopTask = nil
+local desyncHook = nil
+local gui = {}
 
--- Define the default configuration table
-local defaultConfig = {
-    -- All your existing config settings go here
+local patcher = true
+
+-- random stuff lololol
+local config = {
     startsa = false,
     fovsize = 120,
     predic = 1,
@@ -151,32 +158,6 @@ local defaultConfig = {
     holdkeystates = {}
 }
 
--- Create a global config variable that can be overridden
-local config = table.clone(defaultConfig) -- Create a copy of default config
-
--- Main function that accepts external configuration
-local function Main(ExternalConfig)
-    -- If external config is provided, merge it with default config
-    if ExternalConfig and type(ExternalConfig) == "table" then
-        for key, value in pairs(ExternalConfig) do
-            if config[key] ~= nil then
-                config[key] = value
-            else
-                -- Warn about unknown config keys
-                warn(string.format("Unknown config key: %s", tostring(key)))
-            end
-        end
-    end
-
-
-local localPlayer = Players.LocalPlayer
-local camera = workspace.CurrentCamera
-local aimbot360LoopRunning = false
-local aimbot360LoopTask = nil
-local desyncHook = nil
-local gui = {}
-
-local patcher = true
 
 -- Update the hasForcefield function to use the config setting
 local function hasForcefield(character)
@@ -4389,6 +4370,10 @@ MainTab:Slider({
     createKeybindButton("Client Config", "V", "client")
     createKeybindButton("SilentAim Wall Check", "B", "silentaimwallcheck")
     createKeybindButton("Aimbot Wall Check", "H", "aimbotwallcheck")
+MainTab:Code({
+    Title = "Config Export",
+    Code = getConfigString()
+})
 
     MainTab:Section({Title = "Optimization"})
     local CodeBlock = MainTab:Code({
@@ -5824,50 +5809,62 @@ end)
 
 
 init()
-    return {
-        config = config, -- Return config so users can modify it after initialization
-        cleanup = cleanup,
-        toggle360Aimbot = toggle360Aimbot,
-        updatemobgui = updatemobgui,
-        applyKeybindAction = applyKeybindAction,
-        isHoldKeyDown = isHoldKeyDown,
-        canTriggerKeybind = canTriggerKeybind,
-        updateHoldkeyState = updateHoldkeyState,
-        isCtrlDown = isCtrlDown,
-        isShiftDown = isShiftDown,
-        updateLineESP = updateLineESP,
-        removeLineESP = removeLineESP,
-        createLineESP = createLineESP,
-        -- Add helper function to export current config
-        exportConfig = function()
-            local exportTable = {}
-            for key, value in pairs(config) do
-                -- Skip tables and functions that shouldn't be exported
-                if not (type(value) == "table" and (
-                    key == "lineESPData" or 
-                    key == "originalSizes" or 
-                    key == "activeApplied" or
-                    key == "espData" or
-                    key == "highlightData" or
-                    key == "targethbSizes" or
-                    key == "playerConnections" or
-                    key == "characterConnections" or
-                    key == "centerLocked" or
-                    key == "hitboxExpandedParts" or
-                    key == "hitboxOriginalSizes" or
-                    key == "hitboxLastSize" or
-                    key == "autoFarmOriginalPositions" or
-                    key == "holdkeystates" or
-                    key == "clientConnections" or
-                    key == "clientOriginals"
-                )) and not (type(value) == "function") then
-                    exportTable[key] = value
-                end
-            end
-            return exportTable
-        end
+
+-- Configuration System
+local function getConfigString()
+    local str = "Config = {\n"
+    
+    local important = {
+        "startsa", "aimbotEnabled", "autoFarmEnabled", 
+        "antiAimEnabled", "hitboxEnabled", "clientMasterEnabled", 
+        "espMasterEnabled", "fovsize", "aimbotFOVSize", "hitboxSize",
+        "masterTeamTarget", "masterTarget", "masterGetTarget",
+        "bodypart", "aimbotTargetPart", "hitchance", 
+        "aimbotStrength", "gp"
     }
+    
+    for i, key in ipairs(important) do
+        local value = config[key]
+        local formatted
+        if type(value) == "string" then
+            formatted = "\"" .. tostring(value) .. "\""
+        else
+            formatted = tostring(value)
+        end
+        str = str .. "    " .. key .. " = " .. formatted
+        if i < #important then
+            str = str .. ",\n"
+        else
+            str = str .. "\n"
+        end
+    end
+    
+    str = str .. "}\n"
+    return str
 end
 
-return Main
--- fin
+local function applyConfig(userConfig)
+    for key, value in pairs(userConfig) do
+        if config[key] ~= nil then
+            config[key] = value
+        end
+    end
+    
+    -- Update systems
+    updateTeamTargetModes()
+    if config.espMasterEnabled then applyESPMaster(true) end
+    if config.hitboxEnabled then applyhb() end
+    updateAimbotFOVRing()
+    updateESPColors()
+    
+    return true
+end
+
+-- Update the return statement:
+return {
+    cleanup = cleanup,
+    toggle360Aimbot = toggle360Aimbot,
+    Config = config,
+    ApplyConfig = applyConfig,
+    GetConfig = getConfigString
+}
