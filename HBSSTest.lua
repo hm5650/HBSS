@@ -4370,10 +4370,6 @@ MainTab:Slider({
     createKeybindButton("Client Config", "V", "client")
     createKeybindButton("SilentAim Wall Check", "B", "silentaimwallcheck")
     createKeybindButton("Aimbot Wall Check", "H", "aimbotwallcheck")
-MainTab:Code({
-    Title = "Config Export",
-    Code = getConfigString()
-})
 
     MainTab:Section({Title = "Optimization"})
     local CodeBlock = MainTab:Code({
