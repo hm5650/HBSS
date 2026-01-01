@@ -1,3 +1,4 @@
+
 -- Gravel.cc
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -12,8 +13,10 @@ local aimbot360LoopRunning = false
 local aimbot360LoopTask = nil
 local desyncHook = nil
 local gui = {}
-local looper = true
 
+local patcher = true
+
+-- random stuff lololol
 local config = {
     startsa = false,
     fovsize = 120,
@@ -135,8 +138,7 @@ local config = {
     desyncLoc = CFrame.new(),
     nextGenRepEnabled = false,
     nextGenRepDesiredState = false,
-    silentAimMethod = "Hitbox",  -- Default value
-    ignoreForcefield = true,     -- New option
+    ignoreForcefield = true,
     mobgui = false,
     keybinds = {
         silentaim = "E",
@@ -157,147 +159,54 @@ local config = {
 }
 
 
--- Add these functions for silent aim method handling
-local ExpectedArguments = {
-    FindPartOnRayWithIgnoreList = {
-        ArgCountRequired = 3,
-        Args = {
-            "Instance", "Ray", "table", "boolean", "boolean"
-        }
-    },
-    FindPartOnRayWithWhitelist = {
-        ArgCountRequired = 3,
-        Args = {
-            "Instance", "Ray", "table", "boolean"
-        }
-    },
-    FindPartOnRay = {
-        ArgCountRequired = 2,
-        Args = {
-            "Instance", "Ray", "Instance", "boolean", "boolean"
-        }
-    },
-    Raycast = {
-        ArgCountRequired = 3,
-        Args = {
-            "Instance", "Vector3", "Vector3", "RaycastParams"
-        }
-    }
-}
-
-local function ValidateArguments(Args, RayMethod)
-    local Matches = 0
-    if #Args < RayMethod.ArgCountRequired then
-        return false
-    end
-    for Pos, Argument in next, Args do
-        if typeof(Argument) == RayMethod.Args[Pos] then
-            Matches = Matches + 1
-        end
-    end
-    return Matches >= RayMethod.ArgCountRequired
-end
-
-local function getDirection(Origin, Position)
-    return (Position - Origin).Unit * 1000
-end
-
--- Hook for silent aim methods
-local silentAimHook
-silentAimHook = hookmetamethod(game, "__namecall", newcclosure(function(...)
-    local Method = getnamecallmethod()
-    local Arguments = {...}
-    local self = Arguments[1]
+-- Update the hasForcefield function to use the config setting
+local function hasForcefield(character)
+    if not character then return false end
     
-    if config.startsa and self == workspace and not checkcaller() then
-        local methodName = config.silentAimMethod
-        
-        if Method == "FindPartOnRayWithIgnoreList" and (methodName == Method or methodName == "Hitbox") then
-            if ValidateArguments(Arguments, ExpectedArguments.FindPartOnRayWithIgnoreList) then
-                local A_Ray = Arguments[2]
-                local HitPart = config.currentTarget and getTargetCharacter(config.currentTarget)
-                
-                if HitPart then
-                    local targetPart = chooseBodyPartInstance(config.currentTarget)
-                    if targetPart then
-                        local Origin = A_Ray.Origin
-                        local Direction = getDirection(Origin, targetPart.Position)
-                        Arguments[2] = Ray.new(Origin, Direction)
-                        return silentAimHook(unpack(Arguments))
+    -- Check if ignore forcefield is enabled
+    if config.ignoreForcefield == false then
+        return false  -- If ignore forcefield is disabled, don't skip anyone
+    end
+    
+    local forcefield = character:FindFirstChildOfClass("ForceField")
+    if forcefield then return true end
+    for _, child in ipairs(character:GetChildren()) do
+        if child:IsA("ForceField") then
+            return true
+        elseif child.Name:lower():find("shield") or 
+               child.Name:lower():find("forcefield") or
+               child.Name:lower():find("invincible") or
+               child.Name:lower():find("invulnerable") then
+            if child:IsA("BasePart") or child:IsA("Model") or child:IsA("Folder") then
+                for _, descendant in ipairs(child:GetDescendants()) do
+                    if descendant:IsA("ParticleEmitter") or 
+                       descendant:IsA("Beam") or 
+                       descendant:IsA("Trail") then
+                        return true
                     end
                 end
             end
-        elseif Method == "FindPartOnRayWithWhitelist" and methodName == Method then
-            if ValidateArguments(Arguments, ExpectedArguments.FindPartOnRayWithWhitelist) then
-                local A_Ray = Arguments[2]
-                local HitPart = config.currentTarget and getTargetCharacter(config.currentTarget)
-                
-                if HitPart then
-                    local targetPart = chooseBodyPartInstance(config.currentTarget)
-                    if targetPart then
-                        local Origin = A_Ray.Origin
-                        local Direction = getDirection(Origin, targetPart.Position)
-                        Arguments[2] = Ray.new(Origin, Direction)
-                        return silentAimHook(unpack(Arguments))
-                    end
-                end
-            end
-        elseif (Method == "FindPartOnRay" or Method == "findPartOnRay") and 
-               (methodName:lower() == Method:lower() or methodName == "Hitbox") then
-            if ValidateArguments(Arguments, ExpectedArguments.FindPartOnRay) then
-                local A_Ray = Arguments[2]
-                local HitPart = config.currentTarget and getTargetCharacter(config.currentTarget)
-                
-                if HitPart then
-                    local targetPart = chooseBodyPartInstance(config.currentTarget)
-                    if targetPart then
-                        local Origin = A_Ray.Origin
-                        local Direction = getDirection(Origin, targetPart.Position)
-                        Arguments[2] = Ray.new(Origin, Direction)
-                        return silentAimHook(unpack(Arguments))
-                    end
-                end
-            end
-        elseif Method == "Raycast" and methodName == Method then
-            if ValidateArguments(Arguments, ExpectedArguments.Raycast) then
-                local A_Origin = Arguments[2]
-                local HitPart = config.currentTarget and getTargetCharacter(config.currentTarget)
-                
-                if HitPart then
-                    local targetPart = chooseBodyPartInstance(config.currentTarget)
-                    if targetPart then
-                        Arguments[3] = getDirection(A_Origin, targetPart.Position)
-                        return silentAimHook(unpack(Arguments))
-                    end
-                end
-            end
+            return true
         end
     end
-    return silentAimHook(...)
-end))
-
--- Mouse hook for Mouse.Hit/Target method
-local mouseHook
-mouseHook = hookmetamethod(game, "__index", newcclosure(function(self, Index)
-    if config.startsa and config.silentAimMethod == "Mouse.Hit/Target" and 
-       self == localPlayer:GetMouse() and not checkcaller() and config.currentTarget then
-        local HitPart = chooseBodyPartInstance(config.currentTarget)
+    
+    -- Check humanoid for forcefield states
+    local humanoid = character:FindFirstChildOfClass("Humanoid")
+    if humanoid then
+        -- Some games set humanoid properties when invulnerable
+        if humanoid.MaxHealth == math.huge or humanoid.Health == math.huge then
+            return true
+        end
         
-        if HitPart then
-            if Index == "Target" or Index == "target" then
-                return HitPart
-            elseif Index == "Hit" or Index == "hit" then
-                return HitPart.CFrame
-            elseif Index == "X" or Index == "x" then
-                return self.X
-            elseif Index == "Y" or Index == "y" then
-                return self.Y
-            end
+        -- Check for specific humanoid states that indicate invulnerability
+        if humanoid:GetState() == Enum.HumanoidStateType.Physics then
+            -- Sometimes forcefields put humanoid in physics state
+            return true
         end
     end
-    return mouseHook(self, Index)
-end))
-
+    
+    return false
+end
 
 local function nextgenrep(state)
     config.nextGenRepDesiredState = state
@@ -307,33 +216,26 @@ local function nextgenrep(state)
     
     if state then
         setfflag("NextGenReplicatorEnabledWrite4", "false")
-        task.wait(1)
+        task.wait(0.1)
         setfflag("NextGenReplicatorEnabledWrite4", "true")
         config.nextGenRepEnabled = true
-        
-        safeNotify({
-            Title = "NextGenReplicator",
-            Content = "Enabled",
-            Audio = "rbxassetid://17208361335",
-            Length = 1,
-            Image = "rbxassetid://4483362458",
-            BarColor = Color3.fromRGB(0, 255, 0)
-        })
     else
         setfflag("NextGenReplicatorEnabledWrite4", "false")
         config.nextGenRepEnabled = false
         config.nextGenRepDesiredState = false
-        
-        safeNotify({
-            Title = "NextGenReplicator",
-            Content = "Disabled",
-            Audio = "rbxassetid://17208361335",
-            Length = 1,
-            Image = "rbxassetid://4483362458",
-            BarColor = Color3.fromRGB(255, 0, 0)
-        })
     end
 end
+
+local function nextgenrep2(state)
+    if state then
+        setfflag("NextGenReplicatorEnabledWrite4", "false")
+        task.wait(0.1)
+        setfflag("NextGenReplicatorEnabledWrite4", "true")
+    else
+        setfflag("NextGenReplicatorEnabledWrite4", "false")
+    end
+end
+
 local function isHoldKeyDown()
     if not config.holdkeyToggle.enabled then
         return true
@@ -654,53 +556,6 @@ local function restoreTargetOriginalPosition(target)
         config.autoFarmOriginalPositions[target] = nil
     end
 end
-local function hasForcefield(character)
-    if not character then return false end
-    
-    -- Check if ignore forcefield is enabled
-    if config.ignoreForcefield == false then
-        return false  -- If ignore forcefield is disabled, don't skip anyone
-    end
-    
-    local forcefield = character:FindFirstChildOfClass("ForceField")
-    if forcefield then return true end
-    for _, child in ipairs(character:GetChildren()) do
-        if child:IsA("ForceField") then
-            return true
-        elseif child.Name:lower():find("shield") or 
-               child.Name:lower():find("forcefield") or
-               child.Name:lower():find("invincible") or
-               child.Name:lower():find("invulnerable") then
-            if child:IsA("BasePart") or child:IsA("Model") or child:IsA("Folder") then
-                for _, descendant in ipairs(child:GetDescendants()) do
-                    if descendant:IsA("ParticleEmitter") or 
-                       descendant:IsA("Beam") or 
-                       descendant:IsA("Trail") then
-                        return true
-                    end
-                end
-            end
-            return true
-        end
-    end
-    
-    -- Check humanoid for forcefield states
-    local humanoid = character:FindFirstChildOfClass("Humanoid")
-    if humanoid then
-        -- Some games set humanoid properties when invulnerable
-        if humanoid.MaxHealth == math.huge or humanoid.Health == math.huge then
-            return true
-        end
-        
-        -- Check for specific humanoid states that indicate invulnerability
-        if humanoid:GetState() == Enum.HumanoidStateType.Physics then
-            -- Sometimes forcefields put humanoid in physics state
-            return true
-        end
-    end
-    
-    return false
-end
 
 local function canSeeTarget(target)
     -- If wall check is disabled, always return true
@@ -756,6 +611,8 @@ local function canSeeTarget(target)
     
     return true
 end
+
+-- Update your autofarm functions too (if they exist)
 local function getValidAutoFarmTargets()
     local validTargets = {}
     local localRoot = localPlayer.Character and (localPlayer.Character:FindFirstChild("HumanoidRootPart") or localPlayer.Character:FindFirstChild("Head"))
@@ -848,6 +705,7 @@ local function getValidAutoFarmTargets()
     
     return validTargets
 end
+
 
 local function tptocrossWithAlignment(target)
     local targetChar = getTargetCharacter(target)
@@ -1188,6 +1046,7 @@ local function teleportBehindTarget(target)
     config.currentAntiAimTarget = target
     config.isTeleported = true
 end
+-- Update the anti-aim findClosestEnemy function
 local function findClosestEnemy()
     if not localPlayer.Character then return nil end
     local localRoot = localPlayer.Character:FindFirstChild("HumanoidRootPart")
@@ -1420,10 +1279,13 @@ local function RFD(targetPlayer)
         end
     end
 end
-local function wallCheck(targetPos, sourcePos, method)
+
+local function wallCheck(targetPos, sourcePos)
     if not config.wallc then
         return true
     end
+
+    if (targetPos - sourcePos).Magnitude <= 0 then return true end
 
     local rayDirection = (targetPos - sourcePos)
     local ray = Ray.new(sourcePos, rayDirection.Unit * rayDirection.Magnitude)
@@ -1439,32 +1301,7 @@ local function wallCheck(targetPos, sourcePos, method)
         end
     end
 
-    local hit, position, normal, material
-    local methodType = method or config.silentAimMethod
-    
-    -- Handle different methods
-    if methodType == "Raycast" then
-        local raycastParams = RaycastParams.new()
-        raycastParams.FilterDescendantsInstances = ignoreList
-        raycastParams.FilterType = Enum.RaycastFilterType.Exclude
-        local result = workspace:Raycast(sourcePos, rayDirection, raycastParams)
-        
-        if result then
-            hit = result.Instance
-            position = result.Position
-        end
-    elseif methodType == "FindPartOnRayWithIgnoreList" then
-        hit, position = workspace:FindPartOnRayWithIgnoreList(ray, ignoreList, false, true)
-    elseif methodType == "FindPartOnRayWithWhitelist" then
-        -- This method requires a whitelist, so we'll use ignore list approach
-        hit, position = workspace:FindPartOnRayWithIgnoreList(ray, ignoreList, false, true)
-    elseif methodType == "FindPartOnRay" then
-        hit, position = workspace:FindPartOnRay(ray, workspace, false, true)
-    else
-        -- Default/fallback method
-        hit, position = workspace:FindPartOnRayWithIgnoreList(ray, ignoreList, false, true)
-    end
-
+    local hit, position = Workspace:FindPartOnRayWithIgnoreList(ray, ignoreList)
     if hit and position then
         local distanceToTarget = (targetPos - sourcePos).Magnitude
         local distanceToHit = (position - sourcePos).Magnitude
@@ -2394,19 +2231,10 @@ local function tnormalsize(targetPlayer)
         }
     end
 end
--- Replace the expandhb function (around line 2200) with:
 local function expandhb(targetPlayer, size)
     if not targetPlayer then return end
     if targetPlayer == localPlayer then return end
     if not plralive(targetPlayer) then return end  
-    
-    -- Add forcefield check if enabled
-    if config.ignoreForcefield then
-        local targetChar = getTargetCharacter(targetPlayer)
-        if targetChar and hasForcefield(targetChar) then
-            return
-        end
-    end
     
     if not config.hitboxEnabled then 
         restoreTorso(targetPlayer)
@@ -2497,6 +2325,7 @@ local function updateHitboxes()
         restoreTorso(player)
     end
 end
+-- Update the hitbox targethb function
 local function targethb(player)
     if not player or player == localPlayer then return false end  
     if not plralive(player) then return false end  
@@ -2616,6 +2445,9 @@ local function handleHitboxForRespawnedPlayer(player)
         end
     end
 end
+
+
+-- Update the aimbot shouldTargetAimbot function
 local function shouldTargetAimbot(target)
     if not target then return false end
     if target == localPlayer then return false end
@@ -2643,7 +2475,6 @@ local function shouldTargetAimbot(target)
     end
     return false
 end
-
 
 local function aimbotWallCheck(targetPos, sourcePos)
     if not config.aimbotWallCheck then return true end
@@ -3415,7 +3246,7 @@ local function updatemobgui()
     end
 end
 
--- In the onRenderStep function (around line 3200), modify the candidate filtering:
+-- Update the silent aim onRenderStep function to include forcefield check
 local function onRenderStep()
     if not camera or not camera.Parent then
         camera = workspace.CurrentCamera
@@ -3448,13 +3279,14 @@ local function onRenderStep()
         local char = getTargetCharacter(pl)
         if char then
             humanoid = char:FindFirstChildOfClass("Humanoid")
+            
+            -- Add forcefield check here
+            if hasForcefield(char) then continue end
         end
 
         if bodyPart and humanoid and humanoid.Health > 0 then
             local mode = config.masterTeamTarget or "Enemies"
             local skip = false
-            
-            -- Team check
             if mode == "Enemies" then
                 if typeof(pl) == "Instance" and pl:IsA("Player") and isTeammate(pl) then
                     skip = true
@@ -3466,13 +3298,6 @@ local function onRenderStep()
             elseif mode == "All" then
                 skip = false
             end
-            
-            -- Forcefield check if enabled
-            if not skip and config.ignoreForcefield then
-                if char and hasForcefield(char) then
-                    skip = true
-                end
-            end
 
             if not skip then
                 local topPos = bodyPart.Position
@@ -3483,7 +3308,7 @@ local function onRenderStep()
                     if distPx <= radiusPx then
                         local cameraPos = camera.CFrame.Position
                         local targetPos = bodyPart.Position
-                        if wallCheck(targetPos, cameraPos, config.silentAimMethod) then
+                        if wallCheck(targetPos, cameraPos) then
                             local worldDist = (cameraPos - targetPos).Magnitude
                             table.insert(candidates, {
                                 player = pl,
@@ -3639,110 +3464,8 @@ local function onRenderStep()
     end
 end
 
--- Function to set up silent aim hooks
-local function setupSilentAimHooks()
-    if silentAimNamecallHook or silentAimIndexHook then
-        return
-    end
-    
-    -- Namecall hook for raycasting methods
-    silentAimNamecallHook = hookmetamethod(game, "__namecall", newcclosure(function(...)
-        local Method = getnamecallmethod()
-        local Arguments = {...}
-        local self = Arguments[1]
-        
-        if config.startsa and self == workspace and not checkcaller() then
-            local methodName = config.silentAimMethod or "Hitbox"
-            
-            if Method == "FindPartOnRayWithIgnoreList" and (methodName == Method or methodName == "Hitbox") then
-                if ValidateArguments(Arguments, ExpectedArguments.FindPartOnRayWithIgnoreList) then
-                    local A_Ray = Arguments[2]
-                    local HitPart = config.currentTarget and getTargetCharacter(config.currentTarget)
-                    
-                    if HitPart then
-                        local targetPart = chooseBodyPartInstance(config.currentTarget)
-                        if targetPart then
-                            local Origin = A_Ray.Origin
-                            local Direction = getDirection(Origin, targetPart.Position)
-                            Arguments[2] = Ray.new(Origin, Direction)
-                            return silentAimNamecallHook(unpack(Arguments))
-                        end
-                    end
-                end
-            elseif Method == "FindPartOnRayWithWhitelist" and methodName == Method then
-                if ValidateArguments(Arguments, ExpectedArguments.FindPartOnRayWithWhitelist) then
-                    local A_Ray = Arguments[2]
-                    local HitPart = config.currentTarget and getTargetCharacter(config.currentTarget)
-                    
-                    if HitPart then
-                        local targetPart = chooseBodyPartInstance(config.currentTarget)
-                        if targetPart then
-                            local Origin = A_Ray.Origin
-                            local Direction = getDirection(Origin, targetPart.Position)
-                            Arguments[2] = Ray.new(Origin, Direction)
-                            return silentAimNamecallHook(unpack(Arguments))
-                        end
-                    end
-                end
-            elseif (Method == "FindPartOnRay" or Method == "findPartOnRay") and 
-                   (methodName:lower() == Method:lower() or methodName == "Hitbox") then
-                if ValidateArguments(Arguments, ExpectedArguments.FindPartOnRay) then
-                    local A_Ray = Arguments[2]
-                    local HitPart = config.currentTarget and getTargetCharacter(config.currentTarget)
-                    
-                    if HitPart then
-                        local targetPart = chooseBodyPartInstance(config.currentTarget)
-                        if targetPart then
-                            local Origin = A_Ray.Origin
-                            local Direction = getDirection(Origin, targetPart.Position)
-                            Arguments[2] = Ray.new(Origin, Direction)
-                            return silentAimNamecallHook(unpack(Arguments))
-                        end
-                    end
-                end
-            elseif Method == "Raycast" and methodName == Method then
-                if ValidateArguments(Arguments, ExpectedArguments.Raycast) then
-                    local A_Origin = Arguments[2]
-                    local HitPart = config.currentTarget and getTargetCharacter(config.currentTarget)
-                    
-                    if HitPart then
-                        local targetPart = chooseBodyPartInstance(config.currentTarget)
-                        if targetPart then
-                            Arguments[3] = getDirection(A_Origin, targetPart.Position)
-                            return silentAimNamecallHook(unpack(Arguments))
-                        end
-                    end
-                end
-            end
-        end
-        return silentAimNamecallHook(...)
-    end))
-    
-    -- Index hook for Mouse.Hit/Target method
-    silentAimIndexHook = hookmetamethod(game, "__index", newcclosure(function(self, Index)
-        if config.startsa and config.silentAimMethod == "Mouse.Hit/Target" and 
-           self == localPlayer:GetMouse() and not checkcaller() and config.currentTarget then
-            local targetChar = getTargetCharacter(config.currentTarget)
-            local targetPart = targetChar and chooseBodyPartInstance(config.currentTarget)
-            
-            if targetPart then
-                if Index == "Target" or Index == "target" then
-                    return targetPart
-                elseif Index == "Hit" or Index == "hit" then
-                    return targetPart.CFrame
-                elseif Index == "X" or Index == "x" then
-                    return self.X
-                elseif Index == "Y" or Index == "y" then
-                    return self.Y
-                elseif Index == "UnitRay" then
-                    return Ray.new(self.Origin, (targetPart.Position - self.Origin).Unit)
-                end
-            end
-        end
-        return silentAimIndexHook(self, Index)
-    end))
-end
 
+-- Update the Silent Aim getClosestPlayer function to respect ignoreForcefield
 local function getClosestPlayer()
     if not Options.TargetPart.Value then return end
     local Closest
@@ -4422,26 +4145,13 @@ local MainTab = Window:Tab({Title = "Main", Icon = "folder"}) do
     })
     
     MainTab:Section({Title = "Utilities"})
+    
 MainTab:Toggle({
     Title = "Ignore Forcefield (Global)",
     Desc = "Skip targets with forcefields in all systems",
     Value = config.ignoreForcefield or true,
     Callback = function(v)
         config.ignoreForcefield = v
-        
-        -- Update the SilentAimTab toggle if it exists
-        if SilentAimTab then
-            -- You might need to refresh the UI here
-        end
-        
-        safeNotify({
-            Title = "Forcefield Ignore",
-            Content = v and "Enabled globally" or "Disabled globally",
-            Audio = "rbxassetid://17208361335",
-            Length = 2,
-            Image = "rbxassetid://4483362458",
-            BarColor = v and Color3.fromRGB(0, 170, 255) or Color3.fromRGB(255, 100, 0)
-        })
     end
 })
     MainTab:Toggle({
@@ -4476,7 +4186,7 @@ MainTab:Toggle({
 MainTab:Toggle({
     Title = "Autofarm Wall Check",
     Desc = "Prevent teleporting targets behind walls",
-    Value = config.autoFarmWallCheck or true,
+    Value = config.autoFarmWallCheck or false,
     Callback = function(v)
         config.autoFarmWallCheck = v
         if v then
@@ -5176,6 +4886,7 @@ AntiAimTab:Toggle({
             end
         end
     })
+
 AntiAimTab:Toggle({
     Title = "Lock Serverside",
     Desc = "Locks you in Servers not in the client (You would still get killed in the server but not in the client)",
@@ -5428,16 +5139,7 @@ SilentAimTab:Toggle({
             config.wallc = v
         end
     })
-
-SilentAimTab:Dropdown({
-    Title = "Silent Aim Method",
-    Desc = "Method for silent aim targeting",
-    List = {"Mouse.Hit/Target", "FindPartOnRayWithIgnoreList", "FindPartOnRayWithWhitelist", "FindPartOnRay", "Raycast", "Hitbox"},
-    Value = config.silentAimMethod or "Hitbox",
-    Callback = function(Option)
-        config.silentAimMethod = Option
-    end
-})
+    
     SilentAimTab:Dropdown({
         Title = "Team Target",
         Desc = "Select target team preference",
@@ -5692,20 +5394,6 @@ end
 
 local function init()
     pc()
-    setupSilentAimHooks()
-    
-    for _, pl in ipairs(Players:GetPlayers()) do
-        if pl ~= localPlayer then
-            setupPlayerListeners(pl)
-        end
-    end
-
-    Players.PlayerAdded:Connect(function(pl)
-        if pl ~= localPlayer then
-            setupPlayerListeners(pl)
-        end
-    end)
-
     for _, pl in ipairs(Players:GetPlayers()) do
         if pl ~= localPlayer then
             setupPlayerListeners(pl)
@@ -5990,10 +5678,6 @@ local function cleanup()
         removeESPLabel(pl)
     end
 
-    if silentAimNamecallHook then
-        -- Note: We can't easily unhook metamethods, but we can disable them
-        config.startsa = false
-    end
     local targetsToRemoveHigh = {}
     for pl, _ in pairs(config.highlightData) do
         table.insert(targetsToRemoveHigh, pl)
@@ -6052,7 +5736,7 @@ local function cleanup()
     restoreClientValues()
 end
 task.spawn(function()
-    while looper do
+    while patcher do
         updatemobgui()
         d()
         espRefresher()
@@ -6119,11 +5803,22 @@ task.spawn(function()
     end
 end)
 
+
 init()
 
-local silentAimNamecallHook
-local silentAimIndexHook
-return {
+return
+    GConfig = config,
+    UpdateAll = function()
+        updateTeamTargetModes()
+        applyESPMaster(config.espMasterEnabled)
+        if config.aimbotEnabled then
+            updateAimbotFOVRing()
+        end
+        if config.hitboxEnabled then
+            applyhb()
+        end
+        updateESPColors()
+    end,
     cleanup = cleanup,
     toggle360Aimbot = toggle360Aimbot,
     updatemobgui = updatemobgui,
