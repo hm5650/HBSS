@@ -1,3 +1,17 @@
+-- Gravel.cc with External Configuration Support
+local function Gravel(ExternalConfig)
+    -- If ExternalConfig is provided, merge it with default config
+    if ExternalConfig and type(ExternalConfig) == "table" then
+        for key, value in pairs(ExternalConfig) do
+            if config[key] ~= nil then
+                config[key] = value
+            else
+                -- Allow adding new keys to config if they don't exist
+                config[key] = value
+            end
+        end
+    end
+
 
 -- Gravel.cc
 local Players = game:GetService("Players")
@@ -5806,200 +5820,21 @@ end)
 
 init()
 
--- At the very end of the script, replace the current return statement:
-
--- Remove or modify the existing return statement and replace with:
-local Gravel = {
-    config = config, -- Expose the config table
-    updateAllSettings = function()
-        -- This function will update all settings when config is changed
-        updateTeamTargetModes()
-        applyESPMaster(config.espMasterEnabled)
-        handleAimbotToggle(config.aimbotEnabled)
-        
-        if config.autoFarmEnabled then
-            autoFarmProcess()
-        else
-            stopAutoFarm()
-        end
-        
-        if config.hitboxEnabled then
-            applyhb()
-        end
-        
-        if config.clientMasterEnabled then
-            applyClientMaster(true)
-        end
-        
-        if config.antiAimEnabled then
-            -- Nothing needed, it's already running
-        else
-            returnToOriginalPosition()
-        end
-        
-        if config.desyncEnabled ~= nil then
-            config.desyncEnabled = config.antiAimEnabled and config.desyncToggleEnabled
-        end
-        
-        updateESPColors()
-        updateAimbotFOVRing()
-        updatemobgui()
-        espRefresher()
-    end,
-    
-    -- Helper function to quickly copy config to clipboard
-    copyConfigToClipboard = function()
-        local configStr = "-- Gravel.cc Configuration\n"
-        configStr = configStr .. "Config = {\n"
-        
-        -- Only include important settings, not internal data
-        local simpleConfig = {
-            startsa = config.startsa,
-            fovsize = config.fovsize,
-            predic = config.predic,
-            espc = config.espc,
-            esptargetc = config.esptargetc,
-            espteamc = config.espteamc,
-            rfd = config.rfd,
-            eme = config.eme,
-            wallc = config.wallc,
-            bodypart = config.bodypart,
-            espon = config.espon,
-            prefTextESP = config.prefTextESP,
-            highlightesp = config.highlightesp,
-            prefHighlightESP = config.prefHighlightESP,
-            prefBoxESP = config.prefBoxESP,
-            prefHealthESP = config.prefHealthESP,
-            prefColorByHealth = config.prefColorByHealth,
-            espMasterEnabled = config.espMasterEnabled,
-            prefHeadDotESP = config.prefHeadDotESP,
-            lineESPEnabled = config.lineESPEnabled,
-            lineESPOnlyTarget = config.lineESPOnlyTarget,
-            lineStartPosition = config.lineStartPosition,
-            lineColor = config.lineColor,
-            lineThickness = config.lineThickness,
-            fovc = config.fovc,
-            fovct = config.fovct,
-            targetMode = config.targetMode,
-            hitchance = config.hitchance,
-            aimbotEnabled = config.aimbotEnabled,
-            aimbotFOVSize = config.aimbotFOVSize,
-            aimbotStrength = config.aimbotStrength,
-            aimbotWallCheck = config.aimbotWallCheck,
-            aimbotTargetPart = config.aimbotTargetPart,
-            aimbotTeamTarget = config.aimbotTeamTarget,
-            aimbot360Enabled = config.aimbot360Enabled,
-            hitboxEnabled = config.hitboxEnabled,
-            hitboxSize = config.hitboxSize,
-            hitboxTeamTarget = config.hitboxTeamTarget,
-            hitboxColor = config.hitboxColor,
-            antiAimEnabled = config.antiAimEnabled,
-            raycastAntiAim = config.raycastAntiAim,
-            antiAimTPDistance = config.antiAimTPDistance,
-            antiAimAbovePlayer = config.antiAimAbovePlayer,
-            antiAimAboveHeight = config.antiAimAboveHeight,
-            antiAimBehindPlayer = config.antiAimBehindPlayer,
-            antiAimBehindDistance = config.antiAimBehindDistance,
-            antiAimOrbitEnabled = config.antiAimOrbitEnabled,
-            antiAimOrbitSpeed = config.antiAimOrbitSpeed,
-            antiAimOrbitRadius = config.antiAimOrbitRadius,
-            antiAimOrbitHeight = config.antiAimOrbitHeight,
-            masterTeamTarget = config.masterTeamTarget,
-            masterTarget = config.masterTarget,
-            autoFarmEnabled = config.autoFarmEnabled,
-            autoFarmDistance = config.autoFarmDistance,
-            autoFarmSpeed = config.autoFarmSpeed,
-            autoFarmTargetPart = config.autoFarmTargetPart,
-            autoFarmVerticalOffset = config.autoFarmVerticalOffset,
-            autoFarmMinRange = config.autoFarmMinRange,
-            autoFarmMaxRange = config.autoFarmMaxRange,
-            autoFarmWallCheck = config.autoFarmWallCheck,
-            clientMasterEnabled = config.clientMasterEnabled,
-            clientWalkSpeed = config.clientWalkSpeed,
-            clientJumpPower = config.clientJumpPower,
-            clientNoclipEnabled = config.clientNoclipEnabled,
-            clientCFrameWalkToggle = config.clientCFrameWalkToggle,
-            clientCFrameSpeed = config.clientCFrameSpeed,
-            masterGetTarget = config.masterGetTarget,
-            ignoreForcefield = config.ignoreForcefield,
-            mobgui = config.mobgui,
-            gp = config.gp
-        }
-        
-        for key, value in pairs(simpleConfig) do
-            if type(value) == "boolean" then
-                configStr = configStr .. string.format("    %s = %s,\n", key, tostring(value))
-            elseif type(value) == "number" then
-                configStr = configStr .. string.format("    %s = %s,\n", key, tostring(value))
-            elseif type(value) == "string" then
-                configStr = configStr .. string.format("    %s = \"%s\",\n", key, tostring(value))
-            elseif type(value) == "table" and value.ClassName == "Color3" then
-                configStr = configStr .. string.format("    %s = Color3.fromRGB(%d, %d, %d),\n", 
-                    key, math.floor(value.R * 255), math.floor(value.G * 255), math.floor(value.B * 255))
-            else
-                configStr = configStr .. string.format("    %s = %s,\n", key, tostring(value))
-            end
-        end
-        
-        configStr = configStr .. "}\n\n"
-        configStr = configStr .. "-- Usage:\n"
-        configStr = configStr .. "-- local Gravel = loadstring(game:HttpGet('URL'))(Config)"
-        
-        setclipboard(configStr)
-        
-        safeNotify({
-            Title = "Configuration",
-            Content = "Config copied to clipboard! Paste in a script.",
-            Length = 3,
-            Image = "rbxassetid://4483362458",
-            BarColor = Color3.fromRGB(0, 170, 255)
-        })
-    end,
-    
-    -- Add all other important functions
-    getAllTargets = getAllTargets,
-    addesp = addesp,
-    plralive = plralive,
-    updateTeamTargetModes = updateTeamTargetModes,
-    applyESPMaster = applyESPMaster,
-    toggleHighlightESP = toggleHighlightESP,
-    toggleTextESP = toggleTextESP,
-    toggleBoxESP = toggleBoxESP,
-    toggleHealthESP = toggleHealthESP,
-    updateESPColors = updateESPColors,
-    updateLineESP = updateLineESP,
-    applyhb = applyhb,
-    handleAimbotToggle = handleAimbotToggle,
-    toggle360Aimbot = toggle360Aimbot,
-    stopAutoFarm = stopAutoFarm,
-    returnToOriginalPosition = returnToOriginalPosition,
-    nextgenrep = nextgenrep,
-    canTriggerKeybind = canTriggerKeybind,
-    isHoldKeyDown = isHoldKeyDown,
-    isCtrlDown = isCtrlDown,
-    isShiftDown = isShiftDown,
-    safeNotify = safeNotify,
-    updatemobgui = updatemobgui
-}
-
--- Final return statement
-return function(userConfig)
-    -- Allow users to pass their own config
-    if userConfig and type(userConfig) == "table" then
-        for key, value in pairs(userConfig) do
-            if config[key] ~= nil then
-                config[key] = value
-            end
-        end
-        
-        -- Initialize with user's config
-        task.spawn(function()
-            task.wait(0.5) -- Wait for UI to load
-            Gravel.updateAllSettings()
-        end)
-    end
-    
-    return Gravel
+    return {
+        Config = config,
+        cleanup = cleanup,
+        toggle360Aimbot = toggle360Aimbot,
+        updatemobgui = updatemobgui,
+        applyKeybindAction = applyKeybindAction,
+        isHoldKeyDown = isHoldKeyDown,
+        canTriggerKeybind = canTriggerKeybind,
+        updateHoldkeyState = updateHoldkeyState,
+        isCtrlDown = isCtrlDown,
+        isShiftDown = isShiftDown,
+        updateLineESP = updateLineESP,
+        removeLineESP = removeLineESP,
+        createLineESP = createLineESP
+    }
 end
--- fin
 
+return Gravel
