@@ -268,7 +268,7 @@ local function updateHoldkeyState()
     end
 end
 
-local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/x2zu/OPEN-SOURCE-UI-ROBLOX/refs/heads/main/X2ZU%20UI%20ROBLOX%20OPEN%20SOURCE/DummyUi-leak-by-x2zu/fetching-main/Tools/Framework.luau"))()
+local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/hm5650/DummyUi/refs/heads/main/DummyUI.lua"))()
 local Alurt = loadstring(game:HttpGet("https://raw.githubusercontent.com/azir-py/project/refs/heads/main/Zwolf/AlurtUI.lua"))()
 
 local function safeNotify(opts)
@@ -5126,9 +5126,28 @@ SilentAimTab:Toggle({
                 BarColor = Color3.fromRGB(255, 100, 0)
             })
         end
+    end,
+    OnChange = function(value)
+        config.startsa = v
+        if not v then
+            if gui.RingHolder then
+                gui.RingHolder.Visible = false
+            end
+            local targetsToRemove = {}
+            for pl, _ in pairs(config.activeApplied) do
+                table.insert(targetsToRemove, pl)
+            end
+            for _, pl in ipairs(targetsToRemove) do
+                restorePartForPlayer(pl)
+            end
+        else
+            if gui.RingHolder then
+                gui.RingHolder.Visible = true
+            end
+        end
     end
 })
-    
+
     SilentAimTab:Section({Title = "SilentAim Settings"})
     
     SilentAimTab:Toggle({
