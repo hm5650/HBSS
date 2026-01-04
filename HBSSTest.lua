@@ -4095,10 +4095,12 @@ local Window = Library:Window({
     Desc = "by hmmm5651",
     Icon = 132214308111067,
     Theme = "Dark",
+
     Config = {
         Keybind = Enum.KeyCode.K,
         Size = dang,
     },
+    Config = config,
     CloseUIButton = {
         Enabled = true,
         Text = "Gravel.cc",
@@ -5126,28 +5128,9 @@ SilentAimTab:Toggle({
                 BarColor = Color3.fromRGB(255, 100, 0)
             })
         end
-    end,
-    OnChange = function(value)
-        config.startsa = v
-        if not v then
-            if gui.RingHolder then
-                gui.RingHolder.Visible = false
-            end
-            local targetsToRemove = {}
-            for pl, _ in pairs(config.activeApplied) do
-                table.insert(targetsToRemove, pl)
-            end
-            for _, pl in ipairs(targetsToRemove) do
-                restorePartForPlayer(pl)
-            end
-        else
-            if gui.RingHolder then
-                gui.RingHolder.Visible = true
-            end
-        end
     end
 })
-
+    
     SilentAimTab:Section({Title = "SilentAim Settings"})
     
     SilentAimTab:Toggle({
