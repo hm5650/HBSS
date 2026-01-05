@@ -5702,7 +5702,7 @@ task.spawn(function()
         UpdateQT()
         d()
         espRefresher()
-        
+        applyhb()
         if config.nextGenRepDesiredState then
             if config.antiAimEnabled then
                 if not config.nextGenRepEnabled then
