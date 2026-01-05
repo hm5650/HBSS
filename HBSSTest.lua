@@ -5704,6 +5704,8 @@ task.spawn(function()
         d()
         espRefresher()
         applyhb()
+        aimbotfov()
+        updateAimbotFOVRing()
         if config.nextGenRepDesiredState then
             if config.antiAimEnabled then
                 if not config.nextGenRepEnabled then
