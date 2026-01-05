@@ -2762,6 +2762,7 @@ local function handleAimbotToggle(state)
             updateAimbotFOVRing()
             aimbot360UpdateLoop()
         end
+        aimbotfov()
     else
         if config.aimbot360Enabled then
             aimbot360LoopRunning = false
