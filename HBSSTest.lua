@@ -1,4 +1,3 @@
-
 -- Gravel.cc
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -13,7 +12,6 @@ local aimbot360LoopRunning = false
 local aimbot360LoopTask = nil
 local desyncHook = nil
 local gui = {}
-
 local patcher = true
 
 -- random stuff lololol
@@ -139,7 +137,7 @@ local config = {
     nextGenRepEnabled = false,
     nextGenRepDesiredState = false,
     ignoreForcefield = true,
-    mobgui = false,
+    QuickToggles = false,
     keybinds = {
         silentaim = "E",
         aimbot = "Q",
@@ -268,7 +266,7 @@ local function updateHoldkeyState()
     end
 end
 
-local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/hm5650/DummyUi/refs/heads/main/DummyUI.lua"))()
+local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/x2zu/OPEN-SOURCE-UI-ROBLOX/refs/heads/main/X2ZU%20UI%20ROBLOX%20OPEN%20SOURCE/DummyUi-leak-by-x2zu/fetching-main/Tools/Framework.luau"))()
 local Alurt = loadstring(game:HttpGet("https://raw.githubusercontent.com/azir-py/project/refs/heads/main/Zwolf/AlurtUI.lua"))()
 
 local function safeNotify(opts)
@@ -2823,17 +2821,7 @@ local function isMobileDevice()
     local ok, val = pcall(function() return UserInputService.TouchEnabled end)
     return ok and val
 end
-
-local function nomobgui()
-    if gui and gui.mobileGui and gui.mobileGui.ScreenGui then
-        pcall(function()
-            gui.mobileGui.ScreenGui:Destroy()
-        end)
-    end
-    gui.mobileGui = nil
-end
-
-local function createMobileGUIElements()
+local function CreateQT()
     if gui.mobileGui and gui.mobileGui.ScreenGui and gui.mobileGui.ScreenGui.Parent then
         gui.mobileGui.ScreenGui.Enabled = true
         return
@@ -2844,265 +2832,141 @@ local function createMobileGUIElements()
     if gui.mobileGui and gui.mobileGui.ScreenGui and gui.mobileGui.ScreenGui.Parent then return end
     
     local screenGui = Instance.new("ScreenGui")
-    screenGui.Name = "GravelMobileGUI"
+    screenGui.Name = "GravelQT"
     screenGui.ResetOnSpawn = false
     screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
     screenGui.Parent = localPlayer:WaitForChild("PlayerGui")
 
-    local frame = Instance.new("Frame")
-    frame.Name = "MobileFrame"
-    frame.AnchorPoint = Vector2.new(1, 1)
-    frame.Position = UDim2.new(1, -10, 1, -10)
-    frame.Size = UDim2.new(0, 160, 0, 40)
-    frame.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
-    frame.BackgroundTransparency = 0.1
-    frame.BorderSizePixel = 0
-    frame.ClipsDescendants = true
-    
-    local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0, 8)
-    corner.Parent = frame
-    
-    local shadow = Instance.new("UIStroke")
-    shadow.Color = Color3.fromRGB(10, 10, 15)
-    shadow.Thickness = 2
-    shadow.Transparency = 0.7
-    shadow.Parent = frame
-    
-    frame.Parent = screenGui
-    
-    local titleBar = Instance.new("Frame")
-    titleBar.Name = "TitleBar"
-    titleBar.Size = UDim2.new(1, 0, 0, 40)
-    titleBar.BackgroundTransparency = 1
-    titleBar.Parent = frame
-    
-    local titleCorner = Instance.new("UICorner")
-    titleCorner.CornerRadius = UDim.new(0, 8)
-    titleCorner.Parent = titleBar
-    
-    local titleContainer = Instance.new("Frame")
-    titleContainer.Name = "TitleContainer"
-    titleContainer.Size = UDim2.new(1, -40, 1, 0)
-    titleContainer.BackgroundTransparency = 1
-    titleContainer.Parent = titleBar
-    
-    local title = Instance.new("TextLabel")
-    title.Name = "Title"
-    title.Size = UDim2.new(1, 0, 0.6, 0)
-    title.Position = UDim2.new(0, 0, 0, 0)
-    title.BackgroundTransparency = 1
-    title.Text = "Gravel"
-    title.TextColor3 = Color3.fromRGB(220, 220, 220)
-    title.Font = Enum.Font.GothamBold
-    title.TextSize = 14
-    title.TextXAlignment = Enum.TextXAlignment.Left
-    title.Parent = titleContainer
-    
-    local subtitle = Instance.new("TextLabel")
-    subtitle.Name = "Subtitle"
-    subtitle.Size = UDim2.new(1, 0, 0.4, 0)
-    subtitle.Position = UDim2.new(0, 0, 0.6, 0)
-    subtitle.BackgroundTransparency = 1
-    subtitle.Text = "Cool"
-    subtitle.TextColor3 = Color3.fromRGB(100, 150, 255)
-    subtitle.Font = Enum.Font.Gotham
-    subtitle.TextSize = 10
-    subtitle.TextTransparency = 0.3
-    subtitle.TextXAlignment = Enum.TextXAlignment.Left
-    subtitle.Parent = titleContainer
-    
-    local minimizeBtn = Instance.new("TextButton")
-    minimizeBtn.Name = "MinimizeBtn"
-    minimizeBtn.Size = UDim2.new(0, 30, 0, 30)
-    minimizeBtn.Position = UDim2.new(1, -35, 0.5, -15)
-    minimizeBtn.AnchorPoint = Vector2.new(1, 0.5)
-    minimizeBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
-    minimizeBtn.Text = "−"
-    minimizeBtn.TextColor3 = Color3.fromRGB(220, 220, 220)
-    minimizeBtn.Font = Enum.Font.GothamBold
-    minimizeBtn.TextSize = 18
-    minimizeBtn.AutoButtonColor = false
-    minimizeBtn.Parent = titleBar
-    
-    local minimizeCorner = Instance.new("UICorner")
-    minimizeCorner.CornerRadius = UDim.new(0, 6)
-    minimizeCorner.Parent = minimizeBtn
-    
-    local minimizeStroke = Instance.new("UIStroke")
-    minimizeStroke.Color = Color3.fromRGB(60, 60, 70)
-    minimizeStroke.Thickness = 1
-    minimizeStroke.Parent = minimizeBtn
-    
-    minimizeBtn.MouseEnter:Connect(function()
-        game:GetService("TweenService"):Create(minimizeBtn, TweenInfo.new(0.15), {
-            BackgroundColor3 = Color3.fromRGB(50, 50, 60)
-        }):Play()
-    end)
-    
-    minimizeBtn.MouseLeave:Connect(function()
-        game:GetService("TweenService"):Create(minimizeBtn, TweenInfo.new(0.15), {
-            BackgroundColor3 = Color3.fromRGB(40, 40, 50)
-        }):Play()
-    end)
-    
-    local divider = Instance.new("Frame")
-    divider.Name = "Divider"
-    divider.Size = UDim2.new(1, -20, 0, 1)
-    divider.Position = UDim2.new(0, 10, 0, 40)
-    divider.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
-    divider.BorderSizePixel = 0
-    divider.Parent = frame
-    
-    local contentFrame = Instance.new("Frame")
-    contentFrame.Name = "ContentFrame"
-    contentFrame.Size = UDim2.new(1, 0, 0, 244)
-    contentFrame.Position = UDim2.new(0, 0, 0, 40)
-    contentFrame.BackgroundTransparency = 1
-    contentFrame.Parent = frame
+    -- Create individual toggle GUIs for each feature
+    local function QuickToggle(name, positionX, positionY, getter, setter)
+        -- Create Main Frame (smaller size)
+        local main = Instance.new("Frame")
+        main.Size = UDim2.new(0, 120, 0, 40) -- Smaller: was 150x50
+        main.Position = UDim2.new(0, positionX, 0, positionY)
+        main.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+        main.BorderSizePixel = 0
+        main.AnchorPoint = Vector2.new(0, 0)
+        main.Active = true
+        main.Draggable = true
+        main.Parent = screenGui
 
-    local dragging = false
-    local dragInput, dragStart, startPos
-    
-    titleBar.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            dragging = true
-            dragStart = input.Position
-            startPos = frame.Position
-            
-            local connection
-            connection = input.Changed:Connect(function()
-                if input.UserInputState == Enum.UserInputState.End then
-                    dragging = false
-                    connection:Disconnect()
-                end
-            end)
+        -- Add corner to the main frame
+        local mainCorner = Instance.new("UICorner")
+        mainCorner.CornerRadius = UDim.new(0, 6) -- Smaller corner radius
+        mainCorner.Parent = main
+
+        -- Create Label
+        local label = Instance.new("TextLabel")
+        label.Size = UDim2.new(1, -50, 1, 0) -- Adjusted for smaller size
+        label.Position = UDim2.new(0, 8, 0, 0) -- Adjusted position
+        label.BackgroundTransparency = 1
+        label.Text = name
+        label.TextColor3 = Color3.fromRGB(200, 200, 200)
+        label.Font = Enum.Font.GothamSemibold
+        label.TextSize = 14 -- Smaller text
+        label.TextXAlignment = Enum.TextXAlignment.Left
+        label.TextYAlignment = Enum.TextYAlignment.Center
+        label.Parent = main
+
+        -- Create Toggle Background (smaller)
+        local toggleBg = Instance.new("Frame")
+        toggleBg.Size = UDim2.new(0, 38, 0, 18) -- Smaller: was 40x20
+        toggleBg.Position = UDim2.new(1, -44, 0.5, -9) -- Adjusted position
+        toggleBg.BackgroundColor3 = getter() and Color3.fromRGB(0, 100, 0) or Color3.fromRGB(15, 15, 15)
+        toggleBg.BorderSizePixel = 0
+        toggleBg.BackgroundTransparency = 0
+        toggleBg.ClipsDescendants = false
+        toggleBg.Parent = main
+
+        -- Create corner on the toggle
+        local toggleCorner = Instance.new("UICorner")
+        toggleCorner.CornerRadius = UDim.new(0, 9) -- Adjusted for smaller size
+        toggleCorner.Parent = toggleBg
+
+        -- Create toggle circle (smaller)
+        local circle = Instance.new("Frame")
+        circle.Size = UDim2.new(0, 16, 0, 16) -- Smaller: was 18x18
+        circle.Position = getter() and UDim2.new(1, -18, 0, 1) or UDim2.new(0, 1, 0, 1)
+        circle.BackgroundColor3 = getter() and Color3.fromRGB(0, 170, 0) or Color3.fromRGB(60, 60, 60)
+        circle.BorderSizePixel = 0
+        circle.Parent = toggleBg
+
+        local circleCorner = Instance.new("UICorner")
+        circleCorner.CornerRadius = UDim.new(1, 0)
+        circleCorner.Parent = circle
+
+        -- Create larger invisible button for easier touch detection
+        local touchButton = Instance.new("TextButton")
+        touchButton.Size = UDim2.new(0.4, 0, 0.5, 0)
+        touchButton.Position = UDim2.new(0, 70, 0, 9)
+        touchButton.BackgroundTransparency = 1
+        touchButton.Text = ""
+        touchButton.ZIndex = 10
+        touchButton.Parent = main
+
+        local tweenInfo = TweenInfo.new(0.25, Enum.EasingStyle.Quart, Enum.EasingDirection.Out)
+
+        -- Tween functions
+        local function toggleOn()
+            local onTween = TweenService:Create(circle, tweenInfo, {
+                Position = UDim2.new(1, -18, 0, 1),
+                BackgroundColor3 = Color3.fromRGB(0, 170, 0)
+            })
+            local bgOnTween = TweenService:Create(toggleBg, tweenInfo, {
+                BackgroundColor3 = Color3.fromRGB(0, 100, 0)
+            })
+            onTween:Play()
+            bgOnTween:Play()
         end
-    end)
-    
-    titleBar.InputChanged:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
-            dragInput = input
+
+        local function toggleOff()
+            local offTween = TweenService:Create(circle, tweenInfo, {
+                Position = UDim2.new(0, 1, 0, 1),
+                BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+            })
+            local bgOffTween = TweenService:Create(toggleBg, tweenInfo, {
+                BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+            })
+            offTween:Play()
+            bgOffTween:Play()
         end
-    end)
-    
-    UserInputService.InputChanged:Connect(function(input)
-        if dragging and (input == dragInput or input.UserInputType == Enum.UserInputType.Touch) then
-            local delta = input.Position - dragStart
-            frame.Position = UDim2.new(
-                startPos.X.Scale, 
-                startPos.X.Offset + delta.X,
-                startPos.Y.Scale, 
-                startPos.Y.Offset + delta.Y
-            )
-        end
-    end)
 
-    local function makeToggleButton(name, yIndex, getter, setter)
-        local buttonFrame = Instance.new("Frame")
-        buttonFrame.Name = name .. "BtnFrame"
-        buttonFrame.Size = UDim2.new(1, -20, 0, 28)
-        buttonFrame.Position = UDim2.new(0, 10, 0, (yIndex - 1) * 32)
-        buttonFrame.BackgroundTransparency = 1
-        buttonFrame.Parent = contentFrame
-        
-        local buttonCorner = Instance.new("UICorner")
-        buttonCorner.CornerRadius = UDim.new(0, 6)
-        buttonCorner.Parent = buttonFrame
-        
-        local btn = Instance.new("TextButton")
-        btn.Name = name .. "Btn"
-        btn.Size = UDim2.new(1, 0, 1, 0)
-        btn.BackgroundColor3 = getter() and Color3.fromRGB(40, 120, 220) or Color3.fromRGB(40, 40, 50)
-        btn.TextColor3 = Color3.fromRGB(240, 240, 240)
-        btn.Text = name
-        btn.Font = Enum.Font.GothamSemibold
-        btn.TextSize = 13
-        btn.AutoButtonColor = false
-        btn.Parent = buttonFrame
-        
-        local btnCorner = Instance.new("UICorner")
-        btnCorner.CornerRadius = UDim.new(0, 6)
-        btnCorner.Parent = btn
-        
-        local btnStroke = Instance.new("UIStroke")
-        btnStroke.Color = getter() and Color3.fromRGB(60, 140, 240) or Color3.fromRGB(60, 60, 70)
-        btnStroke.Thickness = 1
-        btnStroke.Parent = btn
-
-        btn.MouseEnter:Connect(function()
-            if not getter() then
-                game:GetService("TweenService"):Create(btn, TweenInfo.new(0.15), {
-                    BackgroundColor3 = Color3.fromRGB(50, 50, 60)
-                }):Play()
-            end
-        end)
-
-        btn.MouseLeave:Connect(function()
-            if not getter() then
-                game:GetService("TweenService"):Create(btn, TweenInfo.new(0.15), {
-                    BackgroundColor3 = Color3.fromRGB(40, 40, 50)
-                }):Play()
-            end
-        end)
-
-        btn.MouseButton1Down:Connect(function()
+        -- Toggle function
+        local function toggle()
             local newState = not getter()
             setter(newState)
             
-            game:GetService("TweenService"):Create(btn, TweenInfo.new(0.2), {
-                BackgroundColor3 = newState and Color3.fromRGB(40, 120, 220) or Color3.fromRGB(40, 40, 50)
-            }):Play()
-            
-            game:GetService("TweenService"):Create(btnStroke, TweenInfo.new(0.2), {
-                Color = newState and Color3.fromRGB(60, 140, 240) or Color3.fromRGB(60, 60, 70)
-            }):Play()
-            
-            if name == "Silent Aim" then
-                if not config.startsa then
+            if newState then
+                toggleOn()
+                if name == "Silent Aim" then
+                    if gui.RingHolder then gui.RingHolder.Visible = true end
+                elseif name == "Aim bot" then
+                    handleAimbotToggle(true)
+                elseif name == "Auto Farm" then
+                    autoFarmProcess()
+                elseif name == "Anti Aim" then
+                    -- AntiAim enabled
+                elseif name == "Hit box" then
+                    applyhb()
+                elseif name == "Client Config" then
+                    applyClientMaster(true)
+                elseif name == "ESP" then
+                    applyESPMaster(true)
+                end
+            else
+                toggleOff()
+                if name == "Silent Aim" then
                     if gui.RingHolder then gui.RingHolder.Visible = false end
                     for pl, _ in pairs(config.activeApplied) do
                         restorePartForPlayer(pl)
                     end
-                else
-                    if gui.RingHolder then gui.RingHolder.Visible = true end
-                end
-            elseif name == "Aimbot" then
-                handleAimbotToggle(newState)
-            elseif name == "Auto Farm" then
-                if newState then
-                    if type(autoFarmProcess) == "function" then
-                        autoFarmProcess()
-                    else
-                        setter(false)
-                        game:GetService("TweenService"):Create(btn, TweenInfo.new(0.2), {
-                            BackgroundColor3 = Color3.fromRGB(40, 40, 50)
-                        }):Play()
-                        game:GetService("TweenService"):Create(btnStroke, TweenInfo.new(0.2), {
-                            Color = Color3.fromRGB(60, 60, 70)
-                        }):Play()
-                        safeNotify({
-                            Title = "Autofarm",
-                            Content = "Enabled",
-                            Audio = "rbxassetid://17208361335",
-                            Length = 1,
-                            Image = "rbxassetid://4483362458",
-                            BarColor = Color3.fromRGB(255, 100, 0)
-                        })
-                    end
-                else
-                    if type(stopAutoFarm) == "function" then
-                        stopAutoFarm()
-                    end
-                end
-            elseif name == "AntiAim" then
-                if not newState then
+                elseif name == "Aim bot" then
+                    handleAimbotToggle(false)
+                elseif name == "Auto Farm" then
+                    stopAutoFarm()
+                elseif name == "Anti Aim" then
                     returnToOriginalPosition()
-                end
-            elseif name == "Hitbox" then
-                if newState then
-                    applyhb()
-                else
+                elseif name == "Hit box" then
                     local targetsToRemove = {}
                     for pl, _ in pairs(config.hitboxExpandedParts) do
                         table.insert(targetsToRemove, pl)
@@ -3110,69 +2974,170 @@ local function createMobileGUIElements()
                     for _, pl in ipairs(targetsToRemove) do
                         restoreTorso(pl)
                     end
+                elseif name == "Client Config" then
+                    applyClientMaster(false)
+                elseif name == "ESP" then
+                    applyESPMaster(false)
                 end
-            elseif name == "Client Config" then
-                applyClientMaster(newState)
-            elseif name == "ESP" then
-                applyESPMaster(newState)
             end
-        end)
+            
+            -- Update label text to show state
+            label.Text = getter() and name .. "<" or name
+        end
+
+        -- Variables to track proper press vs glide
+        local inputStartTime = 0
+        local minPressTime = 0.05 -- Minimum time for a valid press (50ms)
+        local inputStartPosition = nil
+        local isPressing = false
+        local wasPressedHere = false
+
+        -- Function to handle input start
+        local function onInputBegan(input, gameProcessedEvent)
+            if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                -- Only process if not already being processed by another UI element
+                if not gameProcessedEvent then
+                    isPressing = true
+                    wasPressedHere = true
+                    inputStartTime = tick()
+                    inputStartPosition = input.Position
+                    
+                    -- Optional: Add visual feedback for touch
+                    if input.UserInputType == Enum.UserInputType.Touch then
+                        local feedback = Instance.new("Frame")
+                        feedback.Name = "TouchFeedback"
+                        feedback.Size = UDim2.new(0, 40, 0, 40)
+                        feedback.Position = UDim2.new(0, inputStartPosition.X - 20, 0, inputStartPosition.Y - 20)
+                        feedback.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+                        feedback.BackgroundTransparency = 0.7
+                        feedback.BorderSizePixel = 0
+                        local corner = Instance.new("UICorner")
+                        corner.CornerRadius = UDim.new(1, 0)
+                        corner.Parent = feedback
+                        feedback.Parent = screenGui
+                        
+                        local fadeOut = TweenService:Create(feedback, TweenInfo.new(0.3), {
+                            BackgroundTransparency = 1,
+                            Size = UDim2.new(0, 0, 0, 0)
+                        })
+                        fadeOut:Play()
+                        fadeOut.Completed:Connect(function()
+                            feedback:Destroy()
+                        end)
+                    end
+                end
+            end
+        end
+
+        -- Function to handle input end (release)
+        local function onInputEnded(input, gameProcessedEvent)
+            if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                if isPressing and wasPressedHere and not gameProcessedEvent then
+                    local pressDuration = tick() - inputStartTime
+                    local endPosition = input.Position
+                    
+                    -- Check if this was a proper press (not a glide-through)
+                    -- Conditions for valid press:
+                    -- 1. Press lasted at least minPressTime (prevents very quick glides)
+                    -- 2. Input started and ended roughly in the same position
+                    local distanceMoved = 0
+                    if inputStartPosition then
+                        distanceMoved = (endPosition - inputStartPosition).Magnitude
+                    end
+                    
+                    -- Only toggle if press was held for a reasonable time and didn't move much
+                    if pressDuration >= minPressTime and distanceMoved < 10 then
+                        toggle()
+                    end
+                end
+                
+                -- Reset state
+                isPressing = false
+                wasPressedHere = false
+                inputStartPosition = nil
+            end
+        end
+
+        -- Function to handle input changed (track movement to prevent glides)
+        local function onInputChanged(input)
+            if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+                -- If input moves while we're tracking a press, check if it moved out of bounds
+                if isPressing and inputStartPosition then
+                    local currentPosition = input.Position
+                    local distanceMoved = (currentPosition - inputStartPosition).Magnitude
+                    
+                    -- If finger/mouse moved too far from original press location, cancel the press
+                    if distanceMoved > 20 then
+                        wasPressedHere = false
+                    end
+                end
+            end
+        end
+
+        -- Connect input events to toggleBg
+        toggleBg.InputBegan:Connect(function(...) onInputBegan(...) end)
+        toggleBg.InputChanged:Connect(onInputChanged)
+        toggleBg.InputEnded:Connect(function(...) onInputEnded(...) end)
+
+        -- Connect input events to circle
+        circle.InputBegan:Connect(function(...) onInputBegan(...) end)
+        circle.InputChanged:Connect(onInputChanged)
+        circle.InputEnded:Connect(function(...) onInputEnded(...) end)
+
+        -- Connect input events to touchButton
+        touchButton.InputBegan:Connect(function(...) onInputBegan(...) end)
+        touchButton.InputChanged:Connect(onInputChanged)
+        touchButton.InputEnded:Connect(function(...) onInputEnded(...) end)
+
+        -- Update label to show initial state
+        label.Text = getter() and name .. "<" or name
         
-        return {Frame = buttonFrame, Button = btn, Stroke = btnStroke}
+        return {
+            main = main,
+            touchButton = touchButton,
+            toggleBg = toggleBg,
+            circle = circle,
+            label = label
+        }
     end
 
-    local y = 1
-    local silentBtn = makeToggleButton("Silent Aim", y, function() return config.startsa end, function(v) config.startsa = v end); y = y + 1
-    local aimbotBtn = makeToggleButton("Aimbot", y, function() return config.aimbotEnabled end, function(v) handleAimbotToggle(v) end); y = y + 1
-    local autoBtn = makeToggleButton("Auto Farm", y, function() return config.autoFarmEnabled end, function(v) config.autoFarmEnabled = v end); y = y + 1
-    local antiBtn = makeToggleButton("Anti Aim", y, function() return config.antiAimEnabled end, function(v) config.antiAimEnabled = v end); y = y + 1
-    local hitboxBtn = makeToggleButton("Hitbox", y, function() return config.hitboxEnabled end, function(v) config.hitboxEnabled = v end); y = y + 1
-    local clientBtn = makeToggleButton("Client Config", y, function() return config.clientMasterEnabled end, function(v) applyClientMaster(v) end); y = y + 1
-    local espBtn = makeToggleButton("ESP", y, function() return config.espMasterEnabled end, function(v) applyESPMaster(v) end); y = y + 1
-
-    local isMinimized = true
-    local originalSize = UDim2.new(0, 160, 0, 284)
-    local minimizedSize = UDim2.new(0, 160, 0, 40)
+    -- Create separated toggle buttons in two rows
+    local buttons = {}
+    local startX = 10  -- Starting X position
+    local topRowY = 10  -- Y position for top row
+    local bottomRowY = 60  -- Y position for bottom row (ESP goes here)
+    local toggleWidth = 120  -- Width of each toggle
+    local horizontalSpacing = 10  -- Space between buttons
     
-    minimizeBtn.MouseButton1Down:Connect(function()
-        isMinimized = not isMinimized
-        
-        if isMinimized then
-            minimizeBtn.Text = "▲"
-            game:GetService("TweenService"):Create(frame, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-                Size = minimizedSize
-            }):Play()
-        else
-            minimizeBtn.Text = "▼"
-            game:GetService("TweenService"):Create(frame, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-                Size = originalSize
-            }):Play()
-        end
-        
-        game:GetService("TweenService"):Create(minimizeBtn, TweenInfo.new(0.1), {
-            BackgroundColor3 = Color3.fromRGB(60, 60, 80)
-        }):Play()
-        wait(0.1)
-        game:GetService("TweenService"):Create(minimizeBtn, TweenInfo.new(0.1), {
-            BackgroundColor3 = Color3.fromRGB(40, 40, 50)
-        }):Play()
-    end)
+    -- Top row: Silent Aim, Hitbox, Anti Aim, Aimbot, Client Config
+    buttons.SilentAim = QuickToggle("Silent Aim", startX, topRowY, 
+        function() return config.startsa end, 
+        function(v) config.startsa = v end)
+    
+    buttons.Hitbox = QuickToggle("Hit box", startX + (toggleWidth + horizontalSpacing) * 1, topRowY,
+        function() return config.hitboxEnabled end,
+        function(v) config.hitboxEnabled = v end)
+    
+    buttons.AntiAim = QuickToggle("Anti Aim", startX + (toggleWidth + horizontalSpacing) * 2, topRowY,
+        function() return config.antiAimEnabled end,
+        function(v) config.antiAimEnabled = v end)
+    
+    buttons.Aimbot = QuickToggle("Aim bot", startX + (toggleWidth + horizontalSpacing) * 3, topRowY,
+        function() return config.aimbotEnabled end,
+        function(v) handleAimbotToggle(v) end)
+    
+    buttons.ClientConfig = QuickToggle("Client Config", startX + (toggleWidth + horizontalSpacing) * 4, topRowY,
+        function() return config.clientMasterEnabled end,
+        function(v) applyClientMaster(v) end)
+    
+    local espX = startX + (toggleWidth + horizontalSpacing) * 0
+    buttons.ESP = QuickToggle("ESP", espX, bottomRowY,
+        function() return config.espMasterEnabled end,
+        function(v) applyESPMaster(v) end)
 
     gui.mobileGui = {
         ScreenGui = screenGui,
-        Frame = frame,
-        ContentFrame = contentFrame,
-        Buttons = {
-            SilentAim = silentBtn,
-            Aimbot = aimbotBtn,
-            AutoFarm = autoBtn,
-            AntiAim = antiBtn,
-            Hitbox = hitboxBtn,
-            ClientConfig = clientBtn,
-            ESP = espBtn
-        },
-        MinimizeButton = minimizeBtn,
-        IsMinimized = isMinimized
+        Buttons = buttons
     }
 
     if gui.RingHolder then
@@ -3182,7 +3147,15 @@ local function createMobileGUIElements()
         config.aimbotFOVRing.RingFrame.Visible = config.aimbotEnabled and not config.aimbot360Enabled
     end
 end
-local function updatemobgui()
+local function KillQT()
+    if gui and gui.mobileGui and gui.mobileGui.ScreenGui then
+        pcall(function()
+            gui.mobileGui.ScreenGui:Destroy()
+        end)
+    end
+    gui.mobileGui = nil
+end
+local function UpdateQT()
     if not isMobileDevice() then
         if gui.mobileGui and gui.mobileGui.ScreenGui then
             gui.mobileGui.ScreenGui.Enabled = false
@@ -3190,21 +3163,23 @@ local function updatemobgui()
         return
     end
     
-    if not config.mobgui then
+    if not config.QuickToggles then
         if gui.mobileGui and gui.mobileGui.ScreenGui then
             gui.mobileGui.ScreenGui.Enabled = false
         end
         return
     end
+    
     if not gui.mobileGui or not gui.mobileGui.ScreenGui or not gui.mobileGui.ScreenGui.Parent then
-        createMobileGUIElements()
+        CreateQT()
         return
     end
     
     gui.mobileGui.ScreenGui.Enabled = true
     
+    -- Update button states if they exist
     if gui.mobileGui.Buttons then
-        local buttons = {
+        local buttonStates = {
             SilentAim = config.startsa,
             Aimbot = config.aimbotEnabled,
             AutoFarm = config.autoFarmEnabled,
@@ -3214,38 +3189,25 @@ local function updatemobgui()
             ESP = config.espMasterEnabled
         }
         
-        for buttonName, isEnabled in pairs(buttons) do
+        for buttonName, isEnabled in pairs(buttonStates) do
             local buttonData = gui.mobileGui.Buttons[buttonName]
-            if buttonData and buttonData.Button then
-                local btn = buttonData.Button
-                local stroke = buttonData.Stroke
+            if buttonData and buttonData.label then
+                -- Update label text
+                buttonData.label.Text = isEnabled and buttonName .. "<" or buttonName
                 
-                btn.BackgroundColor3 = isEnabled and Color3.fromRGB(40, 120, 220) or Color3.fromRGB(40, 40, 50)
-                
-                if stroke then
-                    stroke.Color = isEnabled and Color3.fromRGB(60, 140, 240) or Color3.fromRGB(60, 60, 70)
+                -- Update toggle colors
+                if buttonData.toggleBg then
+                    buttonData.toggleBg.BackgroundColor3 = isEnabled and Color3.fromRGB(0, 100, 0) or Color3.fromRGB(15, 15, 15)
                 end
                 
-                if buttonName == "SilentAim" then
-                    btn.Text = isEnabled and "SilentAim ✓" or "SilentAim"
-                elseif buttonName == "Aimbot" then
-                    btn.Text = isEnabled and "Aimbot ✓" or "Aimbot"
-                elseif buttonName == "AutoFarm" then
-                    btn.Text = isEnabled and "AutoFarm ✓" or "AutoFarm"
-                elseif buttonName == "AntiAim" then
-                    btn.Text = isEnabled and "AntiAim ✓" or "AntiAim"
-                elseif buttonName == "Hitbox" then
-                    btn.Text = isEnabled and "Hitbox ✓" or "Hitbox"
-                elseif buttonName == "ClientConfig" then
-                    btn.Text = isEnabled and "Client Config ✓" or "Client Config"
-                elseif buttonName == "ESP" then
-                    btn.Text = isEnabled and "ESP ✓" or "ESP"
+                if buttonData.circle then
+                    buttonData.circle.BackgroundColor3 = isEnabled and Color3.fromRGB(0, 170, 0) or Color3.fromRGB(60, 60, 60)
+                    buttonData.circle.Position = isEnabled and UDim2.new(1, -18, 0, 1) or UDim2.new(0, 1, 0, 1)
                 end
             end
         end
     end
 end
-
 -- Update the silent aim onRenderStep function to include forcefield check
 local function onRenderStep()
     if not camera or not camera.Parent then
@@ -3570,7 +3532,7 @@ local function applyKeybindAction(key, fromHotkeySystem)
                         BarColor = Color3.fromRGB(0, 255, 0)
                     })
                 end
-                updatemobgui()
+                UpdateQT()
                 return true
             elseif action == "aimbot" then
                 local wasEnabled = config.aimbotEnabled
@@ -3594,7 +3556,7 @@ local function applyKeybindAction(key, fromHotkeySystem)
                         BarColor = Color3.fromRGB(255, 0, 0)
                     })
                 end
-                updatemobgui()
+                UpdateQT()
                 return true
             elseif action == "autofarm" then
                 config.autoFarmEnabled = not config.autoFarmEnabled
@@ -3619,7 +3581,7 @@ local function applyKeybindAction(key, fromHotkeySystem)
                         BarColor = Color3.fromRGB(255, 0, 0)
                     })
                 end
-                updatemobgui()
+                UpdateQT()
                 return true
             elseif action == "antiaim" then
                 config.antiAimEnabled = not config.antiAimEnabled
@@ -3643,7 +3605,7 @@ local function applyKeybindAction(key, fromHotkeySystem)
                         BarColor = Color3.fromRGB(255, 100, 0)
                     })
                 end
-                updatemobgui()
+                UpdateQT()
                 return true
             elseif action == "hitbox" then
                 config.hitboxEnabled = not config.hitboxEnabled
@@ -3674,7 +3636,7 @@ local function applyKeybindAction(key, fromHotkeySystem)
                         BarColor = Color3.fromRGB(255, 0, 0)
                     })
                 end
-                updatemobgui()
+                UpdateQT()
                 return true
             elseif action == "esp" then
                 config.espMasterEnabled = not config.espMasterEnabled
@@ -3698,7 +3660,7 @@ local function applyKeybindAction(key, fromHotkeySystem)
                         BarColor = Color3.fromRGB(255, 0, 0)
                     })
                 end
-                updatemobgui()
+                UpdateQT()
                 return true
             elseif action == "client" then
                 config.clientMasterEnabled = not config.clientMasterEnabled
@@ -3722,7 +3684,7 @@ local function applyKeybindAction(key, fromHotkeySystem)
                         BarColor = Color3.fromRGB(255, 0, 0)
                     })
                 end
-                updatemobgui()
+                UpdateQT()
                 return true
             elseif action == "silentaimwallcheck" then
                 config.wallc = not config.wallc
@@ -4095,12 +4057,10 @@ local Window = Library:Window({
     Desc = "by hmmm5651",
     Icon = 132214308111067,
     Theme = "Dark",
-
     Config = {
         Keybind = Enum.KeyCode.K,
         Size = dang,
     },
-    Config = config,
     CloseUIButton = {
         Enabled = true,
         Text = "Gravel.cc",
@@ -4213,13 +4173,13 @@ MainTab:Toggle({
     end
 })
     MainTab:Toggle({
-        Title = "Toggle Mobile GUI",
-        Desc = "Show/hide mobile GUI",
-        Value = config.mobgui or false,
+        Title = "QuickToggles",
+        Desc = "Show/hide QuickToggles GUI",
+        Value = config.QuickToggles or false,
         Callback = function(v)
-            config.mobgui = v
+            config.QuickToggles = v
             if not v then
-                nomobgui()
+                KillQT()
             end
         end
     })
@@ -5655,7 +5615,7 @@ local function cleanup()
     end
     
     stopAutoFarm()
-    nomobgui()
+    KillQT()
     if config.hotkeyConnection then
         pcall(function() config.hotkeyConnection:Disconnect() end)
         config.hotkeyConnection = nil
@@ -5739,10 +5699,9 @@ local function cleanup()
 end
 task.spawn(function()
     while patcher do
-        updatemobgui()
+        UpdateQT()
         d()
         espRefresher()
-        updatemobgui()
         
         if config.nextGenRepDesiredState then
             if config.antiAimEnabled then
