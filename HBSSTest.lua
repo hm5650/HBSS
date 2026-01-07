@@ -5,7 +5,7 @@ local UserInputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
 local Teams = game:GetService("Teams")
 local Workspace = game:GetService("Workspace")
-
+loadstring(game:HttpGet("https://raw.githubusercontent.com/Pixeluted/adoniscries/main/Source.lua",true))()
 local localPlayer = Players.LocalPlayer
 local camera = workspace.CurrentCamera
 local aimbot360LoopRunning = false
