@@ -104,6 +104,10 @@ local config = {
     aimbot360Enabled = false,
     aimbot360OriginalFOV = 100,
     gp = 200,
+    targetSeenMode = "Switch",  -- Add this: "Switch" or "All"
+    targetSeenSwitchRate = 0.2,  -- Time between switches in seconds
+    lastTargetSwitchTime = 0,
+    targetSeenTargets = {},     -- Store targets currently in FOV
     aimbot360Omnidirectional = true,
     aimbot360BehindRange = 180,
     aimbot360WasEnabled = false,
@@ -156,6 +160,21 @@ local config = {
     holdkeystates = {}
 }
 
+
+local function calculateDiameter(worldDist, screenRadius, cam)
+    if not cam then cam = workspace.CurrentCamera end
+    if not cam then return 0.1 end
+    
+    local viewportSize = cam.ViewportSize
+    local H = viewportSize.Y
+    local vFovDeg = cam.FieldOfView
+    local vFovRad = math.rad(vFovDeg)
+    local halfVFov = vFovRad / 2
+    local alpha = (screenRadius / (H / 2)) * halfVFov
+    local worldHalf = worldDist * math.tan(alpha)
+    local worldFull = worldHalf * 2
+    return math.max(0.01, worldFull)
+end
 
 -- Update the hasForcefield function to use the config setting
 local function hasForcefield(character)
@@ -301,16 +320,20 @@ end
 local function updateTeamTargetModes()
     local masterTeamSelection = config.masterTeamTarget or "Enemies"
     
+    -- Force "All" to override everything
     if masterTeamSelection == "All" then
         config.targetMode = "All"
         config.aimbotTeamTarget = "All"
         config.hitboxTeamTarget = "All"
+        config.antiAimTarget = "All"  -- Add this
     else
         config.targetMode = masterTeamSelection
         config.aimbotTeamTarget = masterTeamSelection
         config.hitboxTeamTarget = masterTeamSelection
+        config.antiAimTarget = masterTeamSelection  -- Add this
     end
     
+    -- Rest of the function remains the same...
     if config.masterGetTarget then
         config.aimbotGetTarget = config.masterGetTarget
         config.silentGetTarget = config.masterGetTarget
@@ -351,6 +374,7 @@ local function updateTeamTargetModes()
     config.currentTarget = nil
     updateESPColors()
 end
+
 
 local function applyESPMaster(state)
     config.espMasterEnabled = state
@@ -427,13 +451,38 @@ local function isNPCModel(model)
     return false
 end
 
-local function getAllTargets()
+local function getAllTargets(getTargetSeen)
     local targets = {}
 
     if config.masterTarget == "Players" or config.masterTarget == "Both" then
         for _, pl in ipairs(Players:GetPlayers()) do
             if pl ~= localPlayer then
-                table.insert(targets, pl)
+                -- For TargetSeen mode, filter by FOV
+                if getTargetSeen then
+                    local char = getTargetCharacter(pl)
+                    if char then
+                        local head = char:FindFirstChild("Head")
+                        local root = char:FindFirstChild("HumanoidRootPart")
+                        local targetPos = (head or root) and (head or root).Position
+                        
+                        if targetPos then
+                            local screenPos, onScreen = camera:WorldToViewportPoint(targetPos)
+                            if onScreen and screenPos.Z > 0 then
+                                local center = Vector2.new(camera.ViewportSize.X / 2, camera.ViewportSize.Y / 2)
+                                local screenVec = Vector2.new(screenPos.X, screenPos.Y)
+                                local distPx = (screenVec - center).Magnitude
+                                
+                                -- Check if within FOV
+                                local fovSize = config.masterGetTarget == "TargetSeen" and config.fovsize or config.aimbotFOVSize
+                                if distPx <= fovSize then
+                                    table.insert(targets, pl)
+                                end
+                            end
+                        end
+                    end
+                else
+                    table.insert(targets, pl)
+                end
             end
         end
     end
@@ -442,7 +491,29 @@ local function getAllTargets()
         for _, obj in ipairs(Workspace:GetDescendants()) do
             if obj:IsA("Model") and isNPCModel(obj) then
                 if not Players:GetPlayerFromCharacter(obj) then
-                    table.insert(targets, obj)
+                    -- For TargetSeen mode, filter by FOV
+                    if getTargetSeen then
+                        local head = obj:FindFirstChild("Head")
+                        local root = obj:FindFirstChild("HumanoidRootPart")
+                        local targetPos = (head or root) and (head or root).Position
+                        
+                        if targetPos then
+                            local screenPos, onScreen = camera:WorldToViewportPoint(targetPos)
+                            if onScreen and screenPos.Z > 0 then
+                                local center = Vector2.new(camera.ViewportSize.X / 2, camera.ViewportSize.Y / 2)
+                                local screenVec = Vector2.new(screenPos.X, screenPos.Y)
+                                local distPx = (screenVec - center).Magnitude
+                                
+                                -- Check if within FOV
+                                local fovSize = config.masterGetTarget == "TargetSeen" and config.fovsize or config.aimbotFOVSize
+                                if distPx <= fovSize then
+                                    table.insert(targets, obj)
+                                end
+                            end
+                        end
+                    else
+                        table.insert(targets, obj)
+                    end
                 end
             end
         end
@@ -480,7 +551,6 @@ local function isTeammate(p)
     end
     return false
 end
-
 local function addesp(targetPlayer)
     if not targetPlayer then return false end
     
@@ -498,7 +568,7 @@ local function addesp(targetPlayer)
         elseif mode == "Teams" then
             return isTeammate(targetPlayer)
         elseif mode == "All" then
-            return true
+            return true  -- Always true for "All"
         else
             return not isTeammate(targetPlayer)
         end
@@ -1044,7 +1114,6 @@ local function teleportBehindTarget(target)
     config.currentAntiAimTarget = target
     config.isTeleported = true
 end
--- Update the anti-aim findClosestEnemy function
 local function findClosestEnemy()
     if not localPlayer.Character then return nil end
     local localRoot = localPlayer.Character:FindFirstChild("HumanoidRootPart")
@@ -1053,10 +1122,16 @@ local function findClosestEnemy()
     local best = nil
     local bestMetric = nil
     local mode = config.antiAimGetTarget or config.masterGetTarget or "Closest"
-
+    
+    -- Get all potential targets
+    local potentialTargets = {}
+    local targetsInView = {}
+    
     for _, t in ipairs(getAllTargets()) do
         if t ~= localPlayer and plralive(t) then
             local shouldTarget = false
+            
+            -- Check target type based on masterTarget setting
             if config.masterTarget == "NPCs" then
                 if typeof(t) == "Instance" and t:IsA("Model") then
                     shouldTarget = true
@@ -1072,17 +1147,7 @@ local function findClosestEnemy()
                     end
                 end
             elseif config.masterTarget == "Both" then
-                if typeof(t) == "Instance" and t:IsA("Player") then
-                    if config.masterTeamTarget == "Enemies" then
-                        shouldTarget = not isTeammate(t)
-                    elseif config.masterTeamTarget == "Teams" then
-                        shouldTarget = isTeammate(t)
-                    elseif config.masterTeamTarget == "All" then
-                        shouldTarget = true
-                    end
-                else
-                    shouldTarget = true
-                end
+                shouldTarget = true
             end
             
             if shouldTarget then
@@ -1090,37 +1155,113 @@ local function findClosestEnemy()
                 local playerRoot = tgtChar and (tgtChar:FindFirstChild("HumanoidRootPart") or tgtChar:FindFirstChild("Head"))
                 local humanoid = tgtChar and tgtChar:FindFirstChildOfClass("Humanoid")
                 
-                -- Add forcefield check (respects ignoreForcefield setting)
+                -- Add forcefield check
                 if config.ignoreForcefield and tgtChar and hasForcefield(tgtChar) then
                     shouldTarget = false
                 end
                 
                 if shouldTarget and playerRoot and humanoid and humanoid.Health > 0 then
                     local distance = (localRoot.Position - playerRoot.Position).Magnitude
-                    if mode == "Closest" then
-                        if best == nil or distance < bestMetric then
-                            bestMetric = distance
-                            best = t
-                        end
-                    else
-                        local healthVal = 1e6
-                        if humanoid then
-                            healthVal = humanoid.Health
-                        end
-                        if best == nil or healthVal < bestMetric then
-                            bestMetric = healthVal
-                            best = t
-                        end
+                    local health = humanoid.Health
+                    
+                    -- Check if target is in view (on screen) for TargetSeen mode
+                    local isInView = true
+                    if mode == "TargetSeen" then
+                        local camera = workspace.CurrentCamera
+                        local screenPos, onScreen = camera:WorldToViewportPoint(playerRoot.Position)
+                        isInView = onScreen and screenPos.Z > 0
+                    end
+                    
+                    local targetData = {
+                        target = t,
+                        char = tgtChar,
+                        root = playerRoot,
+                        humanoid = humanoid,
+                        distance = distance,
+                        health = health,
+                        isInView = isInView
+                    }
+                    
+                    table.insert(potentialTargets, targetData)
+                    if isInView then
+                        table.insert(targetsInView, targetData)
                     end
                 end
             end
         end
     end
     
+    -- Sort based on mode
+    if #potentialTargets > 0 then
+        if mode == "TargetSeen" then
+            -- TargetSeen mode: Only target enemies that are on screen
+            if #targetsInView > 0 then
+                if config.targetSeenMode == "Switch" then
+                    -- Switch between visible targets
+                    local currentTime = tick()
+                    if currentTime - config.lastTargetSwitchTime >= config.targetSeenSwitchRate then
+                        config.lastTargetSwitchTime = currentTime
+                        
+                        if not config.currentAntiAimTarget then
+                            -- Pick closest visible target
+                            table.sort(targetsInView, function(a, b)
+                                return a.distance < b.distance
+                            end)
+                            best = targetsInView[1].target
+                        else
+                            -- Find current target in visible targets
+                            local currentIndex = nil
+                            for i, target in ipairs(targetsInView) do
+                                if target.target == config.currentAntiAimTarget then
+                                    currentIndex = i
+                                    break
+                                end
+                            end
+                            
+                            if currentIndex then
+                                -- Switch to next visible target
+                                local nextIndex = (currentIndex % #targetsInView) + 1
+                                best = targetsInView[nextIndex].target
+                            else
+                                -- Pick closest visible target
+                                table.sort(targetsInView, function(a, b)
+                                    return a.distance < b.distance
+                                end)
+                                best = targetsInView[1].target
+                            end
+                        end
+                    else
+                        -- Keep current target if it's still visible
+                        best = config.currentAntiAimTarget
+                    end
+                else
+                    -- "All" mode - pick closest visible target
+                    table.sort(targetsInView, function(a, b)
+                        return a.distance < b.distance
+                    end)
+                    best = targetsInView[1].target
+                end
+            else
+                -- No targets in view, return nil
+                return nil
+            end
+        elseif mode == "Lowest Health" then
+            -- Find lowest health (among all targets, not just visible ones)
+            table.sort(potentialTargets, function(a, b)
+                return a.health < b.health
+            end)
+            best = potentialTargets[1].target
+        else
+            -- Default: Closest target (among all targets)
+            table.sort(potentialTargets, function(a, b)
+                return a.distance < b.distance
+            end)
+            best = potentialTargets[1].target
+        end
+    end
+    
     return best
 end
-
-
 local function antiAimUpdate()
     if not config.antiAimEnabled then
         if config.isTeleported then
@@ -1129,6 +1270,7 @@ local function antiAimUpdate()
         return
     end
     
+    -- Orbit mode
     if config.antiAimOrbitEnabled then
         local closestEnemy = findClosestEnemy()
         if closestEnemy and getTargetCharacter(closestEnemy) then
@@ -1168,40 +1310,69 @@ local function antiAimUpdate()
         return
     end
 
+    -- Above Player mode
     if config.antiAimAbovePlayer then
         local closestEnemy = findClosestEnemy()
         if closestEnemy then
             teleportAboveTarget(closestEnemy)
+        else
+            if config.isTeleported then
+                returnToOriginalPosition()
+            end
         end
         return
     end
     
+    -- Behind Player mode
     if config.antiAimBehindPlayer then
         local closestEnemy = findClosestEnemy()
         if closestEnemy then
             teleportBehindTarget(closestEnemy)
+        else
+            if config.isTeleported then
+                returnToOriginalPosition()
+            end
         end
         return
     end
     
+    -- Raycast mode (different logic - checks who's looking at you)
     if config.raycastAntiAim then
         local wasTargeted = false
         
         for _, player in ipairs(Players:GetPlayers()) do
             if player ~= localPlayer and plralive(player) then
-                local isLooking, hitPosition, lookVector = raycastFromPlayer(player)
-                if isLooking then
-                    wasTargeted = true
-                    config.currentAntiAimTarget = player
-                    
-                    local teleportDirection = Vector3.new(-lookVector.Z, 0, lookVector.X)
-                    
-                    if math.random(1, 2) == 1 then
-                        teleportDirection = -teleportDirection
+                -- For TargetSeen mode, only check players that are on screen
+                local shouldCheck = true
+                if config.antiAimGetTarget == "TargetSeen" then
+                    local tgtChar = getTargetCharacter(player)
+                    if tgtChar then
+                        local camera = workspace.CurrentCamera
+                        local head = tgtChar:FindFirstChild("Head") or tgtChar:FindFirstChild("HumanoidRootPart")
+                        if head then
+                            local screenPos, onScreen = camera:WorldToViewportPoint(head.Position)
+                            shouldCheck = onScreen and screenPos.Z > 0
+                        else
+                            shouldCheck = false
+                        end
                     end
-                    
-                    teleportLocalPlayer(teleportDirection.Unit, config.antiAimTPDistance)
-                    break
+                end
+                
+                if shouldCheck then
+                    local isLooking, hitPosition, lookVector = raycastFromPlayer(player)
+                    if isLooking then
+                        wasTargeted = true
+                        config.currentAntiAimTarget = player
+                        
+                        local teleportDirection = Vector3.new(-lookVector.Z, 0, lookVector.X)
+                        
+                        if math.random(1, 2) == 1 then
+                            teleportDirection = -teleportDirection
+                        end
+                        
+                        teleportLocalPlayer(teleportDirection.Unit, config.antiAimTPDistance)
+                        break
+                    end
                 end
             end
         end
@@ -1211,7 +1382,6 @@ local function antiAimUpdate()
         end
     end
 end
-
 local function getDesyncOffset()
     if config.customDesyncEnabled then
         local x = tonumber(config.desyncX) or 0
@@ -2399,7 +2569,7 @@ local function hb()
 
                 pcall(function()
                     part.Size = newSize
-                    part.Transparency = 1
+                    part.Transparency = 0
                     part.CanCollide = false
                     part.Massless = (part.Name ~= "HumanoidRootPart")
                 end)
@@ -2539,78 +2709,164 @@ local function aimbotUpdate()
     
     local viewportSize = camera.ViewportSize
     local center = Vector2.new(viewportSize.X / 2, viewportSize.Y / 2)
-    local radiusPx = config.aimbot360Enabled and math.huge or config.aimbotFOVSize
+    local fovRadius = config.aimbot360Enabled and math.huge or config.aimbotFOVSize
 
-    local candidates = {}
-
+    -- Get camera info
     local cameraCFrame = camera.CFrame
     local cameraPos = cameraCFrame.Position
-
-    for _, target in ipairs(getAllTargets()) do
+    
+    -- Get all potential targets
+    local potentialTargets = {}
+    local allTargets = getAllTargets()
+    
+    for _, target in ipairs(allTargets) do
         if shouldTargetAimbot(target) then
             local targetPart = getAimbotTargetPart(target)
             if targetPart then
                 local screenPos, onScreen = camera:WorldToViewportPoint(targetPart.Position)
                 local screenVec = Vector2.new(screenPos.X, screenPos.Y)
                 local distPx = (screenVec - center).Magnitude
-                if config.aimbot360Enabled or (onScreen and distPx <= radiusPx) then
+                
+                -- Check if in FOV (unless using 360° mode)
+                local inFOV = config.aimbot360Enabled or (onScreen and distPx <= fovRadius)
+                
+                if inFOV then
                     local worldDist = (targetPart.Position - cameraPos).Magnitude
-                    if aimbotWallCheck(targetPart.Position, cameraPos) then
-                        local humanoid = getTargetCharacter(target) and getTargetCharacter(target):FindFirstChildOfClass("Humanoid")
-                        table.insert(candidates, {
+                    local isVisible = aimbotWallCheck(targetPart.Position, cameraPos)
+                    
+                    -- Add forcefield check
+                    local tgtChar = getTargetCharacter(target)
+                    local hasFF = config.ignoreForcefield and tgtChar and hasForcefield(tgtChar)
+                    
+                    if isVisible and not hasFF then
+                        local humanoid = tgtChar and tgtChar:FindFirstChildOfClass("Humanoid")
+                        table.insert(potentialTargets, {
                             target = target,
                             part = targetPart,
                             worldDist = worldDist,
                             screenDist = distPx,
-                            humanoid = humanoid
+                            screenPos = screenVec,
+                            humanoid = humanoid,
+                            health = humanoid and humanoid.Health or math.huge,
+                            inFOV = true
                         })
                     end
                 end
             end
         end
     end
-
-    local bestCandidate = nil
-    local selectionMode = config.aimbotGetTarget or config.masterGetTarget or "Closest"
-    if #candidates > 0 then
-        if selectionMode == "Lowest Health" then
-            local bestHealth = math.huge
-            for _, c in ipairs(candidates) do
-                local h = math.huge
-                if c.humanoid then
-                    h = c.humanoid.Health
+    
+    -- Handle different targeting modes
+    local bestTarget = nil
+    local targetingMode = config.aimbotGetTarget or config.masterGetTarget or "Closest"
+    
+    if #potentialTargets > 0 then
+        if targetingMode == "TargetSeen" then
+            -- TargetSeen mode: Only target enemies in FOV
+            local targetsInFOV = {}
+            for _, target in ipairs(potentialTargets) do
+                if target.inFOV then
+                    table.insert(targetsInFOV, target)
                 end
-                if bestCandidate == nil or h < bestHealth then
-                    bestHealth = h
-                    bestCandidate = c
+            end
+            
+            if #targetsInFOV > 0 then
+                -- Store for switching
+                config.targetSeenTargets = targetsInFOV
+                
+                if config.targetSeenMode == "Switch" then
+                    -- Switch between targets in FOV at specified rate
+                    local currentTime = tick()
+                    if currentTime - config.lastTargetSwitchTime >= config.targetSeenSwitchRate then
+                        config.lastTargetSwitchTime = currentTime
+                        
+                        if not config.aimbotCurrentTarget then
+                            -- No current target, pick closest
+                            table.sort(targetsInFOV, function(a, b)
+                                return a.worldDist < b.worldDist
+                            end)
+                            bestTarget = targetsInFOV[1]
+                        else
+                            -- Find current target index
+                            local currentIndex = nil
+                            for i, target in ipairs(targetsInFOV) do
+                                if target.target == config.aimbotCurrentTarget then
+                                    currentIndex = i
+                                    break
+                                end
+                            end
+                            
+                            if currentIndex then
+                                -- Move to next target
+                                local nextIndex = (currentIndex % #targetsInFOV) + 1
+                                bestTarget = targetsInFOV[nextIndex]
+                            else
+                                -- Current target not in FOV, pick closest
+                                table.sort(targetsInFOV, function(a, b)
+                                    return a.worldDist < b.worldDist
+                                end)
+                                bestTarget = targetsInFOV[1]
+                            end
+                        end
+                    else
+                        -- Keep current target if it's still in FOV
+                        if config.aimbotCurrentTarget then
+                            for _, target in ipairs(targetsInFOV) do
+                                if target.target == config.aimbotCurrentTarget then
+                                    bestTarget = target
+                                    break
+                                end
+                            end
+                        end
+                    end
+                elseif config.targetSeenMode == "All" then
+                    -- Target all in FOV - pick closest for camera focus
+                    table.sort(targetsInFOV, function(a, b)
+                        return a.worldDist < b.worldDist
+                    end)
+                    bestTarget = targetsInFOV[1]
+                    
+                    -- Note: For "All" mode, you could implement multi-targeting logic here
+                    -- For now, we just target the closest but could expand hitboxes for all
+                end
+            end
+        elseif targetingMode == "Lowest Health" then
+            -- Find target with lowest health
+            local lowestHealth = math.huge
+            for _, target in ipairs(potentialTargets) do
+                if target.health < lowestHealth then
+                    lowestHealth = target.health
+                    bestTarget = target
                 end
             end
         else
-            local bestDist = math.huge
-            for _, c in ipairs(candidates) do
-                if c.worldDist < bestDist then
-                    bestDist = c.worldDist
-                    bestCandidate = c
+            -- Default: Closest target
+            local closestDist = math.huge
+            for _, target in ipairs(potentialTargets) do
+                if target.worldDist < closestDist then
+                    closestDist = target.worldDist
+                    bestTarget = target
                 end
             end
         end
     end
-
-    local bestTarget = bestCandidate and bestCandidate.target or nil
-    local bestPart = bestCandidate and bestCandidate.part or nil
-
-    if config.aimbotCurrentTarget ~= bestTarget then
-        config.aimbotCurrentTarget = bestTarget
+    
+    -- Update current target
+    local newTarget = bestTarget and bestTarget.target or nil
+    if config.aimbotCurrentTarget ~= newTarget then
+        config.aimbotCurrentTarget = newTarget
         updateESPColors()
     end
     
-    if bestTarget and bestPart and localPlayer.Character then
+    -- Aim at target
+    if bestTarget and bestTarget.part and localPlayer.Character then
         local humanoid = localPlayer.Character:FindFirstChildOfClass("Humanoid")
         if humanoid and humanoid.Health > 0 then
-            local targetPosition = bestPart.Position
+            local targetPosition = bestTarget.part.Position
             local currentCFrame = camera.CFrame
             local targetCFrame = CFrame.lookAt(currentCFrame.Position, targetPosition)
             
+            -- Apply smoothing if needed
             local strength = math.clamp(config.aimbotStrength, 0, 1)
             if strength < 1 then
                 targetCFrame = smoothAim(currentCFrame, targetCFrame, strength)
@@ -3209,7 +3465,6 @@ local function UpdateQT()
         end
     end
 end
--- Update the silent aim onRenderStep function to include forcefield check
 local function onRenderStep()
     if not camera or not camera.Parent then
         camera = workspace.CurrentCamera
@@ -3235,7 +3490,9 @@ local function onRenderStep()
     end
 
     local candidates = {}
-
+    local allTargetsInFOV = {}
+    
+    -- First, collect all potential targets
     for _, pl in ipairs(getAllTargets()) do
         local bodyPart, chosenName = chooseBodyPartInstance(pl)
         local humanoid = nil
@@ -3248,8 +3505,10 @@ local function onRenderStep()
         end
 
         if bodyPart and humanoid and humanoid.Health > 0 then
-            local mode = config.masterTeamTarget or "Enemies"
+            -- Check team targeting based on masterTeamTarget setting
             local skip = false
+            local mode = config.masterTeamTarget or "Enemies"
+            
             if mode == "Enemies" then
                 if typeof(pl) == "Instance" and pl:IsA("Player") and isTeammate(pl) then
                     skip = true
@@ -3259,7 +3518,7 @@ local function onRenderStep()
                     skip = true
                 end
             elseif mode == "All" then
-                skip = false
+                skip = false  -- Never skip in "All" mode
             end
 
             if not skip then
@@ -3268,6 +3527,21 @@ local function onRenderStep()
                 if onScreen then
                     local screenVec = Vector2.new(screenPos3.X, screenPos3.Y)
                     local distPx = (screenVec - center).Magnitude
+                    
+                    -- Always add to allTargetsInFOV for TargetSeen mode
+                    table.insert(allTargetsInFOV, {
+                        player = pl,
+                        part = bodyPart,
+                        partName = chosenName,
+                        screenDist = distPx,
+                        worldDist = (camera.CFrame.Position - topPos).Magnitude,
+                        screenPos = screenVec,
+                        screenPos3 = screenPos3,
+                        humanoid = humanoid,
+                        inFOV = distPx <= radiusPx
+                    })
+                    
+                    -- Only add to candidates if within FOV (for non-TargetSeen modes)
                     if distPx <= radiusPx then
                         local cameraPos = camera.CFrame.Position
                         local targetPos = bodyPart.Position
@@ -3295,62 +3569,168 @@ local function onRenderStep()
     end
 
     local best = nil
-    local selectionMode = config.silentGetTarget or config.masterGetTarget or "Closest"
-    if #candidates > 0 then
-        if selectionMode == "Lowest Health" then
-            local bestHealth = math.huge
-            for _, c in ipairs(candidates) do
-                local h = c.humanoid and c.humanoid.Health or math.huge
-                if best == nil or h < bestHealth then
-                    bestHealth = h
-                    best = c
+    
+    -- Handle TargetSeen mode
+    if config.silentGetTarget == "TargetSeen" then
+        -- Filter only targets that are actually in FOV
+        local targetsInFOV = {}
+        for _, target in ipairs(allTargetsInFOV) do
+            if target.inFOV then
+                local cameraPos = camera.CFrame.Position
+                local targetPos = target.part.Position
+                if wallCheck(targetPos, cameraPos) then
+                    table.insert(targetsInFOV, target)
                 end
             end
-        else 
-            local bestWorldDist = math.huge
-            for _, c in ipairs(candidates) do
-                if c.worldDist < bestWorldDist then
-                    bestWorldDist = c.worldDist
-                    best = c
+        end
+        
+        -- Store for switching
+        config.targetSeenTargets = targetsInFOV
+        
+        if #targetsInFOV > 0 then
+            if config.targetSeenMode == "Switch" then
+                -- Switch between targets in FOV
+                local currentTime = tick()
+                if currentTime - config.lastTargetSwitchTime >= config.targetSeenSwitchRate then
+                    config.lastTargetSwitchTime = currentTime
+                    
+                    -- If we have no current target or it's not in FOV anymore, pick random
+                    if not config.currentTarget then
+                        local randomIndex = math.random(1, #targetsInFOV)
+                        best = targetsInFOV[randomIndex]
+                    else
+                        -- Find current target in FOV list
+                        local currentIndex = nil
+                        for i, target in ipairs(targetsInFOV) do
+                            if target.player == config.currentTarget then
+                                currentIndex = i
+                                break
+                            end
+                        end
+                        
+                        if currentIndex then
+                            -- Move to next target
+                            local nextIndex = (currentIndex % #targetsInFOV) + 1
+                            best = targetsInFOV[nextIndex]
+                        else
+                            -- Current target not in FOV, pick random
+                            local randomIndex = math.random(1, #targetsInFOV)
+                            best = targetsInFOV[randomIndex]
+                        end
+                    end
+                else
+                    -- Keep current target if it's still in FOV
+                    if config.currentTarget then
+                        for _, target in ipairs(targetsInFOV) do
+                            if target.player == config.currentTarget then
+                                best = target
+                                break
+                            end
+                        end
+                    end
+                end
+            elseif config.targetSeenMode == "All" then
+                -- Target all simultaneously by expanding hitboxes for all in FOV
+                for _, target in ipairs(targetsInFOV) do
+                    if target.player ~= config.currentTarget then
+                        -- Apply hitbox expansion to all targets in FOV
+                        local diameter = calculateDiameter(target.worldDist, radiusPx, camera)
+                        applySizeToPart(target.player, diameter, target.part)
+                    end
+                end
+                
+                -- For camera focus, still pick closest
+                local closestDist = math.huge
+                for _, target in ipairs(targetsInFOV) do
+                    if target.worldDist < closestDist then
+                        closestDist = target.worldDist
+                        best = target
+                    end
+                end
+            end
+        else
+            best = nil
+        end
+    else
+        -- Handle normal targeting modes (Closest or Lowest Health)
+        if #candidates > 0 then
+            if config.silentGetTarget == "Lowest Health" then
+                local bestHealth = math.huge
+                for _, c in ipairs(candidates) do
+                    local h = c.humanoid and c.humanoid.Health or math.huge
+                    if best == nil or h < bestHealth then
+                        bestHealth = h
+                        best = c
+                    end
+                end
+            else -- "Closest" (default)
+                local bestWorldDist = math.huge
+                for _, c in ipairs(candidates) do
+                    if c.worldDist < bestWorldDist then
+                        bestWorldDist = c.worldDist
+                        best = c
+                    end
                 end
             end
         end
     end
 
+    -- Update ring color based on targeting
     if best then
         gui.RingStroke.Color = config.fovct or config.fovc
     else
         gui.RingStroke.Color = config.fovc
     end
 
+    -- Update current target
     if config.currentTarget ~= (best and best.player) then
         config.currentTarget = best and best.player
         updateESPColors()
     end
 
+    -- Clean up old hitboxes
     local targetsToRemove = {}
     for pl, _ in pairs(config.activeApplied) do
-        if (not best) or pl ~= best.player or not plralive(pl) then
+        local shouldRemove = true
+        
+        if best and pl == best.player then
+            shouldRemove = false
+        elseif config.silentGetTarget == "TargetSeen" and config.targetSeenMode == "All" then
+            -- Check if this target is still in FOV
+            local stillInFOV = false
+            for _, target in ipairs(config.targetSeenTargets or {}) do
+                if target.player == pl then
+                    stillInFOV = true
+                    break
+                end
+            end
+            shouldRemove = not stillInFOV
+        end
+        
+        if shouldRemove or not plralive(pl) then
             table.insert(targetsToRemove, pl)
         end
     end
+    
     for _, pl in ipairs(targetsToRemove) do
         restorePartForPlayer(pl)
     end
 
+    -- Apply hitbox to current target(s)
     if best and plralive(best.player) then
-        local diameter = (function()
-            local viewportSize = camera.ViewportSize
+        local function calculateDiameter(worldDist, screenRadius, cam)
+            local viewportSize = cam.ViewportSize
             local H = viewportSize.Y
-            local vFovDeg = camera.FieldOfView
+            local vFovDeg = cam.FieldOfView
             local vFovRad = math.rad(vFovDeg)
             local halfVFov = vFovRad / 2
-            local alpha = (radiusPx / (H / 2)) * halfVFov
-            local worldHalf = best.worldDist * math.tan(alpha)
+            local alpha = (screenRadius / (H / 2)) * halfVFov
+            local worldHalf = worldDist * math.tan(alpha)
             local worldFull = worldHalf * 2
-            return worldFull
-        end)()
-
+            return math.max(0.01, worldFull)
+        end
+        
+        local diameter = calculateDiameter(best.worldDist, radiusPx, camera)
         diameter = math.max(0.01, diameter)
 
         local localChar = localPlayer.Character
@@ -3405,6 +3785,7 @@ local function onRenderStep()
         end
 
         diameter = math.max(0.01, diameter)
+        
         if best.screenDist <= 1 then
             if not config.centerLocked[best.player] then
                 config.centerLocked[best.player] = true
@@ -3425,8 +3806,18 @@ local function onRenderStep()
             RFD(best.player)
         end
     end
+    
+    -- For TargetSeen "All" mode, also apply to other targets in FOV
+    if config.silentGetTarget == "TargetSeen" and config.targetSeenMode == "All" then
+        for _, target in ipairs(config.targetSeenTargets or {}) do
+            if target.player ~= (best and best.player) and plralive(target.player) then
+                local diameter = calculateDiameter(target.worldDist, radiusPx, camera)
+                diameter = math.max(0.01, diameter)
+                applySizeToPart(target.player, diameter, target.part)
+            end
+        end
+    end
 end
-
 
 -- Update the Silent Aim getClosestPlayer function to respect ignoreForcefield
 local function getClosestPlayer()
@@ -4056,7 +4447,7 @@ local dang = isPC and UDim2.new(0, 600, 0, 450) or UDim2.new(0.7, 0, 0.9, 0)
 local Window = Library:Window({
     Title = "Gravel.cc",
     Desc = "by hmmm5651",
-    Icon = 132214308111067,
+    Icon = 7734056878,
     Theme = "Dark",
     Config = {
         Keybind = Enum.KeyCode.K,
@@ -4069,7 +4460,7 @@ local Window = Library:Window({
 })
 
 -- Main Tab
-local MainTab = Window:Tab({Title = "Main", Icon = "folder"}) do
+local MainTab = Window:Tab({Title = "Main", Icon = "hammer"}) do
     MainTab:Section({Title = "Master Settings"})
     
     MainTab:Dropdown({
@@ -4093,20 +4484,33 @@ local MainTab = Window:Tab({Title = "Main", Icon = "folder"}) do
             config.masterTarget = Option
         end
     })
-    
-    MainTab:Dropdown({
-        Title = "Master GetTarget",
-        Desc = "Target selection method",
-        List = {"Closest", "Lowest Health"},
-        Value = "Closest",
-        Callback = function(Option)
-            config.masterGetTarget = Option
-            config.aimbotGetTarget = Option
-            config.silentGetTarget = Option
-            config.antiAimGetTarget = Option
+MainTab:Dropdown({
+    Title = "Master GetTarget",
+    Desc = "Target selection method",
+    List = {"Closest", "Lowest Health", "TargetSeen"},
+    Value = "Closest",
+    Callback = function(Option)
+        config.masterGetTarget = Option
+        config.aimbotGetTarget = Option
+        config.silentGetTarget = Option
+        config.antiAimGetTarget = Option
+    end
+})
+
+    MainTab:Textbox({
+        Title = "Targetseen Switch Rate",
+        Desc = "Time between target switches (seconds)",
+        Placeholder = "0.2",
+        Value = tostring(config.targetSeenSwitchRate or 0.2),
+        ClearTextOnFocus = false,
+        Callback = function(text)
+            local n = tonumber(text)
+            if n and n > 0 then
+                config.targetSeenSwitchRate = n
+            end
         end
     })
-    
+
     MainTab:Section({Title = "Utilities"})
     
 MainTab:Toggle({
@@ -4697,7 +5101,7 @@ AntiAimTab:Toggle({
     AntiAimTab:Dropdown({
         Title = "GetTarget",
         Desc = "Target selection method",
-        List = {"Closest", "Lowest Health"},
+        List = {"Closest", "Lowest Health", "TargetSeen"},
         Value = config.antiAimGetTarget or "Closest",
         Callback = function(Option)
             config.antiAimGetTarget = Option
@@ -4938,7 +5342,7 @@ AimbotTab:Toggle({
     AimbotTab:Dropdown({
         Title = "GetTarget",
         Desc = "Target selection method",
-        List = {"Closest", "Lowest Health"},
+        List = {"Closest", "Lowest Health", "TargetSeen"},
         Value = config.aimbotGetTarget or "Closest",
         Callback = function(Option)
             config.aimbotGetTarget = Option
@@ -4971,84 +5375,8 @@ AimbotTab:Toggle({
     })
 end
 
--- Hitbox Tab
-local HitboxTab = Window:Tab({Title = "Hitbox", Icon = "box"}) do
-    HitboxTab:Section({Title = "Hitbox Master [This might not work on every game]"})
-    
-HitboxTab:Toggle({
-    Title = "Toggle Hitbox ('G')",
-    Desc = "Expand hitboxes",
-    Value = config.hitboxEnabled or false,
-    Callback = function(v)
-        config.hitboxEnabled = v
-        if v then
-            applyhb()
-            safeNotify({
-                Title = "Hitbox",
-                Content = "Enabled",
-                Audio = "rbxassetid://17208361335",
-                Length = 1,
-                Image = "rbxassetid://4483362458",
-                BarColor = Color3.fromRGB(0, 255, 0)
-            })
-        else
-            for player, _ in pairs(config.hitboxExpandedParts) do
-                restoreTorso(player)
-            end
-            config.hitboxExpandedParts = {}
-            safeNotify({
-                Title = "Hitbox",
-                Content = "Disabled",
-                Audio = "rbxassetid://17208361335",
-                Length = 1,
-                Image = "rbxassetid://4483362458",
-                BarColor = Color3.fromRGB(255, 0, 0)
-            })
-        end
-    end
-})
-    
-    HitboxTab:Section({Title = "Hitbox Settings"})
-    
-    HitboxTab:Dropdown({
-        Title = "Team Target",
-        Desc = "Select target team preference",
-        List = {"Enemies", "Teams", "All"},
-        Value = config.hitboxTeamTarget or "Enemies",
-        Callback = function(Option)
-            if config.masterTeamTarget == "All" then return end
-            config.hitboxTeamTarget = Option
-            applyhb()
-        end
-    })
-    
-    HitboxTab:Slider({
-        Title = "Hitbox Size",
-        Desc = "Size of expanded hitboxes",
-        Min = 1,
-        Max = 50,
-        Rounding = 1,
-        Value = config.hitboxSize or 10,
-        Callback = function(val)
-            config.hitboxSize = val
-            if config.hitboxEnabled then
-                for player, data in pairs(config.hitboxExpandedParts) do
-                    if player and targethb(player) and data and data.part and data.part.Parent then
-                        local newSize = Vector3.new(val, val, val)
-                        data.targetSize = newSize
-                        config.hitboxLastSize[player] = val
-                        pcall(function()
-                            data.part.Size = newSize
-                        end)
-                    end
-                end
-            end
-        end
-    })
-end
-
 -- SilentAim Tab
-local SilentAimTab = Window:Tab({Title = "SilentAim", Icon = "target"}) do
+local SilentAimTab = Window:Tab({Title = "SilentAim", Icon = "circle"}) do
     SilentAimTab:Section({Title = "SilentAim Master [This might not work on every game]"})
     
 SilentAimTab:Toggle({
@@ -5134,7 +5462,7 @@ SilentAimTab:Toggle({
     SilentAimTab:Dropdown({
         Title = "GetTarget",
         Desc = "Target selection method",
-        List = {"Closest", "Lowest Health"},
+        List = {"Closest", "Lowest Health", "TargetSeen"},
         Value = config.silentGetTarget or "Closest",
         Callback = function(Option)
             config.silentGetTarget = Option
@@ -5165,6 +5493,83 @@ SilentAimTab:Toggle({
             config.fovsize = val
             if gui.RingHolder then
                 gui.RingHolder.Size = UDim2.new(0, math.max(8, config.fovsize * 2), 0, math.max(8, config.fovsize * 2))
+            end
+        end
+    })
+end
+
+
+-- Hitbox Tab
+local HitboxTab = Window:Tab({Title = "Hitbox", Icon = "box"}) do
+    HitboxTab:Section({Title = "Hitbox Master [This might not work on every game]"})
+    
+HitboxTab:Toggle({
+    Title = "Toggle Hitbox ('G')",
+    Desc = "Expand hitboxes",
+    Value = config.hitboxEnabled or false,
+    Callback = function(v)
+        config.hitboxEnabled = v
+        if v then
+            applyhb()
+            safeNotify({
+                Title = "Hitbox",
+                Content = "Enabled",
+                Audio = "rbxassetid://17208361335",
+                Length = 1,
+                Image = "rbxassetid://4483362458",
+                BarColor = Color3.fromRGB(0, 255, 0)
+            })
+        else
+            for player, _ in pairs(config.hitboxExpandedParts) do
+                restoreTorso(player)
+            end
+            config.hitboxExpandedParts = {}
+            safeNotify({
+                Title = "Hitbox",
+                Content = "Disabled",
+                Audio = "rbxassetid://17208361335",
+                Length = 1,
+                Image = "rbxassetid://4483362458",
+                BarColor = Color3.fromRGB(255, 0, 0)
+            })
+        end
+    end
+})
+    
+    HitboxTab:Section({Title = "Hitbox Settings"})
+    
+    HitboxTab:Dropdown({
+        Title = "Team Target",
+        Desc = "Select target team preference",
+        List = {"Enemies", "Teams", "All"},
+        Value = config.hitboxTeamTarget or "Enemies",
+        Callback = function(Option)
+            if config.masterTeamTarget == "All" then return end
+            config.hitboxTeamTarget = Option
+            applyhb()
+        end
+    })
+    
+    HitboxTab:Slider({
+        Title = "Hitbox Size",
+        Desc = "Size of expanded hitboxes",
+        Min = 1,
+        Max = 50,
+        Rounding = 1,
+        Value = config.hitboxSize or 10,
+        Callback = function(val)
+            config.hitboxSize = val
+            if config.hitboxEnabled then
+                for player, data in pairs(config.hitboxExpandedParts) do
+                    if player and targethb(player) and data and data.part and data.part.Parent then
+                        local newSize = Vector3.new(val, val, val)
+                        data.targetSize = newSize
+                        config.hitboxLastSize[player] = val
+                        pcall(function()
+                            data.part.Size = newSize
+                        end)
+                    end
+                end
             end
         end
     })
@@ -5256,7 +5661,7 @@ local ClientTab = Window:Tab({Title = "Client", Icon = "user"}) do
     ClientTab:Slider({
         Title = "WalkSpeed Value",
         Desc = "Custom walk speed value",
-        Min = 1,
+        Min = 0,
         Max = 500,
         Rounding = 1,
         Value = config.clientWalkSpeed or 16,
@@ -5286,8 +5691,8 @@ local ClientTab = Window:Tab({Title = "Client", Icon = "user"}) do
     ClientTab:Slider({
         Title = "CFrame Walk Speed",
         Desc = "CFrame movement speed",
-        Min = 1,
-        Max = 100,
+        Min = 0,
+        Max = 500,
         Rounding = 1,
         Value = config.clientCFrameSpeed or 1,
         Callback = function(val)
