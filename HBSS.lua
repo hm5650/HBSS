@@ -1,25 +1,230 @@
 -- Gravel.cc
+repeat wait() until game:IsLoaded()
+
+for _, v in pairs(getconnections(game:GetService("ScriptContext").Error)) do
+    v:Disable()
+end
+
+for _, v in pairs(getconnections(game:GetService("LogService").MessageOut)) do
+    v:Disable()
+end
+
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
 local Teams = game:GetService("Teams")
 local Workspace = game:GetService("Workspace")
-
+local SoundService = game:GetService("SoundService")
+local player = Players.LocalPlayer
+local PlayerGui = player:WaitForChild("PlayerGui")
 local localPlayer = Players.LocalPlayer
+local gui = Instance.new("ScreenGui")
+local bg = Instance.new("Frame")
+local center = Instance.new("Frame")
+local brand = Instance.new("TextLabel")
+local loadingText = Instance.new("TextLabel")
+local bar = Instance.new("TextLabel")
+local icon = Instance.new("ImageLabel")
+local aspect = Instance.new("UIAspectRatioConstraint")
+local plrs = game:GetService("Players")
+local plr = plrs.LocalPlayer
+
+local gui = Instance.new("ScreenGui")
+gui.Name = "FakeLoader"
+gui.IgnoreGuiInset = true
+gui.ResetOnSpawn = false
+gui.DisplayOrder = 2147483647
+gui.Parent = PlayerGui
+bg.Size = UDim2.fromScale(1, 1)
+bg.BackgroundColor3 = Color3.new(0, 0, 0)
+bg.BackgroundTransparency = 1
+bg.Parent = gui
+center.Size = UDim2.fromScale(0.3, 0.4)
+center.Position = UDim2.fromScale(0.5, 0.5)
+center.AnchorPoint = Vector2.new(0.5, 0.5)
+center.BackgroundTransparency = 1
+center.Parent = bg
+icon.Size = UDim2.fromScale(0.5, 0.5)
+icon.Position = UDim2.fromScale(0.5, 0.10)
+icon.AnchorPoint = Vector2.new(0.5, 0.5)
+icon.Image = "rbxassetid://7734056878"
+icon.BackgroundTransparency = 1
+icon.ImageTransparency = 1
+icon.ScaleType = Enum.ScaleType.Fit
+icon.Parent = center
+aspect.AspectRatio = 1
+aspect.Parent = icon
+brand.Size = UDim2.fromScale(1, 0.15)
+brand.Position = UDim2.fromScale(0.5, 0.42)
+brand.AnchorPoint = Vector2.new(0.5, 0.5)
+brand.Text = "Gravel.cc"
+brand.Font = Enum.Font.Code
+brand.TextSize = 22
+brand.TextColor3 = Color3.fromRGB(200, 200, 200)
+brand.TextTransparency = 1
+brand.BackgroundTransparency = 1
+brand.Parent = center
+loadingText.Size = UDim2.fromScale(1, 0.15)
+loadingText.Position = UDim2.fromScale(0.5, 0.6)
+loadingText.AnchorPoint = Vector2.new(0.5, 0.5)
+loadingText.Text = "Loading"
+loadingText.Font = Enum.Font.Code
+loadingText.TextSize = 18
+loadingText.TextColor3 = Color3.fromRGB(255, 255, 255)
+loadingText.TextTransparency = 1
+loadingText.BackgroundTransparency = 1
+loadingText.Parent = center
+bar.Size = UDim2.fromScale(1, 0.15)
+bar.Position = UDim2.fromScale(0.5, 0.75)
+bar.AnchorPoint = Vector2.new(0.5, 0.5)
+bar.Font = Enum.Font.Code
+bar.TextSize = 18
+bar.TextColor3 = Color3.fromRGB(255, 255, 255)
+bar.TextTransparency = 1
+bar.BackgroundTransparency = 1
+bar.Text = "[                    ]"
+bar.Parent = center
+
+local fadeIn = TweenInfo.new(1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+
+TweenService:Create(bg, fadeIn, {BackgroundTransparency = 0.1}):Play()
+TweenService:Create(icon, fadeIn, {ImageTransparency = 0}):Play()
+TweenService:Create(brand, fadeIn, {TextTransparency = 0}):Play()
+TweenService:Create(loadingText, fadeIn, {TextTransparency = 0}):Play()
+TweenService:Create(bar, fadeIn, {TextTransparency = 0}):Play()
+
+task.spawn(function()
+    local totalBars = 20
+    local filled = 0
+    local maxDuration = 3.25
+    local startTime = tick()
+    local elapsed = 0
+    
+    local sound = Instance.new("Sound")
+    sound.SoundId = "rbxassetid://9120299810"
+    sound.Volume = 0.5
+    sound.Parent = SoundService
+    
+    while elapsed < maxDuration do
+        task.wait(math.random(10, 30) / 100)
+        elapsed = tick() - startTime
+        
+        local targetFilled = math.min(totalBars, math.floor((elapsed / maxDuration) * totalBars))
+        
+        if targetFilled > filled then
+            for i = filled + 1, targetFilled do
+                sound:Play()
+            end
+            filled = targetFilled
+        elseif math.random() < 0.75 and filled < totalBars then
+            sound:Play()
+            filled = math.min(totalBars, filled + 1)
+        end
+
+        local visual = string.rep("|", filled)
+        local empty = string.rep(" ", totalBars - filled)
+        bar.Text = "[" .. visual .. empty .. "]"
+        if math.random() < 0.3 then
+            loadingText.Text = "Loading."
+        elseif math.random() < 0.6 then
+            loadingText.Text = "Loading.."
+        else
+            loadingText.Text = "Loading..."
+        end
+    end
+
+    filled = totalBars
+    bar.Text = "[" .. string.rep("|", totalBars) .. "]"
+    loadingText.Text = "Loaded"
+
+    task.wait(0.6)
+    sound:Destroy()
+    local fadeOut = TweenInfo.new(0.8, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
+
+    TweenService:Create(bg, fadeOut, {BackgroundTransparency = 1}):Play()
+    TweenService:Create(icon, fadeOut, {ImageTransparency = 1}):Play()
+    TweenService:Create(brand, fadeOut, {TextTransparency = 1}):Play()
+    TweenService:Create(loadingText, fadeOut, {TextTransparency = 1}):Play()
+    TweenService:Create(bar, fadeOut, {TextTransparency = 1}):Play()
+
+    task.wait(1)
+    gui:Destroy()
+end)
+task.wait(2.30)
+local function Hook_Adonis(metadefs)
+	for _ , tbl in metadefs do
+		for i, func in tbl do
+			if type(func) == "function" and islclosure(func) then
+				local dummy_func = function()
+					return pcall(coroutine.close, coroutine.running())
+				end
+				hookfunction(func, dummy_func)
+			end
+		end
+	end
+end
+local function Init_Bypass()
+	for i, v in getgc(true) do
+		if
+			typeof(v) == "table"
+			and rawget(v, "indexInstance")
+			and rawget(v, "newindexInstance")
+			and rawget(v, "namecallInstance")
+			and type(rawget(v,"newindexInstance")) == "table"
+		then
+			if v["newindexInstance"][1] == "kick" then
+				Hook_Adonis(v)
+			end
+		end
+	end
+end
+
+task.spawn(Init_Bypass)
+
+local ValidTargetParts = {"Head", "HumanoidRootPart", "Torso", "UpperTorso", "LowerTorso", "RightUpperArm", "LeftUpperArm", "RightLowerArm", "LeftLowerArm", "RightHand", "LeftHand", "RightUpperLeg", "LeftUpperLeg", "RightLowerLeg", "LeftLowerLeg", "RightFoot", "LeftFoot"}
+local mouse = plr:GetMouse()
+local Camera = workspace.CurrentCamera
+local FindFirstChild = game.FindFirstChild
+local GetPlayers = plrs.GetPlayers
+local GetPartsObscuringTarget = Camera.GetPartsObscuringTarget
+local wasEnabledBeforeDeath = false
+local respawnLock = false
+local lastCharacter = nil
 local camera = workspace.CurrentCamera
 local aimbot360LoopRunning = false
 local aimbot360LoopTask = nil
 local desyncHook = nil
 local gui = {}
-
 local patcher = true
+local patcherwait = 0.3
+
+local FindTool = loadstring(game:HttpGet("https://raw.githubusercontent.com/hm5650/HBSS/refs/heads/main/SA2_FindTool.lua"))()
+local func = loadstring(game:HttpGet("https://raw.githubusercontent.com/hm5650/HBSS/refs/heads/main/SA2_Function.lua"))()
+local lastTargetUpdate = 0
 
 -- random stuff lololol
 local config = {
     startsa = false,
     fovsize = 120,
     predic = 1,
+    SA2_Enabled = false,
+    SA2_Method = "Raycast",
+    SA2_TeamTarget = "Enemies",
+    SA2_Wallcheck = false,
+    SA2_TargetPart = "Head",
+    SA2_HitChance = 100,
+    SA2_FovRadius = 100,
+    SA2_FovVisible = true,
+    SA2_FovTransparency = 0.90,
+    SA2_FovColor = Color3.new(0, 0, 0),
+    SA2_FovColourTarget = Color3.new(1, 1, 0),
+    SA2_FovIsTargeted = false,
+    SA2_ThreeSixtyMode = false,
+    SA2_GetTarget = "Closest",
+    SA2_currentTarget = nil,
+    SA2_TArea = 35,
+    currentTarget = nil,
     espc = Color3.fromRGB(255, 182, 193),
     esptargetc = Color3.fromRGB(255, 255, 0),
     espteamc = Color3.fromRGB(0, 255, 0),
@@ -98,10 +303,17 @@ local config = {
     autoFarmTargetPart = "Head",
     autoFarmAlignToCrosshair = true,
     autoFarmVerticalOffset = 0,
+    autoFarmMinRange = 0,
+    autoFarmMaxRange = 50,
     autoFarmOriginalPositions = {}, 
+    autoFarmWallCheck = false,
     aimbot360Enabled = false,
     aimbot360OriginalFOV = 100,
     gp = 200,
+    targetSeenMode = "Switch",
+    targetSeenSwitchRate = 0.2,
+    lastTargetSwitchTime = 0,
+    targetSeenTargets = {},
     aimbot360Omnidirectional = true,
     aimbot360BehindRange = 180,
     aimbot360WasEnabled = false,
@@ -134,7 +346,8 @@ local config = {
     desyncLoc = CFrame.new(),
     nextGenRepEnabled = false,
     nextGenRepDesiredState = false,
-    mobgui = false,
+    ignoreForcefield = true,
+    QuickToggles = false,
     keybinds = {
         silentaim = "E",
         aimbot = "Q",
@@ -145,6 +358,8 @@ local config = {
         client = "V",
         silentaimwallcheck = "B",
         aimbotwallcheck = "H",
+        silentaimhk = "R",
+        silentaimhkwallcheck = "T",
     },
     holdkeyToggle = {
         enabled = false,
@@ -152,6 +367,564 @@ local config = {
     },
     holdkeystates = {}
 }
+
+
+local function hasForcefield(character)
+    if not character then return false end
+    
+    if config.ignoreForcefield == false then
+        return false
+    end
+    
+    local forcefield = character:FindFirstChildOfClass("ForceField")
+    if forcefield then return true end
+    for _, child in ipairs(character:GetChildren()) do
+        if child:IsA("ForceField") then
+            return true
+        elseif child.Name:lower():find("shield") or 
+               child.Name:lower():find("forcefield") or
+               child.Name:lower():find("invincible") or
+               child.Name:lower():find("invulnerable") then
+            if child:IsA("BasePart") or child:IsA("Model") or child:IsA("Folder") then
+                for _, descendant in ipairs(child:GetDescendants()) do
+                    if descendant:IsA("ParticleEmitter") or 
+                       descendant:IsA("Beam") or 
+                       descendant:IsA("Trail") then
+                        return true
+                    end
+                end
+            end
+            return true
+        end
+    end
+    
+    local humanoid = character:FindFirstChildOfClass("Humanoid")
+    if humanoid then
+        if humanoid.MaxHealth == math.huge or humanoid.Health == math.huge then
+            return true
+        end
+        
+        if humanoid:GetState() == Enum.HumanoidStateType.Physics then
+            return true
+        end
+    end
+    
+    return false
+end
+
+local function SetupRespawnHandler()
+    plr.CharacterAdded:Connect(function(character)
+        
+        if respawnLock then
+            wait(1.5)
+            
+            local humanoid = character:WaitForChild("Humanoid", 5)
+            if humanoid and humanoid.Health > 0 then
+                if wasEnabledBeforeDeath then
+                    config.SA2_Enabled = true
+                end
+                
+                respawnLock = false
+                wasEnabledBeforeDeath = false
+            end
+        end
+    end)
+    
+    plr.CharacterRemoving:Connect(function(character)
+        
+        if config.SA2_Enabled then
+            wasEnabledBeforeDeath = true
+        end
+        config.SA2_Enabled = false
+        respawnLock = true
+    end)
+    
+    local function trackHumanoidDeath()
+        if plr.Character then
+            local humanoid = plr.Character:FindFirstChild("Humanoid")
+            if humanoid then
+                humanoid.Died:Connect(function()
+                    
+                    if config.SA2_Enabled then
+                        wasEnabledBeforeDeath = true
+                    end
+                    
+                    config.SA2_Enabled = false
+                    respawnLock = true
+                end)
+            end
+        end
+    end
+    
+    if plr.Character then
+        trackHumanoidDeath()
+    end
+    
+    plr.CharacterAdded:Connect(function()
+        wait(0.5)
+        trackHumanoidDeath()
+    end)
+end
+
+local function GetRandomTargetPart()
+    return ValidTargetParts[math.random(1, #ValidTargetParts)]
+end
+local function GetActualTargetPart()
+    if config.SA2_TargetPart == "Random" then
+        return GetRandomTargetPart()
+    end
+    return config.SA2_TargetPart
+end
+
+local function ArePlayersSameTeam(player1, player2)
+    if not player1 or not player2 then return false end
+    
+    local team1 = player1.Team
+    local team2 = player2.Team
+    if not team1 or not team2 then return false end
+    
+    return team1 == team2
+end
+
+local function ShouldTargetPlayer(targetPlayer)
+    if targetPlayer == plr then return false end
+    
+    if config.SA2_TeamTarget == "All" then
+        return true
+    elseif config.SA2_TeamTarget == "Enemies" then
+        return not ArePlayersSameTeam(plr, targetPlayer)
+    elseif config.SA2_TeamTarget == "Teams" then
+        return ArePlayersSameTeam(plr, targetPlayer)
+    end
+    
+    return false
+end
+
+local IsPlayerVisible = function(Player)
+    local PlayerCharacter = Player.Character
+    local LocalPlayerCharacter = plr.Character
+    
+    if not (PlayerCharacter or LocalPlayerCharacter) then return end
+    
+    local actualTargetPart = GetActualTargetPart()
+    local PlayerRoot = FindFirstChild(PlayerCharacter, actualTargetPart) or FindFirstChild(PlayerCharacter, "HumanoidRootPart")
+    
+    if not PlayerRoot then return end
+    
+    local CastPoints, IgnoreList = {PlayerRoot.Position, LocalPlayerCharacter, PlayerCharacter}, {LocalPlayerCharacter, PlayerCharacter}
+    local ObscuringObjects = #GetPartsObscuringTarget(Camera, CastPoints, IgnoreList)
+    
+    return ((ObscuringObjects == 0 and true) or (ObscuringObjects > 0 and false))
+end
+
+local function syncSilentAimWithMaster()
+    if config.masterTeamTarget == "All" then
+        config.SA2_TeamTarget = "All"
+    elseif config.SA2_TeamTarget ~= config.masterTeamTarget and 
+           config.masterTeamTarget ~= nil then
+        if not config.SA2_TeamTarget then
+            config.SA2_TeamTarget = config.masterTeamTarget
+        end
+    end
+    
+    if config.masterGetTarget then
+        config.silentGetTarget = config.masterGetTarget
+        config.SA2_GetTarget = config.masterGetTarget
+    end
+end
+
+local function GetClosestPlayer()
+    if respawnLock or not plr.Character then
+        if config.SA2_currentTarget then
+            config.SA2_currentTarget = nil
+            updateESPColors()
+        end
+        return nil
+    end
+    
+    local Closest = nil
+    local ShortestDistance = math.huge
+    local LowestHealth = math.huge
+    local screenCenter = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
+    local allTargets = {}
+    
+    for _, Player in next, GetPlayers(plrs) do
+        if Player == plr then continue end
+        if not ShouldTargetPlayer(Player) then continue end
+        
+        local Character = Player.Character
+        if not Character then continue end
+        local Humanoid = FindFirstChild(Character, "Humanoid")
+        if not Humanoid or Humanoid.Health <= 0 then continue end
+        if config.SA2_Wallcheck and not IsPlayerVisible(Player) then continue end
+        
+        local bodyPartsToCheck = {"HumanoidRootPart", "Head", "Torso", "UpperTorso"}
+        local foundPart = nil
+        
+        for _, partName in ipairs(bodyPartsToCheck) do
+            local bodyPart = FindFirstChild(Character, partName)
+            if bodyPart then
+                foundPart = bodyPart
+                break
+            end
+        end
+        
+        if not foundPart then continue end
+        
+        -- Get screen position
+        local screenPos, onScreen = func.GetScreenPosition(foundPart.Position)
+        if not onScreen then continue end
+        
+        -- Add offset (if needed)
+        screenPos = screenPos + Vector2.new(0, config.SA2_TArea)
+        
+        -- Check if within FOV radius
+        local distToFov = (screenCenter - screenPos).Magnitude
+        if distToFov > config.SA2_FovRadius then continue end
+        
+        local worldDist = (Camera.CFrame.Position - foundPart.Position).Magnitude
+        
+        if config.SA2_ThreeSixtyMode then
+            OnScreen = true
+            ScreenPosition = screenCenter
+        end
+        
+        local distanceToCenter = onScreen and (screenCenter - screenPos).Magnitude or math.huge
+        
+        table.insert(allTargets, {
+            player = Player,
+            character = Character,
+            part = foundPart,
+            humanoid = Humanoid,
+            health = Humanoid.Health,
+            screenPos = screenPos,
+            onScreen = onScreen,
+            distanceToCenter = distanceToCenter,
+            worldDist = worldDist
+        })
+    end
+    
+    if #allTargets == 0 then
+        if config.SA2_currentTarget then
+            config.SA2_currentTarget = nil
+            updateESPColors()
+        end
+        return nil
+    end
+    
+    if config.SA2_ThreeSixtyMode then
+        local newClosestPlayer = nil
+        for _, target in ipairs(allTargets) do
+            if target.worldDist < ShortestDistance then
+                ShortestDistance = target.worldDist
+                local actualTargetPart = GetActualTargetPart()
+                Closest = target.character[actualTargetPart] or target.part
+                newClosestPlayer = target.player
+            end
+        end
+        if newClosestPlayer ~= config.SA2_currentTarget then
+            config.SA2_currentTarget = newClosestPlayer
+            updateESPColors()
+        end
+        
+        return Closest
+    end
+    
+    local newClosestPlayer = nil
+    local getTargetMethod = config.masterGetTarget or config.SA2_GetTarget or "Closest"
+    
+    if getTargetMethod == "Lowest Health" then
+        for _, target in ipairs(allTargets) do
+            if target.onScreen and target.health < LowestHealth then
+                LowestHealth = target.health
+                local actualTargetPart = GetActualTargetPart()
+                Closest = target.character[actualTargetPart] or target.part
+                newClosestPlayer = target.player
+            end
+        end
+    elseif getTargetMethod == "TargetSeen" then
+        local targetsInFOV = {}
+        
+        for _, target in ipairs(allTargets) do
+            if target.onScreen and target.distanceToCenter <= config.SA2_FovRadius then
+                table.insert(targetsInFOV, target)
+            end
+        end
+        
+        if #targetsInFOV > 0 then
+            if config.targetSeenMode == "Switch" then
+                local currentTime = tick()
+                if currentTime - config.lastTargetSwitchTime >= config.targetSeenSwitchRate then
+                    config.lastTargetSwitchTime = currentTime
+                    
+                    if not config.SA2_currentTarget then
+                        local closestInFOV = nil
+                        local closestDist = math.huge
+                        for _, target in ipairs(targetsInFOV) do
+                            if target.distanceToCenter < closestDist then
+                                closestDist = target.distanceToCenter
+                                closestInFOV = target
+                            end
+                        end
+                        if closestInFOV then
+                            local actualTargetPart = GetActualTargetPart()
+                            Closest = closestInFOV.character[actualTargetPart] or closestInFOV.part
+                            config.SA2_currentTarget = closestInFOV.player
+                            newClosestPlayer = closestInFOV.player
+                        end
+                    else
+                        local currentIndex = nil
+                        for i, target in ipairs(targetsInFOV) do
+                            if target.player == config.SA2_currentTarget then
+                                currentIndex = i
+                                break
+                            end
+                        end
+                        
+                        if currentIndex then
+                            local nextIndex = (currentIndex % #targetsInFOV) + 1
+                            local nextTarget = targetsInFOV[nextIndex]
+                            local actualTargetPart = GetActualTargetPart()
+                            Closest = nextTarget.character[actualTargetPart] or nextTarget.part
+                            config.SA2_currentTarget = nextTarget.player
+                            newClosestPlayer = nextTarget.player
+                        else
+                            local closestInFOV = nil
+                            local closestDist = math.huge
+                            for _, target in ipairs(targetsInFOV) do
+                                if target.distanceToCenter < closestDist then
+                                    closestDist = target.distanceToCenter
+                                    closestInFOV = target
+                                end
+                            end
+                            if closestInFOV then
+                                local actualTargetPart = GetActualTargetPart()
+                                Closest = closestInFOV.character[actualTargetPart] or closestInFOV.part
+                                config.SA2_currentTarget = closestInFOV.player
+                                newClosestPlayer = closestInFOV.player
+                            end
+                        end
+                    end
+                else
+                    if config.SA2_currentTarget then
+                        for _, target in ipairs(targetsInFOV) do
+                            if target.player == config.SA2_currentTarget then
+                                local actualTargetPart = GetActualTargetPart()
+                                Closest = target.character[actualTargetPart] or target.part
+                                newClosestPlayer = target.player
+                                break
+                            end
+                        end
+                    end
+                end
+            elseif config.targetSeenMode == "All" then
+                local closestInFOV = nil
+                local closestDist = math.huge
+                for _, target in ipairs(targetsInFOV) do
+                    if target.distanceToCenter < closestDist then
+                        closestDist = target.distanceToCenter
+                        closestInFOV = target
+                    end
+                end
+                if closestInFOV then
+                    local actualTargetPart = GetActualTargetPart()
+                    Closest = closestInFOV.character[actualTargetPart] or closestInFOV.part
+                    config.SA2_currentTarget = closestInFOV.player
+                    newClosestPlayer = closestInFOV.player
+                end
+            end
+        else
+            config.SA2_currentTarget = nil
+            newClosestPlayer = nil
+        end
+    else
+        for _, target in ipairs(allTargets) do
+            if target.onScreen and target.distanceToCenter <= config.SA2_FovRadius and target.distanceToCenter < ShortestDistance then
+                local actualTargetPart = GetActualTargetPart()
+                Closest = target.character[actualTargetPart] or target.part
+                ShortestDistance = target.distanceToCenter
+                newClosestPlayer = target.player
+            end
+        end
+    end
+    
+    if newClosestPlayer ~= config.SA2_currentTarget then
+        config.SA2_currentTarget = newClosestPlayer
+        updateESPColors()
+    end
+    
+    return Closest
+end
+local OldNamecall
+OldNamecall = hookmetamethod(game, "__namecall", newcclosure(function(...)
+    if respawnLock then
+        return OldNamecall(...)
+    end
+    
+    local Method = getnamecallmethod()
+    local Args = {...}
+    local self = Args[1]
+    local chance = func.HitChance(config.SA2_HitChance)
+    
+    if config.SA2_Enabled and self == workspace and not checkcaller() then
+        if not config.SA2_ThreeSixtyMode and not chance then
+            config.SA2_FovIsTargeted = false
+            return OldNamecall(...)
+        end
+        
+        local HitPart = GetClosestPlayer()
+        if HitPart then
+            config.SA2_FovIsTargeted = true
+            if config.SA2_Method == "All" then
+                if Method == "FindPartOnRayWithIgnoreList" or Method == "FindPartOnRayWithWhitelist" or Method == "FindPartOnRay" or Method == "findPartOnRay" or Method == "Raycast" then
+                    local A_Origin = Args[2].Origin or Args[2]
+                    local Direction = func.Direction(A_Origin, HitPart.Position)
+                    if Method == "Raycast" then
+                        Args[3] = Direction
+                    else
+                        Args[2] = Ray.new(A_Origin, Direction)
+                    end
+                    return OldNamecall(unpack(Args))
+                end
+            elseif Method == "FindPartOnRayWithIgnoreList" and config.SA2_Method == "FindPartOnRayWithIgnoreList" then
+                local A_Ray = Args[2]
+                local Origin = A_Ray.Origin
+                local Direction = func.Direction(Origin, HitPart.Position)
+                Args[2] = Ray.new(Origin, Direction)
+                return OldNamecall(unpack(Args))
+            elseif Method == "FindPartOnRayWithWhitelist" and config.SA2_Method == "FindPartOnRayWithWhitelist" then
+                local A_Ray = Args[2]
+                local Origin = A_Ray.Origin
+                local Direction = func.Direction(Origin, HitPart.Position)
+                Args[2] = Ray.new(Origin, Direction)
+                return OldNamecall(unpack(Args))
+            elseif (Method == "FindPartOnRay" or Method == "findPartOnRay") and config.SA2_Method == "FindPartOnRay" then
+                local A_Ray = Args[2]
+                local Origin = A_Ray.Origin
+                local Direction = func.Direction(Origin, HitPart.Position)
+                Args[2] = Ray.new(Origin, Direction)
+                return OldNamecall(unpack(Args))
+            elseif Method == "Raycast" and config.SA2_Method == "Raycast" then
+                local A_Origin = Args[2]
+                Args[3] = func.Direction(A_Origin, HitPart.Position)
+                return OldNamecall(unpack(Args))
+            end
+        else
+            config.SA2_FovIsTargeted = false
+        end
+    end
+    return OldNamecall(...)
+end))
+
+local OldIndex
+OldIndex = hookmetamethod(game, "__index", newcclosure(function(Self, Index)
+    if respawnLock then
+        return OldIndex(Self, Index)
+    end
+    
+    if config.SA2_Enabled and config.SA2_Method == "Mouse.Hit" and not checkcaller() and Self == mouse and Index == "Hit" then
+        local HitPart = GetClosestPlayer()
+        if HitPart then
+            config.SA2_FovIsTargeted = true
+            return HitPart.CFrame
+        else
+            config.SA2_FovIsTargeted = false
+        end
+    end
+    return OldIndex(Self, Index)
+end))
+local ScreenGui = Instance.new("ScreenGui")
+local CircleFrame = Instance.new("Frame")
+local UIStroke = Instance.new("UIStroke")
+local UICorner = Instance.new("UICorner")
+
+ScreenGui.Name = "FOVSys"
+ScreenGui.Parent = game:GetService("CoreGui")
+ScreenGui.IgnoreGuiInset = true
+
+CircleFrame.Name = "FOVCircle"
+CircleFrame.Parent = ScreenGui
+CircleFrame.AnchorPoint = Vector2.new(0.5, 0.5)
+CircleFrame.BackgroundColor3 = config.SA2_FovColor
+CircleFrame.BackgroundTransparency = 1
+CircleFrame.BorderSizePixel = 0
+
+UICorner.CornerRadius = UDim.new(1, 0)
+UICorner.Parent = CircleFrame
+
+UIStroke.Color = config.SA2_FovColor
+UIStroke.Thickness = 1
+UIStroke.Transparency = 1 - config.SA2_FovTransparency
+UIStroke.Parent = CircleFrame
+RunService.RenderStepped:Connect(function()
+    local viewportSize = Camera.ViewportSize
+    if viewportSize.X == 0 then return end
+    
+    local screenCenter = Vector2.new(viewportSize.X / 2, viewportSize.Y / 2)
+    
+    if respawnLock then
+        CircleFrame.Visible = false
+        return
+    end
+    if config.SA2_Enabled and config.SA2_FovVisible and not config.SA2_ThreeSixtyMode then
+        local currentTarget = GetClosestPlayer()
+        
+        CircleFrame.Visible = true
+        CircleFrame.Position = UDim2.new(0, screenCenter.X, 0, screenCenter.Y)
+        CircleFrame.Size = UDim2.new(0, config.SA2_FovRadius * 2, 0, config.SA2_FovRadius * 2)
+        
+        local targetColor = currentTarget and config.SA2_FovColourTarget or config.SA2_FovColor
+        UIStroke.Color = targetColor
+        UIStroke.Transparency = 1 - config.SA2_FovTransparency
+    else
+        CircleFrame.Visible = false
+    end
+end)
+
+local function isSilentAimTargetingPlayer(targetPlayer)
+    if not config.SA2_Enabled then
+        return false
+    end
+    
+    local currentTarget = GetClosestPlayer()
+    if not currentTarget then
+        return false
+    end
+    local targetChar = currentTarget.Parent
+    if not targetChar or not targetChar:IsA("Model") then
+        return false
+    end
+    local player = Players:GetPlayerFromCharacter(targetChar)
+    return player == targetPlayer
+end
+
+local function isPlayerBeingTargeted(targetPlayer)
+    if isSilentAimTargetingPlayer(targetPlayer) then
+        return true, "silentaim_hk"
+    end
+    if config.currentTarget == targetPlayer then
+        return true, "silentaim"
+    end
+    if config.aimbotCurrentTarget == targetPlayer then
+        return true, "aimbot"
+    end
+    
+    return false, nil
+end
+local function calculateDiameter(worldDist, screenRadius, cam)
+    if not cam then cam = workspace.CurrentCamera end
+    if not cam then return 0.1 end
+    
+    local viewportSize = cam.ViewportSize
+    local H = viewportSize.Y
+    local vFovDeg = cam.FieldOfView
+    local vFovRad = math.rad(vFovDeg)
+    local halfVFov = vFovRad / 2
+    local alpha = (screenRadius / (H / 2)) * halfVFov
+    local worldHalf = worldDist * math.tan(alpha)
+    local worldFull = worldHalf * 2
+    return math.max(0.01, worldFull)
+end
 
 local function nextgenrep(state)
     config.nextGenRepDesiredState = state
@@ -161,33 +934,26 @@ local function nextgenrep(state)
     
     if state then
         setfflag("NextGenReplicatorEnabledWrite4", "false")
-        task.wait(1)
+        task.wait(0.1)
         setfflag("NextGenReplicatorEnabledWrite4", "true")
         config.nextGenRepEnabled = true
-        
-        safeNotify({
-            Title = "NextGenReplicator",
-            Content = "Enabled",
-            Audio = "rbxassetid://17208361335",
-            Length = 1,
-            Image = "rbxassetid://4483362458",
-            BarColor = Color3.fromRGB(0, 255, 0)
-        })
     else
         setfflag("NextGenReplicatorEnabledWrite4", "false")
         config.nextGenRepEnabled = false
         config.nextGenRepDesiredState = false
-        
-        safeNotify({
-            Title = "NextGenReplicator",
-            Content = "Disabled",
-            Audio = "rbxassetid://17208361335",
-            Length = 1,
-            Image = "rbxassetid://4483362458",
-            BarColor = Color3.fromRGB(255, 0, 0)
-        })
     end
 end
+
+local function nextgenrep2(state)
+    if state then
+        setfflag("NextGenReplicatorEnabledWrite4", "false")
+        task.wait(0.1)
+        setfflag("NextGenReplicatorEnabledWrite4", "true")
+    else
+        setfflag("NextGenReplicatorEnabledWrite4", "false")
+    end
+end
+
 local function isHoldKeyDown()
     if not config.holdkeyToggle.enabled then
         return true
@@ -259,12 +1025,13 @@ local function updateTeamTargetModes()
         config.targetMode = "All"
         config.aimbotTeamTarget = "All"
         config.hitboxTeamTarget = "All"
+        config.antiAimTarget = "All"
     else
         config.targetMode = masterTeamSelection
         config.aimbotTeamTarget = masterTeamSelection
         config.hitboxTeamTarget = masterTeamSelection
+        config.antiAimTarget = masterTeamSelection
     end
-    
     if config.masterGetTarget then
         config.aimbotGetTarget = config.masterGetTarget
         config.silentGetTarget = config.masterGetTarget
@@ -305,6 +1072,7 @@ local function updateTeamTargetModes()
     config.currentTarget = nil
     updateESPColors()
 end
+
 
 local function applyESPMaster(state)
     config.espMasterEnabled = state
@@ -355,6 +1123,14 @@ local function applyESPMaster(state)
     updateESPColors()
 end
 
+RunService.RenderStepped:Connect(function()
+    local currentTime = tick()
+    if currentTime - lastTargetUpdate > 0.6 then
+        lastTargetUpdate = currentTime
+        updateESPColors()
+    end
+end)
+
 local function pc()
     local plr = game.Players.LocalPlayer
     task.spawn(function()
@@ -381,13 +1157,36 @@ local function isNPCModel(model)
     return false
 end
 
-local function getAllTargets()
+local function getAllTargets(getTargetSeen)
     local targets = {}
 
     if config.masterTarget == "Players" or config.masterTarget == "Both" then
         for _, pl in ipairs(Players:GetPlayers()) do
             if pl ~= localPlayer then
-                table.insert(targets, pl)
+                if getTargetSeen then
+                    local char = getTargetCharacter(pl)
+                    if char then
+                        local head = char:FindFirstChild("Head")
+                        local root = char:FindFirstChild("HumanoidRootPart")
+                        local targetPos = (head or root) and (head or root).Position
+                        
+                        if targetPos then
+                            local screenPos, onScreen = camera:WorldToViewportPoint(targetPos)
+                            if onScreen and screenPos.Z > 0 then
+                                local center = Vector2.new(camera.ViewportSize.X / 2, camera.ViewportSize.Y / 2)
+                                local screenVec = Vector2.new(screenPos.X, screenPos.Y)
+                                local distPx = (screenVec - center).Magnitude
+                                
+                                local fovSize = config.masterGetTarget == "TargetSeen" and config.fovsize or config.aimbotFOVSize
+                                if distPx <= fovSize then
+                                    table.insert(targets, pl)
+                                end
+                            end
+                        end
+                    end
+                else
+                    table.insert(targets, pl)
+                end
             end
         end
     end
@@ -396,7 +1195,27 @@ local function getAllTargets()
         for _, obj in ipairs(Workspace:GetDescendants()) do
             if obj:IsA("Model") and isNPCModel(obj) then
                 if not Players:GetPlayerFromCharacter(obj) then
-                    table.insert(targets, obj)
+                    if getTargetSeen then
+                        local head = obj:FindFirstChild("Head")
+                        local root = obj:FindFirstChild("HumanoidRootPart")
+                        local targetPos = (head or root) and (head or root).Position
+                        
+                        if targetPos then
+                            local screenPos, onScreen = camera:WorldToViewportPoint(targetPos)
+                            if onScreen and screenPos.Z > 0 then
+                                local center = Vector2.new(camera.ViewportSize.X / 2, camera.ViewportSize.Y / 2)
+                                local screenVec = Vector2.new(screenPos.X, screenPos.Y)
+                                local distPx = (screenVec - center).Magnitude
+                                
+                                local fovSize = config.masterGetTarget == "TargetSeen" and config.fovsize or config.aimbotFOVSize
+                                if distPx <= fovSize then
+                                    table.insert(targets, obj)
+                                end
+                            end
+                        end
+                    else
+                        table.insert(targets, obj)
+                    end
                 end
             end
         end
@@ -434,7 +1253,6 @@ local function isTeammate(p)
     end
     return false
 end
-
 local function addesp(targetPlayer)
     if not targetPlayer then return false end
     
@@ -509,8 +1327,56 @@ local function restoreTargetOriginalPosition(target)
     end
 end
 
+local function canSeeTarget(target)
+    if not config.autoFarmWallCheck then
+        return true
+    end
+    
+    local targetChar = getTargetCharacter(target)
+    if not targetChar or not localPlayer.Character then return false end
+    
+    local targetRoot = targetChar:FindFirstChild("HumanoidRootPart") or targetChar:FindFirstChild("Head")
+    local localRoot = localPlayer.Character:FindFirstChild("HumanoidRootPart") or localPlayer.Character:FindFirstChild("Head")
+    
+    if not targetRoot or not localRoot then return false end
+    
+    local sourcePos = localRoot.Position
+    local targetPos = targetRoot.Position
+    local distance = (sourcePos - targetPos).Magnitude
+    local rayDirection = (targetPos - sourcePos)
+    local ray = Ray.new(sourcePos, rayDirection.Unit * rayDirection.Magnitude)
+    
+    local ignoreList = {localPlayer.Character}
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player.Character then
+            table.insert(ignoreList, player.Character)
+        end
+    end
+    
+    local hit, position = Workspace:FindPartOnRayWithIgnoreList(ray, ignoreList)
+    
+    if hit then
+        local hitParent = hit.Parent
+        local isTarget = hitParent == targetChar or hitParent.Parent == targetChar
+        
+        if not isTarget then
+            local distanceToHit = (position - sourcePos).Magnitude
+            local distanceToTarget = rayDirection.Magnitude
+            
+            if distanceToHit < distanceToTarget - 2 then
+                return false
+            end
+        end
+    end
+    
+    return true
+end
+
 local function getValidAutoFarmTargets()
     local validTargets = {}
+    local localRoot = localPlayer.Character and (localPlayer.Character:FindFirstChild("HumanoidRootPart") or localPlayer.Character:FindFirstChild("Head"))
+    
+    if not localRoot then return validTargets end
     
     local candidates = getAllTargets()
     for _, t in ipairs(candidates) do
@@ -541,10 +1407,32 @@ local function getValidAutoFarmTargets()
                 local char = getTargetCharacter(t)
                 if char then
                     humanoid = char:FindFirstChildOfClass("Humanoid")
+                    
+                    if config.ignoreForcefield and hasForcefield(char) then
+                        shouldTarget = false
+                    end
                 end
-                if humanoid and humanoid.Health > 0 then
+                if shouldTarget and humanoid and humanoid.Health > 0 then
                     if not config.autoFarmCompleted[t] then
-                        table.insert(validTargets, t)
+                        local targetRoot = char and (char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Head"))
+                        if targetRoot then
+                            local distance = (localRoot.Position - targetRoot.Position).Magnitude
+                            local withinRange = true
+                            if config.autoFarmMinRange > 0 and distance < config.autoFarmMinRange then
+                                withinRange = false
+                            end
+                            if config.autoFarmMaxRange > 0 and distance > config.autoFarmMaxRange then
+                                withinRange = false
+                            end
+                            local isVisible = true
+                            if config.autoFarmWallCheck then
+                                isVisible = canSeeTarget(t)
+                            end
+                            
+                            if withinRange and isVisible then
+                                table.insert(validTargets, t)
+                            end
+                        end
                     end
                 end
             end
@@ -556,7 +1444,6 @@ local function getValidAutoFarmTargets()
         local charB = getTargetCharacter(b)
         local rootA = charA and (charA:FindFirstChild("HumanoidRootPart") or charA:FindFirstChild("Head"))
         local rootB = charB and (charB:FindFirstChild("HumanoidRootPart") or charB:FindFirstChild("Head"))
-        local localRoot = localPlayer.Character and (localPlayer.Character:FindFirstChild("HumanoidRootPart") or localPlayer.Character:FindFirstChild("Head"))
         
         if not localRoot then return false end
         if not rootA then return false end
@@ -571,6 +1458,7 @@ local function getValidAutoFarmTargets()
     return validTargets
 end
 
+
 local function tptocrossWithAlignment(target)
     local targetChar = getTargetCharacter(target)
     if not targetChar or not localPlayer.Character or not camera then 
@@ -579,7 +1467,19 @@ local function tptocrossWithAlignment(target)
     
     local targetRoot = targetChar:FindFirstChild("HumanoidRootPart")
     local targetHead = targetChar:FindFirstChild("Head")
-    if not targetRoot then return false end
+    local localRoot = localPlayer.Character:FindFirstChild("HumanoidRootPart")
+    if not targetRoot or not localRoot then return false end
+    if not canSeeTarget(target) then
+        return false
+    end
+    local distance = (localRoot.Position - targetRoot.Position).Magnitude
+    if config.autoFarmMinRange > 0 and distance < config.autoFarmMinRange then
+        return false
+    end
+    
+    if config.autoFarmMaxRange > 0 and distance > config.autoFarmMaxRange then
+        return false
+    end
     
     if not config.autoFarmOriginalPositions[target] then
         saveTargetOriginalPosition(target)
@@ -609,17 +1509,18 @@ local function tptocrossWithAlignment(target)
     
     return true
 end
-
 local function checkTargetHealth(target)
     if not target then return false end
     local char = getTargetCharacter(target)
-    if not char then return end
+    if not char then return false end
     local humanoid = char:FindFirstChildOfClass("Humanoid")
     if not humanoid then return false end
+    if hasForcefield(char) then
+        return false
+    end
     
     return humanoid.Health > 0
 end
-
 local function autoFarmProcess()
     if config.autoFarmLoop then
         config.autoFarmLoop:Disconnect()
@@ -658,19 +1559,41 @@ local function autoFarmProcess()
             return
         end
         
+        if config.currentAutoFarmTarget then
+            local char = getTargetCharacter(config.currentAutoFarmTarget)
+            if char and hasForcefield(char) then
+                restoreTargetOriginalPosition(config.currentAutoFarmTarget)
+                config.autoFarmCompleted[config.currentAutoFarmTarget] = true
+                config.currentAutoFarmTarget = nil
+            end
+        end
+        
         if not config.currentAutoFarmTarget or config.autoFarmCompleted[config.currentAutoFarmTarget] then
             for i = config.autoFarmIndex, #validTargets do
                 local target = validTargets[i]
                 if not config.autoFarmCompleted[target] then
-                    config.currentAutoFarmTarget = target
-                    config.autoFarmIndex = i
-                    break
+                    local char = getTargetCharacter(target)
+                    if char and not hasForcefield(char) then
+                        config.currentAutoFarmTarget = target
+                        config.autoFarmIndex = i
+                        break
+                    else
+                        config.autoFarmCompleted[target] = true
+                    end
                 end
             end
             
             if not config.currentAutoFarmTarget then
                 config.autoFarmIndex = 1
-                config.currentAutoFarmTarget = validTargets[1]
+                for _, target in ipairs(validTargets) do
+                    if not config.autoFarmCompleted[target] then
+                        local char = getTargetCharacter(target)
+                        if char and not hasForcefield(char) then
+                            config.currentAutoFarmTarget = target
+                            break
+                        end
+                    end
+                end
             end
         end
         
@@ -693,7 +1616,6 @@ local function autoFarmProcess()
         end
     end)
 end
-
 local function teleportTargetToLocalPlayerFront(target)
     local targetChar = getTargetCharacter(target)
     if not targetChar or not localPlayer.Character then 
@@ -703,6 +1625,20 @@ local function teleportTargetToLocalPlayerFront(target)
     local targetRoot = targetChar:FindFirstChild("HumanoidRootPart")
     local localRoot = localPlayer.Character:FindFirstChild("HumanoidRootPart")
     if not targetRoot or not localRoot then return false end
+    
+    if not canSeeTarget(target) then
+        return false
+    end
+    
+    local distance = (localRoot.Position - targetRoot.Position).Magnitude
+    
+    if config.autoFarmMinRange > 0 and distance < config.autoFarmMinRange then
+        return false
+    end
+    
+    if config.autoFarmMaxRange > 0 and distance > config.autoFarmMaxRange then
+        return false
+    end
     
     local localCFrame = localRoot.CFrame
     local frontOffset = localCFrame.LookVector * config.autoFarmDistance
@@ -842,7 +1778,6 @@ local function teleportBehindTarget(target)
     config.currentAntiAimTarget = target
     config.isTeleported = true
 end
-
 local function findClosestEnemy()
     if not localPlayer.Character then return nil end
     local localRoot = localPlayer.Character:FindFirstChild("HumanoidRootPart")
@@ -851,10 +1786,13 @@ local function findClosestEnemy()
     local best = nil
     local bestMetric = nil
     local mode = config.antiAimGetTarget or config.masterGetTarget or "Closest"
-
+    local potentialTargets = {}
+    local targetsInView = {}
+    
     for _, t in ipairs(getAllTargets()) do
         if t ~= localPlayer and plralive(t) then
             local shouldTarget = false
+            
             if config.masterTarget == "NPCs" then
                 if typeof(t) == "Instance" and t:IsA("Model") then
                     shouldTarget = true
@@ -870,48 +1808,104 @@ local function findClosestEnemy()
                     end
                 end
             elseif config.masterTarget == "Both" then
-                if typeof(t) == "Instance" and t:IsA("Player") then
-                    if config.masterTeamTarget == "Enemies" then
-                        shouldTarget = not isTeammate(t)
-                    elseif config.masterTeamTarget == "Teams" then
-                        shouldTarget = isTeammate(t)
-                    elseif config.masterTeamTarget == "All" then
-                        shouldTarget = true
-                    end
-                else
-                    shouldTarget = true
-                end
+                shouldTarget = true
             end
             
             if shouldTarget then
                 local tgtChar = getTargetCharacter(t)
                 local playerRoot = tgtChar and (tgtChar:FindFirstChild("HumanoidRootPart") or tgtChar:FindFirstChild("Head"))
                 local humanoid = tgtChar and tgtChar:FindFirstChildOfClass("Humanoid")
-                if playerRoot then
+                if config.ignoreForcefield and tgtChar and hasForcefield(tgtChar) then
+                    shouldTarget = false
+                end
+                
+                if shouldTarget and playerRoot and humanoid and humanoid.Health > 0 then
                     local distance = (localRoot.Position - playerRoot.Position).Magnitude
-                    if mode == "Closest" then
-                        if best == nil or distance < bestMetric then
-                            bestMetric = distance
-                            best = t
-                        end
-                    else
-                        local healthVal = 1e6
-                        if humanoid then
-                            healthVal = humanoid.Health
-                        end
-                        if best == nil or healthVal < bestMetric then
-                            bestMetric = healthVal
-                            best = t
-                        end
+                    local health = humanoid.Health
+                    local isInView = true
+                    if mode == "TargetSeen" then
+                        local camera = workspace.CurrentCamera
+                        local screenPos, onScreen = camera:WorldToViewportPoint(playerRoot.Position)
+                        isInView = onScreen and screenPos.Z > 0
+                    end
+                    
+                    local targetData = {
+                        target = t,
+                        char = tgtChar,
+                        root = playerRoot,
+                        humanoid = humanoid,
+                        distance = distance,
+                        health = health,
+                        isInView = isInView
+                    }
+                    
+                    table.insert(potentialTargets, targetData)
+                    if isInView then
+                        table.insert(targetsInView, targetData)
                     end
                 end
             end
         end
     end
+    if #potentialTargets > 0 then
+        if mode == "TargetSeen" then
+            if #targetsInView > 0 then
+                if config.targetSeenMode == "Switch" then
+                    local currentTime = tick()
+                    if currentTime - config.lastTargetSwitchTime >= config.targetSeenSwitchRate then
+                        config.lastTargetSwitchTime = currentTime
+                        
+                        if not config.currentAntiAimTarget then
+                            table.sort(targetsInView, function(a, b)
+                                return a.distance < b.distance
+                            end)
+                            best = targetsInView[1].target
+                        else
+                            local currentIndex = nil
+                            for i, target in ipairs(targetsInView) do
+                                if target.target == config.currentAntiAimTarget then
+                                    currentIndex = i
+                                    break
+                                end
+                            end
+                            
+                            if currentIndex then
+                                local nextIndex = (currentIndex % #targetsInView) + 1
+                                best = targetsInView[nextIndex].target
+                            else
+                                table.sort(targetsInView, function(a, b)
+                                    return a.distance < b.distance
+                                end)
+                                best = targetsInView[1].target
+                            end
+                        end
+                    else
+                        best = config.currentAntiAimTarget
+                    end
+                else
+                    table.sort(targetsInView, function(a, b)
+                        return a.distance < b.distance
+                    end)
+                    best = targetsInView[1].target
+                end
+            else
+                return nil
+            end
+        elseif mode == "Lowest Health" then
+            table.sort(potentialTargets, function(a, b)
+                return a.health < b.health
+            end)
+            best = potentialTargets[1].target
+        else
+            table.sort(potentialTargets, function(a, b)
+                return a.distance < b.distance
+            end)
+            best = potentialTargets[1].target
+        end
+    end
     
     return best
 end
-
 local function antiAimUpdate()
     if not config.antiAimEnabled then
         if config.isTeleported then
@@ -919,7 +1913,6 @@ local function antiAimUpdate()
         end
         return
     end
-    
     if config.antiAimOrbitEnabled then
         local closestEnemy = findClosestEnemy()
         if closestEnemy and getTargetCharacter(closestEnemy) then
@@ -958,11 +1951,14 @@ local function antiAimUpdate()
         end
         return
     end
-
     if config.antiAimAbovePlayer then
         local closestEnemy = findClosestEnemy()
         if closestEnemy then
             teleportAboveTarget(closestEnemy)
+        else
+            if config.isTeleported then
+                returnToOriginalPosition()
+            end
         end
         return
     end
@@ -971,6 +1967,10 @@ local function antiAimUpdate()
         local closestEnemy = findClosestEnemy()
         if closestEnemy then
             teleportBehindTarget(closestEnemy)
+        else
+            if config.isTeleported then
+                returnToOriginalPosition()
+            end
         end
         return
     end
@@ -980,19 +1980,36 @@ local function antiAimUpdate()
         
         for _, player in ipairs(Players:GetPlayers()) do
             if player ~= localPlayer and plralive(player) then
-                local isLooking, hitPosition, lookVector = raycastFromPlayer(player)
-                if isLooking then
-                    wasTargeted = true
-                    config.currentAntiAimTarget = player
-                    
-                    local teleportDirection = Vector3.new(-lookVector.Z, 0, lookVector.X)
-                    
-                    if math.random(1, 2) == 1 then
-                        teleportDirection = -teleportDirection
+                local shouldCheck = true
+                if config.antiAimGetTarget == "TargetSeen" then
+                    local tgtChar = getTargetCharacter(player)
+                    if tgtChar then
+                        local camera = workspace.CurrentCamera
+                        local head = tgtChar:FindFirstChild("Head") or tgtChar:FindFirstChild("HumanoidRootPart")
+                        if head then
+                            local screenPos, onScreen = camera:WorldToViewportPoint(head.Position)
+                            shouldCheck = onScreen and screenPos.Z > 0
+                        else
+                            shouldCheck = false
+                        end
                     end
-                    
-                    teleportLocalPlayer(teleportDirection.Unit, config.antiAimTPDistance)
-                    break
+                end
+                
+                if shouldCheck then
+                    local isLooking, hitPosition, lookVector = raycastFromPlayer(player)
+                    if isLooking then
+                        wasTargeted = true
+                        config.currentAntiAimTarget = player
+                        
+                        local teleportDirection = Vector3.new(-lookVector.Z, 0, lookVector.X)
+                        
+                        if math.random(1, 2) == 1 then
+                            teleportDirection = -teleportDirection
+                        end
+                        
+                        teleportLocalPlayer(teleportDirection.Unit, config.antiAimTPDistance)
+                        break
+                    end
                 end
             end
         end
@@ -1002,7 +2019,6 @@ local function antiAimUpdate()
         end
     end
 end
-
 local function getDesyncOffset()
     if config.customDesyncEnabled then
         local x = tonumber(config.desyncX) or 0
@@ -1045,16 +2061,10 @@ local function setupDesyncHook()
         return desyncHook(self, key)
     end))
 end
-RunService.Heartbeat:Connect(function()
-    desyncUpdate()
-    antiAimUpdate()
-    hb()
-end)
 
 task.spawn(function()
     task.wait(2)
     setupDesyncHook()
-    print("Desync system initialized")
 end)
 
 local function RFD(targetPlayer)
@@ -1203,16 +2213,6 @@ local function updateLineESP()
         end
         return
     end
-    local isTargeting = false
-    local targetedPlayer = nil
-    
-    if config.startsa and config.currentTarget then
-        isTargeting = true
-        targetedPlayer = config.currentTarget
-    elseif config.aimbotEnabled and config.aimbotCurrentTarget then
-        isTargeting = true
-        targetedPlayer = config.aimbotCurrentTarget
-    end
     
     for _, target in ipairs(getAllTargets()) do
         if addesp(target) and plralive(target) then
@@ -1227,9 +2227,8 @@ local function updateLineESP()
                         local shouldDrawLine = false
                         
                         if config.lineESPOnlyTarget then
-                            if isTargeting and target == targetedPlayer then
-                                shouldDrawLine = true
-                            end
+                            local isTargeted = isPlayerBeingTargeted(target)
+                            shouldDrawLine = isTargeted
                         else
                             shouldDrawLine = true
                         end
@@ -1243,10 +2242,18 @@ local function updateLineESP()
                             
                             if lineData and lineData.drawing then
                                 local line = lineData.drawing
+                                
                                 line.From = getLineStartPosition()
                                 line.To = screenPos
                                 line.Visible = true
                                 line.Thickness = config.lineThickness
+                                
+                                local isTargeted = isPlayerBeingTargeted(target)
+                                if isTargeted then
+                                    line.Color = Color3.fromRGB(255, 255, 0)
+                                else
+                                    line.Color = config.lineColor
+                                end
                             end
                         else
                             local lineData = config.lineESPData[target]
@@ -1266,7 +2273,6 @@ local function updateLineESP()
             removeLineESP(target)
         end
     end
-    
     local toRemove = {}
     for targetPlayer, _ in pairs(config.lineESPData) do
         local found = false
@@ -1285,6 +2291,7 @@ local function updateLineESP()
         removeLineESP(targetPlayer)
     end
 end
+
 
 local function removeHighlightESP(targetPlayer)
     if not targetPlayer then return end
@@ -1319,7 +2326,6 @@ local function healthColor(humanoid)
     local g = health
     return Color3.new(r, g, 0)
 end
-
 local function makeesp(targetPlayer)
     if not targetPlayer then return end
     if not addesp(targetPlayer) then return end
@@ -1400,11 +2406,14 @@ local function makeesp(targetPlayer)
     headDot.BorderSizePixel = 0
     headDot.Visible = false
     headDot.Parent = screenGui
-
-    label.TextColor3 = config.espc
-    if targetPlayer == config.currentTarget or targetPlayer == config.aimbotCurrentTarget then
-        label.TextColor3 = config.esptargetc
-    end
+    local isTargetedBySA2 = config.SA2_Enabled and config.SA2_currentTarget == targetPlayer
+    local isTargetedByRegular = config.currentTarget == targetPlayer
+    local isTargetedByAimbot = config.aimbotCurrentTarget == targetPlayer
+    local isTargeted = isTargetedBySA2 or isTargetedByRegular or isTargetedByAimbot
+    
+    label.TextColor3 = isTargeted and config.esptargetc or config.espc
+    boxOutline.Color = isTargeted and config.esptargetc or config.espc
+    headDot.BackgroundColor3 = isTargeted and config.esptargetc or config.espc
     
     local function startUpdater()
         if config.espData[targetPlayer] and config.espData[targetPlayer].connection then
@@ -1469,6 +2478,11 @@ local function makeesp(targetPlayer)
                 hpColor = healthColor(humanoid)
             end
 
+            local isTargetedBySA2 = config.SA2_Enabled and config.SA2_currentTarget == targetPlayer
+            local isTargetedByRegular = config.currentTarget == targetPlayer
+            local isTargetedByAimbot = config.aimbotCurrentTarget == targetPlayer
+            local isTargeted = isTargetedBySA2 or isTargetedByRegular or isTargetedByAimbot
+
             if config.espMasterEnabled and config.prefTextESP then
                 local text = string.format("%s [%d]", getTargetName(targetPlayer), humanoid and math.floor(humanoid.Health) or 0)
                 label.Text = text
@@ -1488,7 +2502,7 @@ local function makeesp(targetPlayer)
                 if config.prefColorByHealth and humanoid then
                     label.TextColor3 = hpColor
                 else
-                    label.TextColor3 = ((targetPlayer == config.currentTarget) or (targetPlayer == config.aimbotCurrentTarget)) and config.esptargetc or config.espc
+                    label.TextColor3 = isTargeted and config.esptargetc or config.espc
                 end
             else
                 label.Visible = false
@@ -1504,7 +2518,7 @@ local function makeesp(targetPlayer)
                 if config.prefColorByHealth and humanoid then
                     boxOutline.Color = hpColor
                 else
-                    boxOutline.Color = ((targetPlayer == config.currentTarget) or (targetPlayer == config.aimbotCurrentTarget)) and config.esptargetc or config.espc
+                    boxOutline.Color = isTargeted and config.esptargetc or config.espc
                 end
             else
                 boxFrame.Visible = false
@@ -1529,7 +2543,7 @@ local function makeesp(targetPlayer)
                     if config.prefColorByHealth and humanoid then
                         headDot.BackgroundColor3 = hpColor
                     else
-                        headDot.BackgroundColor3 = ((targetPlayer == config.currentTarget) or (targetPlayer == config.aimbotCurrentTarget)) and config.esptargetc or config.espc
+                        headDot.BackgroundColor3 = isTargeted and config.esptargetc or config.espc
                     end
                 else
                     headDot.Visible = false
@@ -1579,62 +2593,48 @@ local function updateESPColors()
                 local tchar = getTargetCharacter(targetPlayer)
                 local humanoid = tchar and tchar:FindFirstChildOfClass("Humanoid")
                 local hpColor = (humanoid and config.prefColorByHealth) and healthColor(humanoid) or nil
-                local lineData = config.lineESPData[targetPlayer]
-                if lineData and lineData.drawing then
-                    local line = lineData.drawing
-                    
-                    if targetPlayer == config.currentTarget or targetPlayer == config.aimbotCurrentTarget then
-                        line.Color = config.esptargetc or Color3.fromRGB(255, 255, 0)
-                    elseif config.prefColorByHealth and humanoid then
-                        line.Color = healthColor(humanoid)
-                    else
-                        line.Color = config.lineColor
-                    end
-                end
+                local isTargetedBySA2 = config.SA2_Enabled and config.SA2_currentTarget == targetPlayer
+                local isTargetedByRegular = config.currentTarget == targetPlayer
+                local isTargetedByAimbot = config.aimbotCurrentTarget == targetPlayer
+                local isTargeted = isTargetedBySA2 or isTargetedByRegular or isTargetedByAimbot
                 
                 if data.label then
                     if config.espMasterEnabled and config.prefTextESP then
-                        if hpColor then
+                        if isTargeted then
+                            data.label.TextColor3 = Color3.fromRGB(255, 255, 0)
+                        elseif hpColor then
                             data.label.TextColor3 = hpColor
                         else
-                            data.label.TextColor3 = ((targetPlayer == config.currentTarget) or (targetPlayer == config.aimbotCurrentTarget)) and config.esptargetc or config.espc
+                            data.label.TextColor3 = config.espc
                         end
                         data.label.Visible = true
                     else
                         data.label.Visible = false
                     end
                 end
-
                 if data.box then
                     if config.espMasterEnabled and config.prefBoxESP then
                         data.box.Visible = true
                         if data.boxOutline then
-                            data.boxOutline.Color = hpColor or ((targetPlayer == config.currentTarget or targetPlayer == config.aimbotCurrentTarget) and config.esptargetc or config.espc)
+                            if isTargeted then
+                                data.boxOutline.Color = Color3.fromRGB(255, 255, 0)
+                            else
+                                data.boxOutline.Color = hpColor or config.espc
+                            end
                         end
                     else
                         data.box.Visible = false
                     end
                 end
-
-                if data.healthBG then
-                    if config.espMasterEnabled and config.prefHealthESP and humanoid then
-                        data.healthBG.Visible = true
-                        local maxH = humanoid.MaxHealth or 100
-                        local hRatio = math.clamp(humanoid.Health / maxH, 0, 1)
-                        data.healthFill.Size = UDim2.new(1, 0, hRatio, 0)
-                        data.healthFill.BackgroundColor3 = healthColor(humanoid)
-                    else
-                        data.healthBG.Visible = false
-                    end
-                end
-
                 if data.headDot then
                     if config.espMasterEnabled and config.prefHeadDotESP then
                         data.headDot.Visible = true
-                        if hpColor then
+                        if isTargeted then
+                            data.headDot.BackgroundColor3 = Color3.fromRGB(255, 255, 0)
+                        elseif hpColor then
                             data.headDot.BackgroundColor3 = hpColor
                         else
-                            data.headDot.BackgroundColor3 = ((targetPlayer == config.currentTarget or targetPlayer == config.aimbotCurrentTarget) and config.esptargetc or config.espc)
+                            data.headDot.BackgroundColor3 = config.espc
                         end
                     else
                         data.headDot.Visible = false
@@ -1647,7 +2647,6 @@ local function updateESPColors()
     for _, targetPlayer in ipairs(toRemove) do
         config.espData[targetPlayer] = nil
     end
-
     local toRemoveHighlights = {}
     for targetPlayer, highlight in pairs(config.highlightData) do
         if not targetPlayer or not highlight or not highlight.Parent then
@@ -1656,8 +2655,13 @@ local function updateESPColors()
             if not addesp(targetPlayer) then
                 table.insert(toRemoveHighlights, targetPlayer)
             else
-                if targetPlayer == config.currentTarget or targetPlayer == config.aimbotCurrentTarget then
-                    highlight.FillColor = config.esptargetc
+                local isTargetedBySA2 = config.SA2_Enabled and config.SA2_currentTarget == targetPlayer
+                local isTargetedByRegular = config.currentTarget == targetPlayer
+                local isTargetedByAimbot = config.aimbotCurrentTarget == targetPlayer
+                local isTargeted = isTargetedBySA2 or isTargetedByRegular or isTargetedByAimbot
+                
+                if isTargeted then
+                    highlight.FillColor = Color3.fromRGB(255, 255, 0)
                 else
                     highlight.FillColor = config.espc
                 end
@@ -1759,16 +2763,6 @@ local function updateLineESP()
         end
         return
     end
-    local isTargeting = false
-    local targetedPlayer = nil
-    
-    if config.startsa and config.currentTarget then
-        isTargeting = true
-        targetedPlayer = config.currentTarget
-    elseif config.aimbotEnabled and config.aimbotCurrentTarget then
-        isTargeting = true
-        targetedPlayer = config.aimbotCurrentTarget
-    end
     
     for _, target in ipairs(getAllTargets()) do
         if addesp(target) and plralive(target) then
@@ -1783,9 +2777,8 @@ local function updateLineESP()
                         local shouldDrawLine = false
                         
                         if config.lineESPOnlyTarget then
-                            if isTargeting and target == targetedPlayer then
-                                shouldDrawLine = true
-                            end
+                            local isTargeted = isPlayerBeingTargeted(target)
+                            shouldDrawLine = isTargeted
                         else
                             shouldDrawLine = true
                         end
@@ -1799,17 +2792,14 @@ local function updateLineESP()
                             
                             if lineData and lineData.drawing then
                                 local line = lineData.drawing
-                                local humanoid = char:FindFirstChildOfClass("Humanoid")
                                 
                                 line.From = getLineStartPosition()
                                 line.To = screenPos
                                 line.Visible = true
                                 line.Thickness = config.lineThickness
-                                
-                                if target == config.currentTarget or target == config.aimbotCurrentTarget then
-                                    line.Color = config.esptargetc or Color3.fromRGB(255, 255, 0)
-                                elseif config.prefColorByHealth and humanoid then
-                                    line.Color = healthColor(humanoid)
+                                local isTargeted = isPlayerBeingTargeted(target)
+                                if isTargeted then
+                                    line.Color = Color3.fromRGB(255, 255, 0)
                                 else
                                     line.Color = config.lineColor
                                 end
@@ -1832,7 +2822,6 @@ local function updateLineESP()
             removeLineESP(target)
         end
     end
-    
     local toRemove = {}
     for targetPlayer, _ in pairs(config.lineESPData) do
         local found = false
@@ -2124,6 +3113,8 @@ end
 local function targethb(player)
     if not player or player == localPlayer then return false end  
     if not plralive(player) then return false end  
+    local char = getTargetCharacter(player)
+    if config.ignoreForcefield and char and hasForcefield(char) then return false end
 
     local mode = config.masterTeamTarget or "Enemies"
 
@@ -2144,6 +3135,7 @@ local function targethb(player)
 
     return false
 end
+
 local function applyhb()
     if not config.hitboxEnabled then 
         local targetsToRemove = {}
@@ -2236,11 +3228,13 @@ local function handleHitboxForRespawnedPlayer(player)
     end
 end
 
-
 local function shouldTargetAimbot(target)
     if not target then return false end
     if target == localPlayer then return false end
     if not plralive(target) then return false end
+    
+    local char = getTargetCharacter(target)
+    if config.ignoreForcefield and char and hasForcefield(char) then return false end
     
     if typeof(target) == "Instance" and target:IsA("Model") then
         if config.masterTarget == "NPCs" or config.masterTarget == "Both" then
@@ -2326,75 +3320,137 @@ local function aimbotUpdate()
     
     local viewportSize = camera.ViewportSize
     local center = Vector2.new(viewportSize.X / 2, viewportSize.Y / 2)
-    local radiusPx = config.aimbot360Enabled and math.huge or config.aimbotFOVSize
-
-    local candidates = {}
-
+    local fovRadius = config.aimbot360Enabled and math.huge or config.aimbotFOVSize
     local cameraCFrame = camera.CFrame
     local cameraPos = cameraCFrame.Position
-
-    for _, target in ipairs(getAllTargets()) do
+    
+    local potentialTargets = {}
+    local allTargets = getAllTargets()
+    
+    for _, target in ipairs(allTargets) do
         if shouldTargetAimbot(target) then
             local targetPart = getAimbotTargetPart(target)
             if targetPart then
                 local screenPos, onScreen = camera:WorldToViewportPoint(targetPart.Position)
                 local screenVec = Vector2.new(screenPos.X, screenPos.Y)
                 local distPx = (screenVec - center).Magnitude
-                if config.aimbot360Enabled or (onScreen and distPx <= radiusPx) then
+                
+                local inFOV = config.aimbot360Enabled or (onScreen and distPx <= fovRadius)
+                
+                if inFOV then
                     local worldDist = (targetPart.Position - cameraPos).Magnitude
-                    if aimbotWallCheck(targetPart.Position, cameraPos) then
-                        local humanoid = getTargetCharacter(target) and getTargetCharacter(target):FindFirstChildOfClass("Humanoid")
-                        table.insert(candidates, {
+                    local isVisible = aimbotWallCheck(targetPart.Position, cameraPos)
+                    
+                    local tgtChar = getTargetCharacter(target)
+                    local hasFF = config.ignoreForcefield and tgtChar and hasForcefield(tgtChar)
+                    
+                    if isVisible and not hasFF then
+                        local humanoid = tgtChar and tgtChar:FindFirstChildOfClass("Humanoid")
+                        table.insert(potentialTargets, {
                             target = target,
                             part = targetPart,
                             worldDist = worldDist,
                             screenDist = distPx,
-                            humanoid = humanoid
+                            screenPos = screenVec,
+                            humanoid = humanoid,
+                            health = humanoid and humanoid.Health or math.huge,
+                            inFOV = true
                         })
                     end
                 end
             end
         end
     end
-
-    local bestCandidate = nil
-    local selectionMode = config.aimbotGetTarget or config.masterGetTarget or "Closest"
-    if #candidates > 0 then
-        if selectionMode == "Lowest Health" then
-            local bestHealth = math.huge
-            for _, c in ipairs(candidates) do
-                local h = math.huge
-                if c.humanoid then
-                    h = c.humanoid.Health
+    local bestTarget = nil
+    local targetingMode = config.aimbotGetTarget or config.masterGetTarget or "Closest"
+    
+    if #potentialTargets > 0 then
+        if targetingMode == "TargetSeen" then
+            local targetsInFOV = {}
+            for _, target in ipairs(potentialTargets) do
+                if target.inFOV then
+                    table.insert(targetsInFOV, target)
                 end
-                if bestCandidate == nil or h < bestHealth then
-                    bestHealth = h
-                    bestCandidate = c
+            end
+            
+            if #targetsInFOV > 0 then
+                config.targetSeenTargets = targetsInFOV
+                
+                if config.targetSeenMode == "Switch" then
+                    local currentTime = tick()
+                    if currentTime - config.lastTargetSwitchTime >= config.targetSeenSwitchRate then
+                        config.lastTargetSwitchTime = currentTime
+                        
+                        if not config.aimbotCurrentTarget then
+                            table.sort(targetsInFOV, function(a, b)
+                                return a.worldDist < b.worldDist
+                            end)
+                            bestTarget = targetsInFOV[1]
+                        else
+                            local currentIndex = nil
+                            for i, target in ipairs(targetsInFOV) do
+                                if target.target == config.aimbotCurrentTarget then
+                                    currentIndex = i
+                                    break
+                                end
+                            end
+                            
+                            if currentIndex then
+                                local nextIndex = (currentIndex % #targetsInFOV) + 1
+                                bestTarget = targetsInFOV[nextIndex]
+                            else
+                                table.sort(targetsInFOV, function(a, b)
+                                    return a.worldDist < b.worldDist
+                                end)
+                                bestTarget = targetsInFOV[1]
+                            end
+                        end
+                    else
+                        if config.aimbotCurrentTarget then
+                            for _, target in ipairs(targetsInFOV) do
+                                if target.target == config.aimbotCurrentTarget then
+                                    bestTarget = target
+                                    break
+                                end
+                            end
+                        end
+                    end
+                elseif config.targetSeenMode == "All" then
+                    table.sort(targetsInFOV, function(a, b)
+                        return a.worldDist < b.worldDist
+                    end)
+                    bestTarget = targetsInFOV[1]
+                end
+            end
+        elseif targetingMode == "Lowest Health" then
+            local lowestHealth = math.huge
+            for _, target in ipairs(potentialTargets) do
+                if target.health < lowestHealth then
+                    lowestHealth = target.health
+                    bestTarget = target
                 end
             end
         else
-            local bestDist = math.huge
-            for _, c in ipairs(candidates) do
-                if c.worldDist < bestDist then
-                    bestDist = c.worldDist
-                    bestCandidate = c
+            local closestDist = math.huge
+            for _, target in ipairs(potentialTargets) do
+                if target.worldDist < closestDist then
+                    closestDist = target.worldDist
+                    bestTarget = target
                 end
             end
         end
     end
-
-    local bestTarget = bestCandidate and bestCandidate.target or nil
-    local bestPart = bestCandidate and bestCandidate.part or nil
-
-    if config.aimbotCurrentTarget ~= bestTarget then
-        config.aimbotCurrentTarget = bestTarget
+    
+    local newTarget = bestTarget and bestTarget.target or nil
+    if config.aimbotCurrentTarget ~= newTarget then
+        config.aimbotCurrentTarget = newTarget
         updateESPColors()
     end
     
-    if bestTarget and bestPart and localPlayer.Character then
+    if bestTarget and bestTarget.part and localPlayer.Character then
         local humanoid = localPlayer.Character:FindFirstChildOfClass("Humanoid")
         if humanoid and humanoid.Health > 0 then
-            local targetPosition = bestPart.Position
+            local targetPosition = bestTarget.part.Position
             local currentCFrame = camera.CFrame
             local targetCFrame = CFrame.lookAt(currentCFrame.Position, targetPosition)
             
@@ -2549,6 +3605,7 @@ local function handleAimbotToggle(state)
             updateAimbotFOVRing()
             aimbot360UpdateLoop()
         end
+        aimbotfov()
     else
         if config.aimbot360Enabled then
             aimbot360LoopRunning = false
@@ -2600,23 +3657,15 @@ RunService.Heartbeat:Connect(antiAimUpdate)
 RunService.RenderStepped:Connect(function()
     aimbotUpdate()
     updateLineESP()
+    desyncUpdate()
+    hb()
 end)
 
 local function isMobileDevice()
     local ok, val = pcall(function() return UserInputService.TouchEnabled end)
     return ok and val
 end
-
-local function nomobgui()
-    if gui and gui.mobileGui and gui.mobileGui.ScreenGui then
-        pcall(function()
-            gui.mobileGui.ScreenGui:Destroy()
-        end)
-    end
-    gui.mobileGui = nil
-end
-
-local function createMobileGUIElements()
+local function CreateQT()
     if gui.mobileGui and gui.mobileGui.ScreenGui and gui.mobileGui.ScreenGui.Parent then
         gui.mobileGui.ScreenGui.Enabled = true
         return
@@ -2627,265 +3676,125 @@ local function createMobileGUIElements()
     if gui.mobileGui and gui.mobileGui.ScreenGui and gui.mobileGui.ScreenGui.Parent then return end
     
     local screenGui = Instance.new("ScreenGui")
-    screenGui.Name = "GravelMobileGUI"
+    screenGui.Name = "GravelQT"
     screenGui.ResetOnSpawn = false
     screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
     screenGui.Parent = localPlayer:WaitForChild("PlayerGui")
 
-    local frame = Instance.new("Frame")
-    frame.Name = "MobileFrame"
-    frame.AnchorPoint = Vector2.new(1, 1)
-    frame.Position = UDim2.new(1, -10, 1, -10)
-    frame.Size = UDim2.new(0, 160, 0, 40)
-    frame.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
-    frame.BackgroundTransparency = 0.1
-    frame.BorderSizePixel = 0
-    frame.ClipsDescendants = true
-    
-    local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0, 8)
-    corner.Parent = frame
-    
-    local shadow = Instance.new("UIStroke")
-    shadow.Color = Color3.fromRGB(10, 10, 15)
-    shadow.Thickness = 2
-    shadow.Transparency = 0.7
-    shadow.Parent = frame
-    
-    frame.Parent = screenGui
-    
-    local titleBar = Instance.new("Frame")
-    titleBar.Name = "TitleBar"
-    titleBar.Size = UDim2.new(1, 0, 0, 40)
-    titleBar.BackgroundTransparency = 1
-    titleBar.Parent = frame
-    
-    local titleCorner = Instance.new("UICorner")
-    titleCorner.CornerRadius = UDim.new(0, 8)
-    titleCorner.Parent = titleBar
-    
-    local titleContainer = Instance.new("Frame")
-    titleContainer.Name = "TitleContainer"
-    titleContainer.Size = UDim2.new(1, -40, 1, 0)
-    titleContainer.BackgroundTransparency = 1
-    titleContainer.Parent = titleBar
-    
-    local title = Instance.new("TextLabel")
-    title.Name = "Title"
-    title.Size = UDim2.new(1, 0, 0.6, 0)
-    title.Position = UDim2.new(0, 0, 0, 0)
-    title.BackgroundTransparency = 1
-    title.Text = "Gravel"
-    title.TextColor3 = Color3.fromRGB(220, 220, 220)
-    title.Font = Enum.Font.GothamBold
-    title.TextSize = 14
-    title.TextXAlignment = Enum.TextXAlignment.Left
-    title.Parent = titleContainer
-    
-    local subtitle = Instance.new("TextLabel")
-    subtitle.Name = "Subtitle"
-    subtitle.Size = UDim2.new(1, 0, 0.4, 0)
-    subtitle.Position = UDim2.new(0, 0, 0.6, 0)
-    subtitle.BackgroundTransparency = 1
-    subtitle.Text = "Cool"
-    subtitle.TextColor3 = Color3.fromRGB(100, 150, 255)
-    subtitle.Font = Enum.Font.Gotham
-    subtitle.TextSize = 10
-    subtitle.TextTransparency = 0.3
-    subtitle.TextXAlignment = Enum.TextXAlignment.Left
-    subtitle.Parent = titleContainer
-    
-    local minimizeBtn = Instance.new("TextButton")
-    minimizeBtn.Name = "MinimizeBtn"
-    minimizeBtn.Size = UDim2.new(0, 30, 0, 30)
-    minimizeBtn.Position = UDim2.new(1, -35, 0.5, -15)
-    minimizeBtn.AnchorPoint = Vector2.new(1, 0.5)
-    minimizeBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
-    minimizeBtn.Text = "−"
-    minimizeBtn.TextColor3 = Color3.fromRGB(220, 220, 220)
-    minimizeBtn.Font = Enum.Font.GothamBold
-    minimizeBtn.TextSize = 18
-    minimizeBtn.AutoButtonColor = false
-    minimizeBtn.Parent = titleBar
-    
-    local minimizeCorner = Instance.new("UICorner")
-    minimizeCorner.CornerRadius = UDim.new(0, 6)
-    minimizeCorner.Parent = minimizeBtn
-    
-    local minimizeStroke = Instance.new("UIStroke")
-    minimizeStroke.Color = Color3.fromRGB(60, 60, 70)
-    minimizeStroke.Thickness = 1
-    minimizeStroke.Parent = minimizeBtn
-    
-    minimizeBtn.MouseEnter:Connect(function()
-        game:GetService("TweenService"):Create(minimizeBtn, TweenInfo.new(0.15), {
-            BackgroundColor3 = Color3.fromRGB(50, 50, 60)
-        }):Play()
-    end)
-    
-    minimizeBtn.MouseLeave:Connect(function()
-        game:GetService("TweenService"):Create(minimizeBtn, TweenInfo.new(0.15), {
-            BackgroundColor3 = Color3.fromRGB(40, 40, 50)
-        }):Play()
-    end)
-    
-    local divider = Instance.new("Frame")
-    divider.Name = "Divider"
-    divider.Size = UDim2.new(1, -20, 0, 1)
-    divider.Position = UDim2.new(0, 10, 0, 40)
-    divider.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
-    divider.BorderSizePixel = 0
-    divider.Parent = frame
-    
-    local contentFrame = Instance.new("Frame")
-    contentFrame.Name = "ContentFrame"
-    contentFrame.Size = UDim2.new(1, 0, 0, 244)
-    contentFrame.Position = UDim2.new(0, 0, 0, 40)
-    contentFrame.BackgroundTransparency = 1
-    contentFrame.Parent = frame
+    local function QuickToggle(name, positionX, positionY, getter, setter)
+        local main = Instance.new("Frame")
+        main.Size = UDim2.new(0, 120, 0, 40)
+        main.Position = UDim2.new(0, positionX, 0, positionY)
+        main.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+        main.BorderSizePixel = 0
+        main.AnchorPoint = Vector2.new(0, 0)
+        main.Active = true
+        main.Draggable = true
+        main.Parent = screenGui
 
-    local dragging = false
-    local dragInput, dragStart, startPos
-    
-    titleBar.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            dragging = true
-            dragStart = input.Position
-            startPos = frame.Position
-            
-            local connection
-            connection = input.Changed:Connect(function()
-                if input.UserInputState == Enum.UserInputState.End then
-                    dragging = false
-                    connection:Disconnect()
-                end
-            end)
+        local mainCorner = Instance.new("UICorner")
+        mainCorner.CornerRadius = UDim.new(0, 6)
+        mainCorner.Parent = main
+        local label = Instance.new("TextLabel")
+        label.Size = UDim2.new(1, -50, 1, 0)
+        label.Position = UDim2.new(0, 8, 0, 0)
+        label.BackgroundTransparency = 1
+        label.Text = name
+        label.TextColor3 = Color3.fromRGB(200, 200, 200)
+        label.Font = Enum.Font.GothamSemibold
+        label.TextSize = 14
+        label.TextXAlignment = Enum.TextXAlignment.Left
+        label.TextYAlignment = Enum.TextYAlignment.Center
+        label.Parent = main
+
+        local toggleBg = Instance.new("Frame")
+        toggleBg.Size = UDim2.new(0, 38, 0, 18)
+        toggleBg.Position = UDim2.new(1, -44, 0.5, -9)
+        toggleBg.BackgroundColor3 = getter() and Color3.fromRGB(0, 100, 0) or Color3.fromRGB(15, 15, 15)
+        toggleBg.BorderSizePixel = 0
+        toggleBg.BackgroundTransparency = 0
+        toggleBg.ClipsDescendants = false
+        toggleBg.Parent = main
+
+        local toggleCorner = Instance.new("UICorner")
+        toggleCorner.CornerRadius = UDim.new(0, 9)
+        toggleCorner.Parent = toggleBg
+        local circle = Instance.new("Frame")
+        circle.Size = UDim2.new(0, 16, 0, 16)
+        circle.Position = getter() and UDim2.new(1, -18, 0, 1) or UDim2.new(0, 1, 0, 1)
+        circle.BackgroundColor3 = getter() and Color3.fromRGB(0, 170, 0) or Color3.fromRGB(60, 60, 60)
+        circle.BorderSizePixel = 0
+        circle.Parent = toggleBg
+
+        local circleCorner = Instance.new("UICorner")
+        circleCorner.CornerRadius = UDim.new(1, 0)
+        circleCorner.Parent = circle
+        local touchButton = Instance.new("TextButton")
+        touchButton.Size = UDim2.new(0.4, 0, 0.5, 0)
+        touchButton.Position = UDim2.new(0, 70, 0, 9)
+        touchButton.BackgroundTransparency = 1
+        touchButton.Text = ""
+        touchButton.ZIndex = 10
+        touchButton.Parent = main
+
+        local tweenInfo = TweenInfo.new(0.25, Enum.EasingStyle.Quart, Enum.EasingDirection.Out)
+        local function toggleOn()
+            local onTween = TweenService:Create(circle, tweenInfo, {
+                Position = UDim2.new(1, -18, 0, 1),
+                BackgroundColor3 = Color3.fromRGB(0, 170, 0)
+            })
+            local bgOnTween = TweenService:Create(toggleBg, tweenInfo, {
+                BackgroundColor3 = Color3.fromRGB(0, 100, 0)
+            })
+            onTween:Play()
+            bgOnTween:Play()
         end
-    end)
-    
-    titleBar.InputChanged:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
-            dragInput = input
+
+        local function toggleOff()
+            local offTween = TweenService:Create(circle, tweenInfo, {
+                Position = UDim2.new(0, 1, 0, 1),
+                BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+            })
+            local bgOffTween = TweenService:Create(toggleBg, tweenInfo, {
+                BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+            })
+            offTween:Play()
+            bgOffTween:Play()
         end
-    end)
-    
-    UserInputService.InputChanged:Connect(function(input)
-        if dragging and (input == dragInput or input.UserInputType == Enum.UserInputType.Touch) then
-            local delta = input.Position - dragStart
-            frame.Position = UDim2.new(
-                startPos.X.Scale, 
-                startPos.X.Offset + delta.X,
-                startPos.Y.Scale, 
-                startPos.Y.Offset + delta.Y
-            )
-        end
-    end)
-
-    local function makeToggleButton(name, yIndex, getter, setter)
-        local buttonFrame = Instance.new("Frame")
-        buttonFrame.Name = name .. "BtnFrame"
-        buttonFrame.Size = UDim2.new(1, -20, 0, 28)
-        buttonFrame.Position = UDim2.new(0, 10, 0, (yIndex - 1) * 32)
-        buttonFrame.BackgroundTransparency = 1
-        buttonFrame.Parent = contentFrame
-        
-        local buttonCorner = Instance.new("UICorner")
-        buttonCorner.CornerRadius = UDim.new(0, 6)
-        buttonCorner.Parent = buttonFrame
-        
-        local btn = Instance.new("TextButton")
-        btn.Name = name .. "Btn"
-        btn.Size = UDim2.new(1, 0, 1, 0)
-        btn.BackgroundColor3 = getter() and Color3.fromRGB(40, 120, 220) or Color3.fromRGB(40, 40, 50)
-        btn.TextColor3 = Color3.fromRGB(240, 240, 240)
-        btn.Text = name
-        btn.Font = Enum.Font.GothamSemibold
-        btn.TextSize = 13
-        btn.AutoButtonColor = false
-        btn.Parent = buttonFrame
-        
-        local btnCorner = Instance.new("UICorner")
-        btnCorner.CornerRadius = UDim.new(0, 6)
-        btnCorner.Parent = btn
-        
-        local btnStroke = Instance.new("UIStroke")
-        btnStroke.Color = getter() and Color3.fromRGB(60, 140, 240) or Color3.fromRGB(60, 60, 70)
-        btnStroke.Thickness = 1
-        btnStroke.Parent = btn
-
-        btn.MouseEnter:Connect(function()
-            if not getter() then
-                game:GetService("TweenService"):Create(btn, TweenInfo.new(0.15), {
-                    BackgroundColor3 = Color3.fromRGB(50, 50, 60)
-                }):Play()
-            end
-        end)
-
-        btn.MouseLeave:Connect(function()
-            if not getter() then
-                game:GetService("TweenService"):Create(btn, TweenInfo.new(0.15), {
-                    BackgroundColor3 = Color3.fromRGB(40, 40, 50)
-                }):Play()
-            end
-        end)
-
-        btn.MouseButton1Down:Connect(function()
+        local function toggle()
             local newState = not getter()
             setter(newState)
             
-            game:GetService("TweenService"):Create(btn, TweenInfo.new(0.2), {
-                BackgroundColor3 = newState and Color3.fromRGB(40, 120, 220) or Color3.fromRGB(40, 40, 50)
-            }):Play()
-            
-            game:GetService("TweenService"):Create(btnStroke, TweenInfo.new(0.2), {
-                Color = newState and Color3.fromRGB(60, 140, 240) or Color3.fromRGB(60, 60, 70)
-            }):Play()
-            
-            if name == "Silent Aim" then
-                if not config.startsa then
+            if newState then
+                toggleOn()
+                if name == "Silent Aim (HB)" then
+                    if gui.RingHolder then gui.RingHolder.Visible = true end
+                elseif name == "Aim bot" then
+                    handleAimbotToggle(true)
+                elseif name == "Auto Farm" then
+                    autoFarmProcess()
+                elseif name == "Anti Aim" then
+                elseif name == "Hit box" then
+                    applyhb()
+                elseif name == "Client Config" then
+                    applyClientMaster(true)
+                elseif name == "ESP" then
+                    applyESPMaster(true)
+                end
+            else
+                toggleOff()
+                if name == "Silent Aim (HB)" then
                     if gui.RingHolder then gui.RingHolder.Visible = false end
                     for pl, _ in pairs(config.activeApplied) do
                         restorePartForPlayer(pl)
                     end
-                else
-                    if gui.RingHolder then gui.RingHolder.Visible = true end
-                end
-            elseif name == "Aimbot" then
-                handleAimbotToggle(newState)
-            elseif name == "Auto Farm" then
-                if newState then
-                    if type(autoFarmProcess) == "function" then
-                        autoFarmProcess()
-                    else
-                        setter(false)
-                        game:GetService("TweenService"):Create(btn, TweenInfo.new(0.2), {
-                            BackgroundColor3 = Color3.fromRGB(40, 40, 50)
-                        }):Play()
-                        game:GetService("TweenService"):Create(btnStroke, TweenInfo.new(0.2), {
-                            Color = Color3.fromRGB(60, 60, 70)
-                        }):Play()
-                        safeNotify({
-                            Title = "Autofarm",
-                            Content = "Enabled",
-                            Audio = "rbxassetid://17208361335",
-                            Length = 1,
-                            Image = "rbxassetid://4483362458",
-                            BarColor = Color3.fromRGB(255, 100, 0)
-                        })
-                    end
-                else
-                    if type(stopAutoFarm) == "function" then
-                        stopAutoFarm()
-                    end
-                end
-            elseif name == "AntiAim" then
-                if not newState then
+                elseif name == "Aim bot" then
+                    handleAimbotToggle(false)
+                elseif name == "Auto Farm" then
+                    stopAutoFarm()
+                elseif name == "Anti Aim" then
                     returnToOriginalPosition()
-                end
-            elseif name == "Hitbox" then
-                if newState then
-                    applyhb()
-                else
+                elseif name == "Hit box" then
                     local targetsToRemove = {}
                     for pl, _ in pairs(config.hitboxExpandedParts) do
                         table.insert(targetsToRemove, pl)
@@ -2893,69 +3802,169 @@ local function createMobileGUIElements()
                     for _, pl in ipairs(targetsToRemove) do
                         restoreTorso(pl)
                     end
+                elseif name == "Client Config" then
+                    applyClientMaster(false)
+                elseif name == "ESP" then
+                    applyESPMaster(false)
                 end
-            elseif name == "Client Config" then
-                applyClientMaster(newState)
-            elseif name == "ESP" then
-                applyESPMaster(newState)
             end
-        end)
+            
+            label.Text = getter() and name .. "<" or name
+        end
+
+        local inputStartTime = 0
+        local minPressTime = 0.05
+        local inputStartPosition = nil
+        local isPressing = false
+        local wasPressedHere = false
+        local function onInputBegan(input, gameProcessedEvent)
+            if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                if not gameProcessedEvent then
+                    isPressing = true
+                    wasPressedHere = true
+                    inputStartTime = tick()
+                    inputStartPosition = input.Position
+                    
+                    if input.UserInputType == Enum.UserInputType.Touch then
+                        local feedback = Instance.new("Frame")
+                        feedback.Name = "TouchFeedback"
+                        feedback.Size = UDim2.new(0, 40, 0, 40)
+                        feedback.Position = UDim2.new(0, inputStartPosition.X - 20, 0, inputStartPosition.Y - 20)
+                        feedback.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+                        feedback.BackgroundTransparency = 0.7
+                        feedback.BorderSizePixel = 0
+                        local corner = Instance.new("UICorner")
+                        corner.CornerRadius = UDim.new(1, 0)
+                        corner.Parent = feedback
+                        feedback.Parent = screenGui
+                        
+                        local fadeOut = TweenService:Create(feedback, TweenInfo.new(0.3), {
+                            BackgroundTransparency = 1,
+                            Size = UDim2.new(0, 0, 0, 0)
+                        })
+                        fadeOut:Play()
+                        fadeOut.Completed:Connect(function()
+                            feedback:Destroy()
+                        end)
+                    end
+                end
+            end
+        end
+        local function onInputEnded(input, gameProcessedEvent)
+            if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                if isPressing and wasPressedHere and not gameProcessedEvent then
+                    local pressDuration = tick() - inputStartTime
+                    local endPosition = input.Position
+                    
+                    local distanceMoved = 0
+                    if inputStartPosition then
+                        distanceMoved = (endPosition - inputStartPosition).Magnitude
+                    end
+                    
+                    if pressDuration >= minPressTime and distanceMoved < 10 then
+                        toggle()
+                    end
+                end
+                isPressing = false
+                wasPressedHere = false
+                inputStartPosition = nil
+            end
+        end
+        local function onInputChanged(input)
+            if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+                if isPressing and inputStartPosition then
+                    local currentPosition = input.Position
+                    local distanceMoved = (currentPosition - inputStartPosition).Magnitude
+                    if distanceMoved > 20 then
+                        wasPressedHere = false
+                    end
+                end
+            end
+        end
+        toggleBg.InputBegan:Connect(function(...) onInputBegan(...) end)
+        toggleBg.InputChanged:Connect(onInputChanged)
+        toggleBg.InputEnded:Connect(function(...) onInputEnded(...) end)
+        circle.InputBegan:Connect(function(...) onInputBegan(...) end)
+        circle.InputChanged:Connect(onInputChanged)
+        circle.InputEnded:Connect(function(...) onInputEnded(...) end)
+
+        touchButton.InputBegan:Connect(function(...) onInputBegan(...) end)
+        touchButton.InputChanged:Connect(onInputChanged)
+        touchButton.InputEnded:Connect(function(...) onInputEnded(...) end)
+
+        label.Text = getter() and name .. "<" or name
         
-        return {Frame = buttonFrame, Button = btn, Stroke = btnStroke}
+        return {
+            main = main,
+            touchButton = touchButton,
+            toggleBg = toggleBg,
+            circle = circle,
+            label = label
+        }
     end
 
-    local y = 1
-    local silentBtn = makeToggleButton("Silent Aim", y, function() return config.startsa end, function(v) config.startsa = v end); y = y + 1
-    local aimbotBtn = makeToggleButton("Aimbot", y, function() return config.aimbotEnabled end, function(v) handleAimbotToggle(v) end); y = y + 1
-    local autoBtn = makeToggleButton("Auto Farm", y, function() return config.autoFarmEnabled end, function(v) config.autoFarmEnabled = v end); y = y + 1
-    local antiBtn = makeToggleButton("Anti Aim", y, function() return config.antiAimEnabled end, function(v) config.antiAimEnabled = v end); y = y + 1
-    local hitboxBtn = makeToggleButton("Hitbox", y, function() return config.hitboxEnabled end, function(v) config.hitboxEnabled = v end); y = y + 1
-    local clientBtn = makeToggleButton("Client Config", y, function() return config.clientMasterEnabled end, function(v) applyClientMaster(v) end); y = y + 1
-    local espBtn = makeToggleButton("ESP", y, function() return config.espMasterEnabled end, function(v) applyESPMaster(v) end); y = y + 1
-
-    local isMinimized = true
-    local originalSize = UDim2.new(0, 160, 0, 284)
-    local minimizedSize = UDim2.new(0, 160, 0, 40)
+    local buttons = {}
+    local startX = 10
+    local topRowY = 10
+    local bottomRowY = 60
+    local toggleWidth = 120
+    local horizontalSpacing = 10
     
-    minimizeBtn.MouseButton1Down:Connect(function()
-        isMinimized = not isMinimized
-        
-        if isMinimized then
-            minimizeBtn.Text = "▲"
-            game:GetService("TweenService"):Create(frame, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-                Size = minimizedSize
-            }):Play()
+    buttons.SilentAim = QuickToggle("Silent Aim (HB)", startX, topRowY, 
+        function() return config.startsa end, 
+        function(v) config.startsa = v end)
+    
+    buttons.Hitbox = QuickToggle("Hit box", startX + (toggleWidth + horizontalSpacing) * 1, topRowY,
+        function() return config.hitboxEnabled end,
+        function(v) config.hitboxEnabled = v end)
+    
+    buttons.AntiAim = QuickToggle("Anti Aim", startX + (toggleWidth + horizontalSpacing) * 2, topRowY,
+        function() return config.antiAimEnabled end,
+        function(v) config.antiAimEnabled = v end)
+    
+    buttons.Aimbot = QuickToggle("Aim bot", startX + (toggleWidth + horizontalSpacing) * 3, topRowY,
+        function() return config.aimbotEnabled end,
+        function(v) handleAimbotToggle(v) end)
+    
+    buttons.ClientConfig = QuickToggle("Client Config", startX + (toggleWidth + horizontalSpacing) * 4, topRowY,
+        function() return config.clientMasterEnabled end,
+        function(v) applyClientMaster(v) end)
+    
+    local espX = startX + (toggleWidth + horizontalSpacing) * 0
+    buttons.ESP = QuickToggle("ESP", espX, bottomRowY,
+        function() return config.espMasterEnabled end,
+        function(v) applyESPMaster(v) end)
+
+local silentAimHKX = startX + (toggleWidth + horizontalSpacing) * 1
+buttons.SilentAimHK = QuickToggle("SilentAim (HK)", silentAimHKX, bottomRowY,
+    function() return config.SA2_Enabled end,
+    function(v) 
+        config.SA2_Enabled = v 
+        if v then
+            safeNotify({
+                Title = "SilentAim HK",
+                Content = "Enabled",
+                Audio = "rbxassetid://17208361335",
+                Length = 1,
+                Image = "rbxassetid://4483362458",
+                BarColor = Color3.fromRGB(0, 255, 0)
+            })
         else
-            minimizeBtn.Text = "▼"
-            game:GetService("TweenService"):Create(frame, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-                Size = originalSize
-            }):Play()
+            safeNotify({
+                Title = "SilentAim HK",
+                Content = "Disabled",
+                Audio = "rbxassetid://17208361335",
+                Length = 1,
+                Image = "rbxassetid://4483362458",
+                BarColor = Color3.fromRGB(255, 0, 0)
+            })
         end
-        
-        game:GetService("TweenService"):Create(minimizeBtn, TweenInfo.new(0.1), {
-            BackgroundColor3 = Color3.fromRGB(60, 60, 80)
-        }):Play()
-        wait(0.1)
-        game:GetService("TweenService"):Create(minimizeBtn, TweenInfo.new(0.1), {
-            BackgroundColor3 = Color3.fromRGB(40, 40, 50)
-        }):Play()
     end)
+
 
     gui.mobileGui = {
         ScreenGui = screenGui,
-        Frame = frame,
-        ContentFrame = contentFrame,
-        Buttons = {
-            SilentAim = silentBtn,
-            Aimbot = aimbotBtn,
-            AutoFarm = autoBtn,
-            AntiAim = antiBtn,
-            Hitbox = hitboxBtn,
-            ClientConfig = clientBtn,
-            ESP = espBtn
-        },
-        MinimizeButton = minimizeBtn,
-        IsMinimized = isMinimized
+        Buttons = buttons
     }
 
     if gui.RingHolder then
@@ -2965,7 +3974,15 @@ local function createMobileGUIElements()
         config.aimbotFOVRing.RingFrame.Visible = config.aimbotEnabled and not config.aimbot360Enabled
     end
 end
-local function updatemobgui()
+local function KillQT()
+    if gui and gui.mobileGui and gui.mobileGui.ScreenGui then
+        pcall(function()
+            gui.mobileGui.ScreenGui:Destroy()
+        end)
+    end
+    gui.mobileGui = nil
+end
+local function UpdateQT()
     if not isMobileDevice() then
         if gui.mobileGui and gui.mobileGui.ScreenGui then
             gui.mobileGui.ScreenGui.Enabled = false
@@ -2973,62 +3990,49 @@ local function updatemobgui()
         return
     end
     
-    if not config.mobgui then
+    if not config.QuickToggles then
         if gui.mobileGui and gui.mobileGui.ScreenGui then
             gui.mobileGui.ScreenGui.Enabled = false
         end
         return
     end
+    
     if not gui.mobileGui or not gui.mobileGui.ScreenGui or not gui.mobileGui.ScreenGui.Parent then
-        createMobileGUIElements()
+        CreateQT()
         return
     end
     
     gui.mobileGui.ScreenGui.Enabled = true
     
     if gui.mobileGui.Buttons then
-        local buttons = {
+        local buttonStates = {
             SilentAim = config.startsa,
             Aimbot = config.aimbotEnabled,
             AutoFarm = config.autoFarmEnabled,
             AntiAim = config.antiAimEnabled,
             Hitbox = config.hitboxEnabled,
             ClientConfig = config.clientMasterEnabled,
-            ESP = config.espMasterEnabled
+            ESP = config.espMasterEnabled,
+            SilentAimHK = config.SA2_Enabled
         }
         
-        for buttonName, isEnabled in pairs(buttons) do
+        for buttonName, isEnabled in pairs(buttonStates) do
             local buttonData = gui.mobileGui.Buttons[buttonName]
-            if buttonData and buttonData.Button then
-                local btn = buttonData.Button
-                local stroke = buttonData.Stroke
+            if buttonData and buttonData.label then
+                buttonData.label.Text = isEnabled and buttonName .. "<" or buttonName
                 
-                btn.BackgroundColor3 = isEnabled and Color3.fromRGB(40, 120, 220) or Color3.fromRGB(40, 40, 50)
-                
-                if stroke then
-                    stroke.Color = isEnabled and Color3.fromRGB(60, 140, 240) or Color3.fromRGB(60, 60, 70)
+                if buttonData.toggleBg then
+                    buttonData.toggleBg.BackgroundColor3 = isEnabled and Color3.fromRGB(0, 100, 0) or Color3.fromRGB(15, 15, 15)
                 end
                 
-                if buttonName == "SilentAim" then
-                    btn.Text = isEnabled and "SilentAim ✓" or "SilentAim"
-                elseif buttonName == "Aimbot" then
-                    btn.Text = isEnabled and "Aimbot ✓" or "Aimbot"
-                elseif buttonName == "AutoFarm" then
-                    btn.Text = isEnabled and "AutoFarm ✓" or "AutoFarm"
-                elseif buttonName == "AntiAim" then
-                    btn.Text = isEnabled and "AntiAim ✓" or "AntiAim"
-                elseif buttonName == "Hitbox" then
-                    btn.Text = isEnabled and "Hitbox ✓" or "Hitbox"
-                elseif buttonName == "ClientConfig" then
-                    btn.Text = isEnabled and "Client Config ✓" or "Client Config"
-                elseif buttonName == "ESP" then
-                    btn.Text = isEnabled and "ESP ✓" or "ESP"
+                if buttonData.circle then
+                    buttonData.circle.BackgroundColor3 = isEnabled and Color3.fromRGB(0, 170, 0) or Color3.fromRGB(60, 60, 60)
+                    buttonData.circle.Position = isEnabled and UDim2.new(1, -18, 0, 1) or UDim2.new(0, 1, 0, 1)
                 end
             end
         end
     end
 end
-
 local function onRenderStep()
     if not camera or not camera.Parent then
         camera = workspace.CurrentCamera
@@ -3054,18 +4058,22 @@ local function onRenderStep()
     end
 
     local candidates = {}
-
+    local allTargetsInFOV = {}
+    
     for _, pl in ipairs(getAllTargets()) do
         local bodyPart, chosenName = chooseBodyPartInstance(pl)
         local humanoid = nil
         local char = getTargetCharacter(pl)
         if char then
             humanoid = char:FindFirstChildOfClass("Humanoid")
+            
+            if hasForcefield(char) then continue end
         end
 
         if bodyPart and humanoid and humanoid.Health > 0 then
-            local mode = config.masterTeamTarget or "Enemies"
             local skip = false
+            local mode = config.masterTeamTarget or "Enemies"
+            
             if mode == "Enemies" then
                 if typeof(pl) == "Instance" and pl:IsA("Player") and isTeammate(pl) then
                     skip = true
@@ -3084,6 +4092,19 @@ local function onRenderStep()
                 if onScreen then
                     local screenVec = Vector2.new(screenPos3.X, screenPos3.Y)
                     local distPx = (screenVec - center).Magnitude
+
+                    table.insert(allTargetsInFOV, {
+                        player = pl,
+                        part = bodyPart,
+                        partName = chosenName,
+                        screenDist = distPx,
+                        worldDist = (camera.CFrame.Position - topPos).Magnitude,
+                        screenPos = screenVec,
+                        screenPos3 = screenPos3,
+                        humanoid = humanoid,
+                        inFOV = distPx <= radiusPx
+                    })
+                    
                     if distPx <= radiusPx then
                         local cameraPos = camera.CFrame.Position
                         local targetPos = bodyPart.Position
@@ -3111,23 +4132,90 @@ local function onRenderStep()
     end
 
     local best = nil
-    local selectionMode = config.silentGetTarget or config.masterGetTarget or "Closest"
-    if #candidates > 0 then
-        if selectionMode == "Lowest Health" then
-            local bestHealth = math.huge
-            for _, c in ipairs(candidates) do
-                local h = c.humanoid and c.humanoid.Health or math.huge
-                if best == nil or h < bestHealth then
-                    bestHealth = h
-                    best = c
+    if config.silentGetTarget == "TargetSeen" then
+        local targetsInFOV = {}
+        for _, target in ipairs(allTargetsInFOV) do
+            if target.inFOV then
+                local cameraPos = camera.CFrame.Position
+                local targetPos = target.part.Position
+                if wallCheck(targetPos, cameraPos) then
+                    table.insert(targetsInFOV, target)
                 end
             end
-        else 
-            local bestWorldDist = math.huge
-            for _, c in ipairs(candidates) do
-                if c.worldDist < bestWorldDist then
-                    bestWorldDist = c.worldDist
-                    best = c
+        end
+        config.targetSeenTargets = targetsInFOV
+        
+        if #targetsInFOV > 0 then
+            if config.targetSeenMode == "Switch" then
+                local currentTime = tick()
+                if currentTime - config.lastTargetSwitchTime >= config.targetSeenSwitchRate then
+                    config.lastTargetSwitchTime = currentTime
+                    if not config.currentTarget then
+                        local randomIndex = math.random(1, #targetsInFOV)
+                        best = targetsInFOV[randomIndex]
+                    else
+                        local currentIndex = nil
+                        for i, target in ipairs(targetsInFOV) do
+                            if target.player == config.currentTarget then
+                                currentIndex = i
+                                break
+                            end
+                        end
+                        
+                        if currentIndex then
+                            local nextIndex = (currentIndex % #targetsInFOV) + 1
+                            best = targetsInFOV[nextIndex]
+                        else
+                            local randomIndex = math.random(1, #targetsInFOV)
+                            best = targetsInFOV[randomIndex]
+                        end
+                    end
+                else
+                    if config.currentTarget then
+                        for _, target in ipairs(targetsInFOV) do
+                            if target.player == config.currentTarget then
+                                best = target
+                                break
+                            end
+                        end
+                    end
+                end
+            elseif config.targetSeenMode == "All" then
+                for _, target in ipairs(targetsInFOV) do
+                    if target.player ~= config.currentTarget then
+                        local diameter = calculateDiameter(target.worldDist, radiusPx, camera)
+                        applySizeToPart(target.player, diameter, target.part)
+                    end
+                end
+                local closestDist = math.huge
+                for _, target in ipairs(targetsInFOV) do
+                    if target.worldDist < closestDist then
+                        closestDist = target.worldDist
+                        best = target
+                    end
+                end
+            end
+        else
+            best = nil
+        end
+    else
+        if #candidates > 0 then
+            if config.silentGetTarget == "Lowest Health" then
+                local bestHealth = math.huge
+                for _, c in ipairs(candidates) do
+                    local h = c.humanoid and c.humanoid.Health or math.huge
+                    if best == nil or h < bestHealth then
+                        bestHealth = h
+                        best = c
+                    end
+                end
+            else
+                local bestWorldDist = math.huge
+                for _, c in ipairs(candidates) do
+                    if c.worldDist < bestWorldDist then
+                        bestWorldDist = c.worldDist
+                        best = c
+                    end
                 end
             end
         end
@@ -3138,7 +4226,6 @@ local function onRenderStep()
     else
         gui.RingStroke.Color = config.fovc
     end
-
     if config.currentTarget ~= (best and best.player) then
         config.currentTarget = best and best.player
         updateESPColors()
@@ -3146,27 +4233,44 @@ local function onRenderStep()
 
     local targetsToRemove = {}
     for pl, _ in pairs(config.activeApplied) do
-        if (not best) or pl ~= best.player or not plralive(pl) then
+        local shouldRemove = true
+        
+        if best and pl == best.player then
+            shouldRemove = false
+        elseif config.silentGetTarget == "TargetSeen" and config.targetSeenMode == "All" then
+            local stillInFOV = false
+            for _, target in ipairs(config.targetSeenTargets or {}) do
+                if target.player == pl then
+                    stillInFOV = true
+                    break
+                end
+            end
+            shouldRemove = not stillInFOV
+        end
+        
+        if shouldRemove or not plralive(pl) then
             table.insert(targetsToRemove, pl)
         end
     end
+    
     for _, pl in ipairs(targetsToRemove) do
         restorePartForPlayer(pl)
     end
 
     if best and plralive(best.player) then
-        local diameter = (function()
-            local viewportSize = camera.ViewportSize
+        local function calculateDiameter(worldDist, screenRadius, cam)
+            local viewportSize = cam.ViewportSize
             local H = viewportSize.Y
-            local vFovDeg = camera.FieldOfView
+            local vFovDeg = cam.FieldOfView
             local vFovRad = math.rad(vFovDeg)
             local halfVFov = vFovRad / 2
-            local alpha = (radiusPx / (H / 2)) * halfVFov
-            local worldHalf = best.worldDist * math.tan(alpha)
+            local alpha = (screenRadius / (H / 2)) * halfVFov
+            local worldHalf = worldDist * math.tan(alpha)
             local worldFull = worldHalf * 2
-            return worldFull
-        end)()
-
+            return math.max(0.01, worldFull)
+        end
+        
+        local diameter = calculateDiameter(best.worldDist, radiusPx, camera)
         diameter = math.max(0.01, diameter)
 
         local localChar = localPlayer.Character
@@ -3221,6 +4325,7 @@ local function onRenderStep()
         end
 
         diameter = math.max(0.01, diameter)
+        
         if best.screenDist <= 1 then
             if not config.centerLocked[best.player] then
                 config.centerLocked[best.player] = true
@@ -3241,6 +4346,47 @@ local function onRenderStep()
             RFD(best.player)
         end
     end
+    
+    if config.silentGetTarget == "TargetSeen" and config.targetSeenMode == "All" then
+        for _, target in ipairs(config.targetSeenTargets or {}) do
+            if target.player ~= (best and best.player) and plralive(target.player) then
+                local diameter = calculateDiameter(target.worldDist, radiusPx, camera)
+                diameter = math.max(0.01, diameter)
+                applySizeToPart(target.player, diameter, target.part)
+            end
+        end
+    end
+end
+
+local function getClosestVictim()
+    if not Options.TargetPart.Value then return end
+    local Closest
+    local DistanceToMouse
+    for _, Player in next, GetPlayers(Players) do
+        if Player == LocalPlayer then continue end
+        if Toggles.TeamCheck.Value and Player.Team == LocalPlayer.Team then continue end
+
+        local Character = Player.Character
+        if not Character then continue end
+        
+        if config.ignoreForcefield and hasForcefield(Character) then continue end
+        
+        if Toggles.VisibleCheck.Value and not IsPlayerVisible(Player) then continue end
+
+        local HumanoidRootPart = FindFirstChild(Character, "HumanoidRootPart")
+        local Humanoid = FindFirstChild(Character, "Humanoid")
+        if not HumanoidRootPart or not Humanoid or Humanoid and Humanoid.Health <= 0 then continue end
+
+        local ScreenPosition, OnScreen = getPositionOnScreen(HumanoidRootPart.Position)
+        if not OnScreen then continue end
+
+        local Distance = (getMousePosition() - ScreenPosition).Magnitude
+        if Distance <= (DistanceToMouse or Options.Radius.Value or 2000) then
+            Closest = ((Options.TargetPart.Value == "Random" and Character[ValidTargetParts[math.random(1, #ValidTargetParts)]]) or Character[Options.TargetPart.Value])
+            DistanceToMouse = Distance
+        end
+    end
+    return Closest
 end
 
 local function keyNameFromInput(input)
@@ -3285,7 +4431,7 @@ local function applyKeybindAction(key, fromHotkeySystem)
             config.holdkeyStates[action] = currentTime
             local source = fromHotkeySystem and "Keybind" or "UI"
             
-            if action == "silentaim" then
+            if action == "silentaimhb" then
                 config.startsa = not config.startsa
                 if not config.startsa then
                     if gui.RingHolder then gui.RingHolder.Visible = false end
@@ -3297,7 +4443,7 @@ local function applyKeybindAction(key, fromHotkeySystem)
                         restorePartForPlayer(pl)
                     end
                     safeNotify({
-                        Title = "SilentAim", 
+                        Title = "SilentAim (HB)", 
                         Content = "Disabled (" .. source .. ")",
                         Audio = "rbxassetid://17208361335",
                         Length = 1, 
@@ -3307,7 +4453,7 @@ local function applyKeybindAction(key, fromHotkeySystem)
                 else
                     if gui.RingHolder then gui.RingHolder.Visible = true end
                     safeNotify({
-                        Title = "SilentAim", 
+                        Title = "SilentAim (HB)", 
                         Content = "Enabled (" .. source .. ")",
                         Audio = "rbxassetid://17208361335",
                         Length = 1, 
@@ -3315,7 +4461,7 @@ local function applyKeybindAction(key, fromHotkeySystem)
                         BarColor = Color3.fromRGB(0, 255, 0)
                     })
                 end
-                updatemobgui()
+                UpdateQT()
                 return true
             elseif action == "aimbot" then
                 local wasEnabled = config.aimbotEnabled
@@ -3339,7 +4485,53 @@ local function applyKeybindAction(key, fromHotkeySystem)
                         BarColor = Color3.fromRGB(255, 0, 0)
                     })
                 end
-                updatemobgui()
+                UpdateQT()
+                return true
+            elseif action == "silentaimhk" then
+                config.SA2_Enabled = not config.SA2_Enabled
+                if config.SA2_Enabled then
+                    safeNotify({
+                        Title = "SilentAim (HK)", 
+                        Content = "Enabled (" .. source .. ")",
+                        Audio = "rbxassetid://17208361335",
+                        Length = 1, 
+                        Image = "rbxassetid://4483362458", 
+                        BarColor = Color3.fromRGB(0, 255, 0)
+                    })
+                else
+                    safeNotify({
+                        Title = "SilentAim (HK)", 
+                        Content = "Disabled (" .. source .. ")",
+                        Audio = "rbxassetid://17208361335",
+                        Length = 1, 
+                        Image = "rbxassetid://4483362458", 
+                        BarColor = Color3.fromRGB(255, 0, 0)
+                    })
+                end
+                UpdateQT()
+                return true
+            elseif action == "silentaimhkwallcheck" then
+                config.SA2_Wallcheck = not config.SA2_Wallcheck
+                if config.SA2_Wallcheck then
+                    safeNotify({
+                        Title = "SilentAim (HK) Wall Check", 
+                        Content = "Enabled (" .. source .. ")",
+                        Audio = "rbxassetid://17208361335",
+                        Length = 1, 
+                        Image = "rbxassetid://4483362458", 
+                        BarColor = Color3.fromRGB(0, 170, 255)
+                    })
+                else
+                    safeNotify({
+                        Title = "SilentAim (HK) Wall Check", 
+                        Content = "Disabled (" .. source .. ")",
+                        Audio = "rbxassetid://17208361335",
+                        Length = 1, 
+                        Image = "rbxassetid://4483362458", 
+                        BarColor = Color3.fromRGB(255, 0, 0)
+                    })
+                end
+                UpdateQT()
                 return true
             elseif action == "autofarm" then
                 config.autoFarmEnabled = not config.autoFarmEnabled
@@ -3364,7 +4556,7 @@ local function applyKeybindAction(key, fromHotkeySystem)
                         BarColor = Color3.fromRGB(255, 0, 0)
                     })
                 end
-                updatemobgui()
+                UpdateQT()
                 return true
             elseif action == "antiaim" then
                 config.antiAimEnabled = not config.antiAimEnabled
@@ -3388,7 +4580,7 @@ local function applyKeybindAction(key, fromHotkeySystem)
                         BarColor = Color3.fromRGB(255, 100, 0)
                     })
                 end
-                updatemobgui()
+                UpdateQT()
                 return true
             elseif action == "hitbox" then
                 config.hitboxEnabled = not config.hitboxEnabled
@@ -3419,7 +4611,7 @@ local function applyKeybindAction(key, fromHotkeySystem)
                         BarColor = Color3.fromRGB(255, 0, 0)
                     })
                 end
-                updatemobgui()
+                UpdateQT()
                 return true
             elseif action == "esp" then
                 config.espMasterEnabled = not config.espMasterEnabled
@@ -3443,7 +4635,7 @@ local function applyKeybindAction(key, fromHotkeySystem)
                         BarColor = Color3.fromRGB(255, 0, 0)
                     })
                 end
-                updatemobgui()
+                UpdateQT()
                 return true
             elseif action == "client" then
                 config.clientMasterEnabled = not config.clientMasterEnabled
@@ -3467,7 +4659,7 @@ local function applyKeybindAction(key, fromHotkeySystem)
                         BarColor = Color3.fromRGB(255, 0, 0)
                     })
                 end
-                updatemobgui()
+                UpdateQT()
                 return true
             elseif action == "silentaimwallcheck" then
                 config.wallc = not config.wallc
@@ -3838,7 +5030,7 @@ local dang = isPC and UDim2.new(0, 600, 0, 450) or UDim2.new(0.7, 0, 0.9, 0)
 local Window = Library:Window({
     Title = "Gravel.cc",
     Desc = "by hmmm5651",
-    Icon = 132214308111067,
+    Icon = 7734056878,
     Theme = "Dark",
     Config = {
         Keybind = Enum.KeyCode.K,
@@ -3851,23 +5043,36 @@ local Window = Library:Window({
 })
 
 -- Main Tab
-local MainTab = Window:Tab({Title = "Main", Icon = "folder"}) do
+local MainTab = Window:Tab({Title = "Main", Icon = "hammer"}) do
     MainTab:Section({Title = "Master Settings"})
     
-    MainTab:Dropdown({
-        Title = "Master Team Target",
-        Desc = "Select target team preference",
-        List = {"Enemies", "Teams", "All"},
-        Value = "Enemies",
-        Callback = function(Option)
-            config.masterTeamTarget = Option
+MainTab:Dropdown({
+    Title = "Team Target",
+    Desc = "Select Target Team",
+    List = {"Enemies", "Teams", "All"},
+    Value = "Enemies",
+    Callback = function(Option)
+        config.masterTeamTarget = Option
+        if Option == "All" then
+            config.targetMode = "All"
+            config.aimbotTeamTarget = "All"
+            config.hitboxTeamTarget = "All"
+            config.SA2_TeamTarget = "All"
+            config.antiAimTarget = "All"
+        else
             config.targetMode = Option
             config.aimbotTeamTarget = Option
             config.hitboxTeamTarget = Option
+            config.SA2_TeamTarget = Option
+            config.antiAimTarget = Option
         end
-    })
+        
+        updateTeamTargetModes()
+        syncSilentAimWithMaster()
+    end
+})
     MainTab:Dropdown({
-        Title = "Master Target",
+        Title = "TargetType",
         Desc = "Select target type",
         List = {"Players", "NPCs", "Both"},
         Value = "Players",
@@ -3875,22 +5080,45 @@ local MainTab = Window:Tab({Title = "Main", Icon = "folder"}) do
             config.masterTarget = Option
         end
     })
-    
-    MainTab:Dropdown({
-        Title = "Master GetTarget",
-        Desc = "Target selection method",
-        List = {"Closest", "Lowest Health"},
-        Value = "Closest",
-        Callback = function(Option)
-            config.masterGetTarget = Option
-            config.aimbotGetTarget = Option
-            config.silentGetTarget = Option
-            config.antiAimGetTarget = Option
+MainTab:Dropdown({
+    Title = "GetTarget",
+    Desc = "Target selection method (Applies to all systems)",
+    List = {"Closest", "Lowest Health", "TargetSeen"},
+    Value = config.masterGetTarget or "Closest",
+    Callback = function(Option)
+        config.masterGetTarget = Option
+        config.aimbotGetTarget = Option
+        config.silentGetTarget = Option
+        config.antiAimGetTarget = Option
+        config.SA2_GetTarget = Option
+        syncSilentAimWithMaster()
+    end
+})
+
+    MainTab:Textbox({
+        Title = "Targetseen Switch Rate",
+        Desc = "Time between target switches (seconds)",
+        Placeholder = "0.2",
+        Value = tostring(config.targetSeenSwitchRate or 0.2),
+        ClearTextOnFocus = false,
+        Callback = function(text)
+            local n = tonumber(text)
+            if n and n > 0 then
+                config.targetSeenSwitchRate = n
+            end
         end
     })
-    
+
     MainTab:Section({Title = "Utilities"})
     
+MainTab:Toggle({
+    Title = "Ignore Forcefield (Global)",
+    Desc = "Skip targets with forcefields in all systems",
+    Value = config.ignoreForcefield or true,
+    Callback = function(v)
+        config.ignoreForcefield = v
+    end
+})
     MainTab:Toggle({
         Title = "Toggle AutoFarm ('F')",
         Desc = "Enable/disable auto farm",
@@ -3920,15 +5148,41 @@ local MainTab = Window:Tab({Title = "Main", Icon = "folder"}) do
             end
         end
     })
-
+MainTab:Toggle({
+    Title = "Autofarm Wall Check",
+    Desc = "Prevent teleporting targets behind walls",
+    Value = config.autoFarmWallCheck or false,
+    Callback = function(v)
+        config.autoFarmWallCheck = v
+        if v then
+            safeNotify({
+                Title = "Autofarm Wall Check",
+                Content = "Enabled - Targets behind walls will be ignored",
+                Audio = "rbxassetid://17208361335",
+                Length = 2,
+                Image = "rbxassetid://4483362458",
+                BarColor = Color3.fromRGB(0, 170, 255)
+            })
+        else
+            safeNotify({
+                Title = "Autofarm Wall Check",
+                Content = "Disabled - Will teleport targets even behind walls",
+                Audio = "rbxassetid://17208361335",
+                Length = 2,
+                Image = "rbxassetid://4483362458",
+                BarColor = Color3.fromRGB(255, 100, 0)
+            })
+        end
+    end
+})
     MainTab:Toggle({
-        Title = "Toggle Mobile GUI",
-        Desc = "Show/hide mobile GUI",
-        Value = config.mobgui or false,
+        Title = "QuickToggles",
+        Desc = "Show/hide QuickToggles GUI",
+        Value = config.QuickToggles or false,
         Callback = function(v)
-            config.mobgui = v
+            config.QuickToggles = v
             if not v then
-                nomobgui()
+                KillQT()
             end
         end
     })
@@ -3971,6 +5225,19 @@ local MainTab = Window:Tab({Title = "Main", Icon = "folder"}) do
         end
     })
     
+
+MainTab:Slider({
+    Title = "TP Max Range (Autofarm)",
+    Desc = "Maximum distance to teleport targets",
+    Min = 0,
+    Max = 999999999,
+    Rounding = 10,
+    Value = config.autoFarmMaxRange or 50,
+    Callback = function(val)
+        config.autoFarmMaxRange = val
+    end
+})
+
     MainTab:Slider({
         Title = "TP Distance (Autofarm)",
         Desc = "Teleport distance for autofarm",
@@ -4059,7 +5326,7 @@ local MainTab = Window:Tab({Title = "Main", Icon = "folder"}) do
         })
     end
 
-    createKeybindButton("SilentAim", "E", "silentaim")
+    createKeybindButton("SilentAim (HB)", "E", "silentaim")
     createKeybindButton("Aimbot", "Q", "aimbot")
     createKeybindButton("AutoFarm", "F", "autofarm")
     createKeybindButton("AntiAim", "L", "antiaim")
@@ -4068,7 +5335,9 @@ local MainTab = Window:Tab({Title = "Main", Icon = "folder"}) do
     createKeybindButton("Client Config", "V", "client")
     createKeybindButton("SilentAim Wall Check", "B", "silentaimwallcheck")
     createKeybindButton("Aimbot Wall Check", "H", "aimbotwallcheck")
-
+    createKeybindButton("SilentAim (HK)", "R", "silentaimhk")
+    createKeybindButton("SilentAim (HK) Wall Check", "T", "silentaimhkwallcheck")
+    
     MainTab:Section({Title = "Optimization"})
     local CodeBlock = MainTab:Code({
         Title = "Optimization [copy code and execute]",
@@ -4114,6 +5383,25 @@ local Config = {
 
 local Optiz = loadstring(game:HttpGet('https://raw.githubusercontent.com/hm5650/Optiz/refs/heads/main/Optiz.lua'))()(OptizConfig)]]
     })
+    MainTab:Slider({
+        Title = "Updaters speed",
+        Desc = "Increase performance when increased costs Accuracy",
+        Min = 0,
+        Max = 1000,
+        Rounding = 10,
+        Value = patcherwait or 0.3,
+        Callback = function(val)
+            patcherwait = val
+        end
+    })
+MainTab:Toggle({
+    Title = "Updaters",
+    Desc = "Stops other Updaters when disabled Increases performance. Might cause features to not work",
+    Value = patcher or true,
+    Callback = function(v)
+        patcher = v
+    end
+})
 end
 
 -- Visuals Tab
@@ -4255,10 +5543,64 @@ VisualsTab:Toggle({
         espRefresher()
     end
 })
+VisualsTab:Toggle({
+    Title = "Full Bright",
+    Desc = "Enable/disable full bright (no lighting)",
+    Value = false,
+    Callback = function(v)
+        if v then
+            local lighting = game:GetService("Lighting")
+            fullBrightSettings = {
+                Ambient = lighting.Ambient,
+                Brightness = lighting.Brightness,
+                ClockTime = lighting.ClockTime,
+                FogEnd = lighting.FogEnd,
+                GlobalShadows = lighting.GlobalShadows,
+                OutdoorAmbient = lighting.OutdoorAmbient
+            }
+
+            lighting.Ambient = Color3.fromRGB(255, 255, 255)
+            lighting.Brightness = 2
+            lighting.FogEnd = 100000
+            lighting.GlobalShadows = false
+            lighting.OutdoorAmbient = Color3.fromRGB(128, 128, 128)
+            
+            lighting.ClockTime = 14
+            
+            safeNotify({
+                Title = "Full Bright",
+                Content = "Enabled",
+                Audio = "rbxassetid://17208361335",
+                Length = 2,
+                Image = "rbxassetid://4483362458",
+                BarColor = Color3.fromRGB(0, 255, 0)
+            })
+        else
+            if fullBrightSettings then
+                local lighting = game:GetService("Lighting")
+                for property, value in pairs(fullBrightSettings) do
+                    lighting[property] = value
+                end
+                fullBrightSettings = nil
+            end
+            
+            safeNotify({
+                Title = "Full Bright",
+                Content = "Disabled",
+                Audio = "rbxassetid://17208361335",
+                Length = 1,
+                Image = "rbxassetid://4483362458",
+                BarColor = Color3.fromRGB(255, 0, 0)
+            })
+        end
+    end
+})
 end
 
 -- AntiAim Tab
 local AntiAimTab = Window:Tab({Title = "AntiAim", Icon = "shield"}) do
+    AntiAimTab:Section({Title = "[ Bad Injectors might work here ]"})
+    AntiAimTab:Section({Title = "[ This might not work on every game ]"})
     AntiAimTab:Section({Title = "AntiAim Master"})
     
 AntiAimTab:Toggle({
@@ -4372,16 +5714,6 @@ AntiAimTab:Toggle({
     })
     
     AntiAimTab:Section({Title = "AntiAim Settings"})
-    
-    AntiAimTab:Dropdown({
-        Title = "GetTarget",
-        Desc = "Target selection method",
-        List = {"Closest", "Lowest Health"},
-        Value = config.antiAimGetTarget or "Closest",
-        Callback = function(Option)
-            config.antiAimGetTarget = Option
-        end
-    })
     
     AntiAimTab:Textbox({
         Title = "Teleport Distance (Raycast)",
@@ -4528,6 +5860,7 @@ AntiAimTab:Toggle({
             end
         end
     })
+
 AntiAimTab:Toggle({
     Title = "Lock Serverside",
     Desc = "Locks you in Servers not in the client (You would still get killed in the server but not in the client)",
@@ -4540,6 +5873,7 @@ AntiAimTab:Toggle({
 end
 -- Aimbot Tab
 local AimbotTab = Window:Tab({Title = "Aimbot", Icon = "crosshair"}) do
+    AimbotTab:Section({Title = "[ Bad Injectors might work here ]"})
     AimbotTab:Section({Title = "Aimbot Master"})
     
 AimbotTab:Toggle({
@@ -4589,20 +5923,6 @@ AimbotTab:Toggle({
             toggle360Aimbot(v)
         end
     })
-    
-    AimbotTab:Dropdown({
-        Title = "Team Target",
-        Desc = "Select target team preference",
-        List = {"Enemies", "Teams", "All"},
-        Value = config.aimbotTeamTarget or "Enemies",
-        Callback = function(Option)
-            if config.masterTeamTarget == "All" then return end
-            config.aimbotTeamTarget = Option
-            config.aimbotCurrentTarget = nil
-            updateESPColors()
-        end
-    })
-    
     AimbotTab:Dropdown({
         Title = "Target Part",
         Desc = "Part to aim at",
@@ -4612,17 +5932,6 @@ AimbotTab:Toggle({
             config.aimbotTargetPart = Option
         end
     })
-    
-    AimbotTab:Dropdown({
-        Title = "GetTarget",
-        Desc = "Target selection method",
-        List = {"Closest", "Lowest Health"},
-        Value = config.aimbotGetTarget or "Closest",
-        Callback = function(Option)
-            config.aimbotGetTarget = Option
-        end
-    })
-    
     AimbotTab:Slider({
         Title = "Aim Strength",
         Desc = "Smoothing strength",
@@ -4649,9 +5958,221 @@ AimbotTab:Toggle({
     })
 end
 
+-- SilentAim Tab
+local SilentAimTab = Window:Tab({Title = "SilentAim (HB)", Icon = "circle"}) do
+    SilentAimTab:Section({Title = "[ Hitbox Based ]"})
+    SilentAimTab:Section({Title = "[ Bad Injectors might work here ]"})
+    SilentAimTab:Section({Title = "[ This might not work on every game ]"})
+    SilentAimTab:Section({Title = "SilentAim Master"})
+    
+SilentAimTab:Toggle({
+    Title = "Toggle SilentAim (HB) ('E')",
+    Desc = "Enable/disable silent aim",
+    Value = config.startsa or false,
+    Callback = function(v)
+        config.startsa = v
+        if not v then
+            if gui.RingHolder then
+                gui.RingHolder.Visible = false
+            end
+            local targetsToRemove = {}
+            for pl, _ in pairs(config.activeApplied) do
+                table.insert(targetsToRemove, pl)
+            end
+            for _, pl in ipairs(targetsToRemove) do
+                restorePartForPlayer(pl)
+            end
+            safeNotify({
+                Title = "SilentAim",
+                Content = "Disabled",
+                Audio = "rbxassetid://17208361335",
+                Length = 1,
+                Image = "rbxassetid://4483362458",
+                BarColor = Color3.fromRGB(255, 0, 0)
+            })
+        else
+            if gui.RingHolder then
+                gui.RingHolder.Visible = true
+            end
+            safeNotify({
+                Title = "SilentAim",
+                Content = "Enabled",
+                Audio = "rbxassetid://17208361335",
+                Length = 1,
+                Image = "rbxassetid://4483362458",
+                BarColor = Color3.fromRGB(255, 100, 0)
+            })
+        end
+    end
+})
+    
+    SilentAimTab:Section({Title = "SilentAim Settings"})
+    
+    SilentAimTab:Toggle({
+        Title = "WallCheck SA (B)",
+        Desc = "Check for walls",
+        Value = config.wallc or false,
+        Callback = function(v)
+            config.wallc = v
+        end
+    })
+    SilentAimTab:Dropdown({
+        Title = "Target Part",
+        Desc = "Part to target",
+        List = {"Head", "HumanoidRootPart", "Both"},
+        Value = config.bodypart or "Head",
+        Callback = function(Option)
+            local targetsToRemove = {}
+            for pl, _ in pairs(config.activeApplied) do
+                table.insert(targetsToRemove, pl)
+            end
+            for _, pl in ipairs(targetsToRemove) do
+                restorePartForPlayer(pl)
+            end
+            config.bodypart = Option
+        end
+    })
+    
+    SilentAimTab:Slider({
+        Title = "HitChance",
+        Desc = "Chance to hit target",
+        Min = 0,
+        Max = 100,
+        Rounding = 1,
+        Suffix = "%",
+        Value = config.hitchance or 100,
+        Callback = function(val)
+            config.hitchance = val
+        end
+    })
+    
+    SilentAimTab:Slider({
+        Title = "FovSize",
+        Desc = "Silent aim field of view",
+        Min = 1,
+        Max = 500,
+        Rounding = 10,
+        Value = config.fovsize or 120,
+        Callback = function(val)
+            config.fovsize = val
+            if gui.RingHolder then
+                gui.RingHolder.Size = UDim2.new(0, math.max(8, config.fovsize * 2), 0, math.max(8, config.fovsize * 2))
+            end
+        end
+    })
+end
+-- SilentAimTab 2
+local SilentAimTab2 = Window:Tab({Title = "SilentAim (HK)", Icon = "target"}) do
+    SilentAimTab2:Section({Title = "[ Hooked Based ]"})
+    SilentAimTab2:Section({Title = "[ NPC & ignoreforcefield support doesn't work here :( ]"})
+    SilentAimTab2:Section({Title = "[ Good Injectors are recommend ]"})
+    SilentAimTab2:Section({Title = "[ This might not work on every game ]"})
+    SilentAimTab2:Section({Title = "SilentAim Master"})
+    SilentAimTab2:Toggle({
+        Title = "Toggle SilentAim (HK) ('R')",
+        Desc = "Enable/disable silent aim",
+        Value = config.SA2_Enabled or false,
+        Callback = function(v)
+            config.SA2_Enabled = v
+            safeNotify({
+                Title = "Silent Aim",
+                Content = "Silent Aim " .. (v and "Enabled" or "Disabled"),
+                Audio = "rbxassetid://17208361335",
+                Length = 3,
+                Image = "rbxassetid://4483362458",
+                BarColor = v and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(255, 0, 0)
+            })
+        end
+    })
+    SilentAimTab2:Section({Title = "SilentAim Settings"})
+    SilentAimTab2:Toggle({
+        Title = "WallCheck ('T')",
+        Desc = "Check for walls before targeting",
+        Value = config.SA2_Wallcheck or false,
+        Callback = function(v)
+            config.SA2_Wallcheck = v
+            safeNotify({
+                Title = "Wall Check",
+                Content = "Wall Check " .. (v and "Enabled" or "Disabled"),
+                Audio = "rbxassetid://17208361335",
+                Length = 3,
+                Image = "rbxassetid://4483362458",
+                BarColor = Color3.fromRGB(0, 255, 0)
+            })
+        end
+    })
+    SilentAimTab2:Toggle({
+        Title = "360 Mode",
+        Desc = "Enable silent aim in all directions",
+        Value = config.SA2_ThreeSixtyMode or false,
+        Callback = function(v)
+            config.SA2_ThreeSixtyMode = v
+            safeNotify({
+                Title = "360 Mode",
+                Content = "360 Mode " .. (v and "Enabled" or "Disabled"),
+                Audio = "rbxassetid://17208361335",
+                Length = 3,
+                Image = "rbxassetid://4483362458",
+                BarColor = Color3.fromRGB(0, 255, 0)
+            })
+        end
+    })
+
+    SilentAimTab2:Dropdown({
+        Title = "Aim Method",
+        List = {"Raycast", "FindPartOnRay", "FindPartOnRayWithWhitelist", "FindPartOnRayWithIgnoreList", "Mouse.Hit", "All"},
+        Value = config.SA2_Method or "Raycast",
+        Callback = function(choice)
+            config.SA2_Method = choice
+        end
+    })
+    SilentAimTab2:Dropdown({
+        Title = "Target Part",
+        List = {"Head", "HumanoidRootPart"},
+        Value = config.SA2_TargetPart or "Head",
+        Callback = function(choice)
+            config.SA2_TargetPart = choice
+            safeNotify({
+                Title = "Target Part",
+                Content = "Targeting: " .. choice,
+                Audio = "rbxassetid://17208361335",
+                Length = 3,
+                Image = "rbxassetid://4483362458",
+                BarColor = Color3.fromRGB(0, 255, 0)
+            })
+        end
+    })
+    
+    SilentAimTab2:Slider({
+        Title = "Hit Chance",
+        Desc = "Accuracy percentage",
+        Min = 0,
+        Max = 100,
+        Rounding = 0,
+        Value = config.SA2_HitChance or 100,
+        Callback = function(val)
+            config.SA2_HitChance = val
+        end
+    })
+    
+    SilentAimTab2:Slider({
+        Title = "FOV Radius",
+        Desc = "Field of View size",
+        Min = 0,
+        Max = 500,
+        Rounding = 0,
+        Value = config.SA2_FovRadius or 100,
+        Callback = function(val)
+            config.SA2_FovRadius = val
+        end
+    })
+end
+
 -- Hitbox Tab
 local HitboxTab = Window:Tab({Title = "Hitbox", Icon = "box"}) do
-    HitboxTab:Section({Title = "Hitbox Master [This might not work on every game]"})
+    HitboxTab:Section({Title = "[ Bad Injectors might work here ]"})
+    HitboxTab:Section({Title = "[ This might not work on every game ]"})
+    HitboxTab:Section({Title = "Hitbox Master"})
     
 HitboxTab:Toggle({
     Title = "Toggle Hitbox ('G')",
@@ -4720,129 +6241,6 @@ HitboxTab:Toggle({
                         end)
                     end
                 end
-            end
-        end
-    })
-end
-
--- SilentAim Tab
-local SilentAimTab = Window:Tab({Title = "SilentAim", Icon = "target"}) do
-    SilentAimTab:Section({Title = "SilentAim Master [This might not work on every game]"})
-    
-SilentAimTab:Toggle({
-    Title = "Toggle SilentAim ('E')",
-    Desc = "Enable/disable silent aim",
-    Value = config.startsa or false,
-    Callback = function(v)
-        config.startsa = v
-        if not v then
-            if gui.RingHolder then
-                gui.RingHolder.Visible = false
-            end
-            local targetsToRemove = {}
-            for pl, _ in pairs(config.activeApplied) do
-                table.insert(targetsToRemove, pl)
-            end
-            for _, pl in ipairs(targetsToRemove) do
-                restorePartForPlayer(pl)
-            end
-            safeNotify({
-                Title = "SilentAim",
-                Content = "Disabled",
-                Audio = "rbxassetid://17208361335",
-                Length = 1,
-                Image = "rbxassetid://4483362458",
-                BarColor = Color3.fromRGB(255, 0, 0)
-            })
-        else
-            if gui.RingHolder then
-                gui.RingHolder.Visible = true
-            end
-            safeNotify({
-                Title = "SilentAim",
-                Content = "Enabled",
-                Audio = "rbxassetid://17208361335",
-                Length = 1,
-                Image = "rbxassetid://4483362458",
-                BarColor = Color3.fromRGB(255, 100, 0)
-            })
-        end
-    end
-})
-    
-    SilentAimTab:Section({Title = "SilentAim Settings"})
-    
-    SilentAimTab:Toggle({
-        Title = "WallCheck SA (B)",
-        Desc = "Check for walls",
-        Value = config.wallc or false,
-        Callback = function(v)
-            config.wallc = v
-        end
-    })
-    
-    SilentAimTab:Dropdown({
-        Title = "Team Target",
-        Desc = "Select target team preference",
-        List = {"Enemies", "Teams", "All"},
-        Value = config.targetMode or "Enemies",
-        Callback = function(Option)
-            if config.masterTeamTarget == "All" then return end
-            config.targetMode = Option
-        end
-    })
-    
-    SilentAimTab:Dropdown({
-        Title = "Target Part",
-        Desc = "Part to target",
-        List = {"Head", "HumanoidRootPart", "Both"},
-        Value = config.bodypart or "Head",
-        Callback = function(Option)
-            local targetsToRemove = {}
-            for pl, _ in pairs(config.activeApplied) do
-                table.insert(targetsToRemove, pl)
-            end
-            for _, pl in ipairs(targetsToRemove) do
-                restorePartForPlayer(pl)
-            end
-            config.bodypart = Option
-        end
-    })
-    
-    SilentAimTab:Dropdown({
-        Title = "GetTarget",
-        Desc = "Target selection method",
-        List = {"Closest", "Lowest Health"},
-        Value = config.silentGetTarget or "Closest",
-        Callback = function(Option)
-            config.silentGetTarget = Option
-        end
-    })
-    
-    SilentAimTab:Slider({
-        Title = "HitChance",
-        Desc = "Chance to hit target",
-        Min = 0,
-        Max = 100,
-        Rounding = 1,
-        Suffix = "%",
-        Value = config.hitchance or 100,
-        Callback = function(val)
-            config.hitchance = val
-        end
-    })
-    
-    SilentAimTab:Slider({
-        Title = "FovSize",
-        Desc = "Silent aim field of view",
-        Min = 1,
-        Max = 500,
-        Rounding = 10,
-        Value = config.fovsize or 120,
-        Callback = function(val)
-            config.fovsize = val
-            if gui.RingHolder then
-                gui.RingHolder.Size = UDim2.new(0, math.max(8, config.fovsize * 2), 0, math.max(8, config.fovsize * 2))
             end
         end
     })
@@ -4934,7 +6332,7 @@ local ClientTab = Window:Tab({Title = "Client", Icon = "user"}) do
     ClientTab:Slider({
         Title = "WalkSpeed Value",
         Desc = "Custom walk speed value",
-        Min = 1,
+        Min = 0,
         Max = 500,
         Rounding = 1,
         Value = config.clientWalkSpeed or 16,
@@ -4964,8 +6362,8 @@ local ClientTab = Window:Tab({Title = "Client", Icon = "user"}) do
     ClientTab:Slider({
         Title = "CFrame Walk Speed",
         Desc = "CFrame movement speed",
-        Min = 1,
-        Max = 100,
+        Min = 0,
+        Max = 500,
         Rounding = 1,
         Value = config.clientCFrameSpeed or 1,
         Callback = function(val)
@@ -5035,6 +6433,8 @@ end
 
 local function init()
     pc()
+    SetupRespawnHandler()
+    syncSilentAimWithMaster()
     for _, pl in ipairs(Players:GetPlayers()) do
         if pl ~= localPlayer then
             setupPlayerListeners(pl)
@@ -5185,7 +6585,7 @@ local function init()
                             restorePartForPlayer(pl)
                         end
                         safeNotify({
-                            Title = "SilentAim",
+                            Title = "SilentAim (HB)",
                             Content = "Disabled (Hotkey)",
                             Audio = "rbxassetid://17208361335",
                             Length = 1,
@@ -5196,7 +6596,7 @@ local function init()
                         if gui.RingHolder then gui.RingHolder.Visible = true end
                         lrfd()
                         safeNotify({
-                            Title = "SilentAim",
+                            Title = "SilentAim (HB)",
                             Content = "Enabled (Hotkey)",
                             Audio = "rbxassetid://17208361335",
                             Length = 1,
@@ -5204,6 +6604,26 @@ local function init()
                             BarColor = Color3.fromRGB(255, 100, 0)
                         })
                     end
+                elseif kc == Enum.KeyCode.R then
+                    config.SA2_Enabled = not config.SA2_Enabled
+                    safeNotify({
+                        Title = "SilentAim (HK)",
+                        Content = config.SA2_Enabled and "Enabled (Hotkey)" or "Disabled (Hotkey)",
+                        Audio = "rbxassetid://17208361335",
+                        Length = 1,
+                        Image = "rbxassetid://4483362458",
+                        BarColor = config.SA2_Enabled and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(255, 0, 0)
+                    })
+                elseif kc == Enum.KeyCode.T then
+                    config.SA2_Wallcheck = not config.SA2_Wallcheck
+                    safeNotify({
+                        Title = "SilentAim (HK) Wall Check",
+                        Content = config.SA2_Wallcheck and "Enabled (Hotkey)" or "Disabled (Hotkey)",
+                        Audio = "rbxassetid://17208361335",
+                        Length = 1,
+                        Image = "rbxassetid://4483362458",
+                        BarColor = config.SA2_Wallcheck and Color3.fromRGB(0, 170, 255) or Color3.fromRGB(255, 0, 0)
+                    })
                 elseif kc == Enum.KeyCode.Q then
                     handleAimbotToggle(not config.aimbotEnabled)
                     safeNotify({
@@ -5294,7 +6714,7 @@ local function cleanup()
     end
     
     stopAutoFarm()
-    nomobgui()
+    KillQT()
     if config.hotkeyConnection then
         pcall(function() config.hotkeyConnection:Disconnect() end)
         config.hotkeyConnection = nil
@@ -5376,13 +6796,15 @@ local function cleanup()
     config.nextGenRepDesiredState = false
     restoreClientValues()
 end
+
 task.spawn(function()
     while patcher do
-        updatemobgui()
+        UpdateQT()
         d()
         espRefresher()
-        updatemobgui()
-        
+        applyhb()
+        aimbotfov()
+        updateAimbotFOVRing()
         if config.nextGenRepDesiredState then
             if config.antiAimEnabled then
                 if not config.nextGenRepEnabled then
@@ -5440,25 +6862,12 @@ task.spawn(function()
         for _, player in ipairs(lineToRemove) do
             removeLineESP(player)
         end
-        task.wait(0.3)
+        task.wait(patcherwait)
     end
 end)
 
 
 init()
 
-return {
-    cleanup = cleanup,
-    toggle360Aimbot = toggle360Aimbot,
-    updatemobgui = updatemobgui,
-    applyKeybindAction = applyKeybindAction,
-    isHoldKeyDown = isHoldKeyDown,
-    canTriggerKeybind = canTriggerKeybind,
-    updateHoldkeyState = updateHoldkeyState,
-    isCtrlDown = isCtrlDown,
-    isShiftDown = isShiftDown,
-    updateLineESP = updateLineESP,
-    removeLineESP = removeLineESP,
-    createLineESP = createLineESP
-}
+return config
 -- fin
