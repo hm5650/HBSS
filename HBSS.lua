@@ -264,7 +264,7 @@ local config = {
     hotkeyConnection = nil,
     maxExpansion = math.huge,
     aimbotEnabled = false,
-    aimbotFOVSize = 100,
+    aimbotFOVSize = 70,
     aimbotStrength = 0.5,
     aimbotWallCheck = false,
     aimbotTargetPart = "Head",
@@ -5950,7 +5950,7 @@ AimbotTab:Toggle({
         Min = 1,
         Max = 500,
         Rounding = 0,
-        Value = config.aimbotFOVSize or 100,
+        Value = config.aimbotFOVSize or 70,
         Callback = function(val)
             config.aimbotFOVSize = val
             updateAimbotFOVRing()
