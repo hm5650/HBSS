@@ -189,7 +189,7 @@ local FindFirstChild = game.FindFirstChild
 local GetPlayers = plrs.GetPlayers
 local GetPartsObscuringTarget = Camera.GetPartsObscuringTarget
 local wasEnabledBeforeDeath = false
-local wasESPEnabledBeforeDeath = false  -- Add this lin
+local wasESPEnabledBeforeDeath = false
 local respawnLock = false
 local lastCharacter = nil
 local camera = workspace.CurrentCamera
@@ -480,7 +480,6 @@ local function syncSilentAimWithMaster()
         config.SA2_GetTarget = config.masterGetTarget
     end
 end
-
 local function GetClosestPlayer()
     if respawnLock or not plr.Character then
         if config.SA2_currentTarget then
@@ -519,18 +518,24 @@ local function GetClosestPlayer()
         
         if not foundPart then continue end
         local screenPos, onScreen = func.GetScreenPosition(foundPart.Position)
-        if not onScreen then continue end
+        
+        if config.SA2_ThreeSixtyMode then
+            onScreen = true
+            screenPos = screenCenter
+        end
+        
+        if not onScreen and not config.SA2_ThreeSixtyMode then
+            continue
+        end
+        
         screenPos = screenPos + Vector2.new(0, config.SA2_TArea)
         
         local distToFov = (screenCenter - screenPos).Magnitude
-        if distToFov > config.SA2_FovRadius then continue end
+        if distToFov > config.SA2_FovRadius and not config.SA2_ThreeSixtyMode then 
+            continue 
+        end
         
         local worldDist = (Camera.CFrame.Position - foundPart.Position).Magnitude
-        
-        if config.SA2_ThreeSixtyMode then
-            OnScreen = true
-            ScreenPosition = screenCenter
-        end
         
         local distanceToCenter = onScreen and (screenCenter - screenPos).Magnitude or math.huge
         
@@ -557,14 +562,17 @@ local function GetClosestPlayer()
     
     if config.SA2_ThreeSixtyMode then
         local newClosestPlayer = nil
+        local closestDistance = math.huge
+        
         for _, target in ipairs(allTargets) do
-            if target.worldDist < ShortestDistance then
-                ShortestDistance = target.worldDist
+            if target.worldDist < closestDistance then
+                closestDistance = target.worldDist
                 local actualTargetPart = GetActualTargetPart()
                 Closest = target.character[actualTargetPart] or target.part
                 newClosestPlayer = target.player
             end
         end
+        
         if newClosestPlayer ~= config.SA2_currentTarget then
             config.SA2_currentTarget = newClosestPlayer
             updateESPColors()
