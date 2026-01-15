@@ -208,6 +208,7 @@ local config = {
     startsa = false,
     fovsize = 120,
     predic = 1,
+    hbtrans = 1,
     SA2_Enabled = false,
     SA2_Method = "Raycast",
     SA2_TeamTarget = "Enemies",
@@ -3183,7 +3184,7 @@ local function hb()
 
                 pcall(function()
                     part.Size = newSize
-                    part.Transparency = 1
+                    part.Transparency = config.hbtrans
                     part.CanCollide = false
                     part.Massless = (part.Name ~= "HumanoidRootPart")
                 end)
@@ -5217,7 +5218,7 @@ MainTab:Toggle({
         Desc = "Part replication distance",
         Min = 0,
         Max = 1000,
-        Rounding = 10,
+        Rounding = 0,
         Value = config.gp or 200,
         Callback = function(val)
             config.gp = val
@@ -5230,7 +5231,7 @@ MainTab:Slider({
     Desc = "Maximum distance to teleport targets",
     Min = 0,
     Max = 999999999,
-    Rounding = 10,
+    Rounding = 0,
     Value = config.autoFarmMaxRange or 50,
     Callback = function(val)
         config.autoFarmMaxRange = val
@@ -5242,7 +5243,7 @@ MainTab:Slider({
         Desc = "Teleport distance for autofarm",
         Min = 1,
         Max = 100,
-        Rounding = 1,
+        Rounding = 0,
         Value = config.autoFarmDistance or 10,
         Callback = function(val)
             config.autoFarmDistance = val
@@ -5254,7 +5255,7 @@ MainTab:Slider({
         Desc = "Vertical offset for autofarm",
         Min = -50,
         Max = 50,
-        Rounding = 1,
+        Rounding = 0,
         Value = config.autoFarmVerticalOffset or 0,
         Callback = function(val)
             config.autoFarmVerticalOffset = val
@@ -5386,8 +5387,8 @@ local Optiz = loadstring(game:HttpGet('https://raw.githubusercontent.com/hm5650/
         Title = "Updaters speed",
         Desc = "Increase performance when increased costs Accuracy",
         Min = 0,
-        Max = 1000,
-        Rounding = 10,
+        Max = 50,
+        Rounding = 0,
         Value = patcherwait or 0.3,
         Callback = function(val)
             patcherwait = val
@@ -5948,7 +5949,7 @@ AimbotTab:Toggle({
         Desc = "Aimbot field of view",
         Min = 1,
         Max = 500,
-        Rounding = 10,
+        Rounding = 0,
         Value = config.aimbotFOVSize or 100,
         Callback = function(val)
             config.aimbotFOVSize = val
@@ -6037,7 +6038,7 @@ SilentAimTab:Toggle({
         Desc = "Chance to hit target",
         Min = 0,
         Max = 100,
-        Rounding = 1,
+        Rounding = 0,
         Suffix = "%",
         Value = config.hitchance or 100,
         Callback = function(val)
@@ -6050,13 +6051,24 @@ SilentAimTab:Toggle({
         Desc = "Silent aim field of view",
         Min = 1,
         Max = 500,
-        Rounding = 10,
+        Rounding = 0,
         Value = config.fovsize or 120,
         Callback = function(val)
             config.fovsize = val
             if gui.RingHolder then
                 gui.RingHolder.Size = UDim2.new(0, math.max(8, config.fovsize * 2), 0, math.max(8, config.fovsize * 2))
             end
+        end
+    })
+    SilentAimTab:Slider({
+        Title = "Hitbox Transparency",
+        Desc = "SilentAim Hitbox Transparency",
+        Min = 0,
+        Max = 1,
+        Rounding = 1,
+        Value = config.fovsize or 120,
+        Callback = function(val)
+            config.hbtrans = val
         end
     })
 end
@@ -6224,8 +6236,8 @@ HitboxTab:Toggle({
         Title = "Hitbox Size",
         Desc = "Size of expanded hitboxes",
         Min = 1,
-        Max = 50,
-        Rounding = 1,
+        Max = 500,
+        Rounding = 0,
         Value = config.hitboxSize or 10,
         Callback = function(val)
             config.hitboxSize = val
@@ -6333,7 +6345,7 @@ local ClientTab = Window:Tab({Title = "Client", Icon = "user"}) do
         Desc = "Custom walk speed value",
         Min = 0,
         Max = 500,
-        Rounding = 1,
+        Rounding = 0,
         Value = config.clientWalkSpeed or 16,
         Callback = function(val)
             config.clientWalkSpeed = val
@@ -6348,7 +6360,7 @@ local ClientTab = Window:Tab({Title = "Client", Icon = "user"}) do
         Desc = "Custom jump power value",
         Min = 0,
         Max = 500,
-        Rounding = 1,
+        Rounding = 0,
         Value = config.clientJumpPower or 50,
         Callback = function(val)
             config.clientJumpPower = val
@@ -6363,7 +6375,7 @@ local ClientTab = Window:Tab({Title = "Client", Icon = "user"}) do
         Desc = "CFrame movement speed",
         Min = 0,
         Max = 500,
-        Rounding = 1,
+        Rounding = 0,
         Value = config.clientCFrameSpeed or 1,
         Callback = function(val)
             config.clientCFrameSpeed = val
