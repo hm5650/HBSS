@@ -3542,14 +3542,6 @@ local function toggle360Aimbot(state)
     if state then
         if not config.aimbotEnabled then
             config.aimbot360Enabled = false
-            safeNotify({
-                Title = "360° Aimbot",
-                Content = "Requires Aimbot to be enabled first. Toggle Aimbot on to use 360° mode.",
-                Audio = "rbxassetid://17208361335",
-                Length = 2,
-                Image = "rbxassetid://4483362458",
-                BarColor = Color3.fromRGB(255, 165, 0)
-            })
             return
         end
 
@@ -3562,14 +3554,6 @@ local function toggle360Aimbot(state)
         updateAimbotFOVRing()
         aimbot360UpdateLoop()
 
-        safeNotify({
-            Title = "360° Aimbot",
-            Content = "Enabled - Targeting in all directions (0.1s updates)",
-            Audio = "rbxassetid://17208361335",
-            Length = 2,
-            Image = "rbxassetid://4483362458",
-            BarColor = Color3.fromRGB(255, 165, 0)
-        })
     else
         if config.aimbot360OriginalFOV then
             config.aimbotFOVSize = config.aimbot360OriginalFOV
@@ -3582,15 +3566,6 @@ local function toggle360Aimbot(state)
         if aimbot360LoopTask then
             aimbot360LoopTask = nil
         end
-
-        safeNotify({
-            Title = "360° Aimbot",
-            Content = "Disabled",
-            Audio = "rbxassetid://17208361335",
-            Length = 1,
-            Image = "rbxassetid://4483362458",
-            BarColor = Color3.fromRGB(255, 0, 0)
-        })
     end
 end
 local function handleAimbotToggle(state)
@@ -6102,14 +6077,6 @@ local SilentAimTab2 = Window:Tab({Title = "SilentAim (HK)", Icon = "target"}) do
         Value = config.SA2_Wallcheck or false,
         Callback = function(v)
             config.SA2_Wallcheck = v
-            safeNotify({
-                Title = "Wall Check",
-                Content = "Wall Check " .. (v and "Enabled" or "Disabled"),
-                Audio = "rbxassetid://17208361335",
-                Length = 3,
-                Image = "rbxassetid://4483362458",
-                BarColor = Color3.fromRGB(0, 255, 0)
-            })
         end
     })
     SilentAimTab2:Toggle({
@@ -6118,14 +6085,6 @@ local SilentAimTab2 = Window:Tab({Title = "SilentAim (HK)", Icon = "target"}) do
         Value = config.SA2_ThreeSixtyMode or false,
         Callback = function(v)
             config.SA2_ThreeSixtyMode = v
-            safeNotify({
-                Title = "360 Mode",
-                Content = "360 Mode " .. (v and "Enabled" or "Disabled"),
-                Audio = "rbxassetid://17208361335",
-                Length = 3,
-                Image = "rbxassetid://4483362458",
-                BarColor = Color3.fromRGB(0, 255, 0)
-            })
         end
     })
 
