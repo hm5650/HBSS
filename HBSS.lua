@@ -5044,8 +5044,8 @@ local Window = Library:Window({
 
 -- Main Tab
 local MainTab = Window:Tab({Title = "Main", Icon = "hammer"}) do
-    MainTab:Section({Title = "Master Settings"})
-    
+    MainTab:Section({Title = "MainTab Settings"})
+    MainTab:Section({Title = "Global"})
 MainTab:Dropdown({
     Title = "Team Target",
     Desc = "Select Target Team",
@@ -5082,7 +5082,7 @@ MainTab:Dropdown({
     })
 MainTab:Dropdown({
     Title = "GetTarget",
-    Desc = "Target selection method (Applies to all systems)",
+    Desc = "Target selection method",
     List = {"Closest", "Lowest Health", "TargetSeen"},
     Value = config.masterGetTarget or "Closest",
     Callback = function(Option)
@@ -5108,17 +5108,16 @@ MainTab:Dropdown({
             end
         end
     })
-
-    MainTab:Section({Title = "Utilities"})
-    
 MainTab:Toggle({
-    Title = "Ignore Forcefield (Global)",
-    Desc = "Skip targets with forcefields in all systems",
+    Title = "Ignore Forcefield",
+    Desc = "Skip targets with forcefields",
     Value = config.ignoreForcefield or true,
     Callback = function(v)
         config.ignoreForcefield = v
     end
 })
+    MainTab:Section({Title = "Utilities"})
+    
     MainTab:Toggle({
         Title = "Toggle AutoFarm ('F')",
         Desc = "Enable/disable auto farm",
@@ -6871,3 +6870,4 @@ init()
 
 return config
 -- fin
+
