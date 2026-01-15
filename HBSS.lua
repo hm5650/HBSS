@@ -494,6 +494,8 @@ local function GetClosestPlayer()
     local LowestHealth = math.huge
     local screenCenter = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
     local allTargets = {}
+    local cameraCFrame = Camera.CFrame
+    local cameraPos = cameraCFrame.Position
     
     for _, Player in next, GetPlayers(plrs) do
         if Player == plr then continue end
@@ -517,39 +519,40 @@ local function GetClosestPlayer()
         end
         
         if not foundPart then continue end
-        local screenPos, onScreen = func.GetScreenPosition(foundPart.Position)
         
+        local targetPos = foundPart.Position
+        local worldDist = (cameraPos - targetPos).Magnitude
         if config.SA2_ThreeSixtyMode then
-            onScreen = true
-            screenPos = screenCenter
+            table.insert(allTargets, {
+                player = Player,
+                character = Character,
+                part = foundPart,
+                humanoid = Humanoid,
+                health = Humanoid.Health,
+                worldDist = worldDist,
+                in360Mode = true
+            })
+        else
+            local screenPos, onScreen = func.GetScreenPosition(targetPos)
+            if not onScreen then continue end
+            screenPos = screenPos + Vector2.new(0, config.SA2_TArea)
+            
+            local distToFov = (screenCenter - screenPos).Magnitude
+            if distToFov > config.SA2_FovRadius then continue end
+            
+            table.insert(allTargets, {
+                player = Player,
+                character = Character,
+                part = foundPart,
+                humanoid = Humanoid,
+                health = Humanoid.Health,
+                screenPos = screenPos,
+                onScreen = onScreen,
+                distanceToCenter = distToFov,
+                worldDist = worldDist,
+                in360Mode = false
+            })
         end
-        
-        if not onScreen and not config.SA2_ThreeSixtyMode then
-            continue
-        end
-        
-        screenPos = screenPos + Vector2.new(0, config.SA2_TArea)
-        
-        local distToFov = (screenCenter - screenPos).Magnitude
-        if distToFov > config.SA2_FovRadius and not config.SA2_ThreeSixtyMode then 
-            continue 
-        end
-        
-        local worldDist = (Camera.CFrame.Position - foundPart.Position).Magnitude
-        
-        local distanceToCenter = onScreen and (screenCenter - screenPos).Magnitude or math.huge
-        
-        table.insert(allTargets, {
-            player = Player,
-            character = Character,
-            part = foundPart,
-            humanoid = Humanoid,
-            health = Humanoid.Health,
-            screenPos = screenPos,
-            onScreen = onScreen,
-            distanceToCenter = distanceToCenter,
-            worldDist = worldDist
-        })
     end
     
     if #allTargets == 0 then
@@ -561,24 +564,27 @@ local function GetClosestPlayer()
     end
     
     if config.SA2_ThreeSixtyMode then
-        local newClosestPlayer = nil
-        local closestDistance = math.huge
+        local closestWorldDist = math.huge
+        local closestTarget = nil
         
         for _, target in ipairs(allTargets) do
-            if target.worldDist < closestDistance then
-                closestDistance = target.worldDist
-                local actualTargetPart = GetActualTargetPart()
-                Closest = target.character[actualTargetPart] or target.part
-                newClosestPlayer = target.player
+            if target.worldDist < closestWorldDist then
+                closestWorldDist = target.worldDist
+                closestTarget = target
             end
         end
         
-        if newClosestPlayer ~= config.SA2_currentTarget then
-            config.SA2_currentTarget = newClosestPlayer
-            updateESPColors()
+        if closestTarget then
+            local actualTargetPart = GetActualTargetPart()
+            Closest = closestTarget.character[actualTargetPart] or closestTarget.part
+            
+            if closestTarget.player ~= config.SA2_currentTarget then
+                config.SA2_currentTarget = closestTarget.player
+                updateESPColors()
+            end
+            
+            return Closest
         end
-        
-        return Closest
     end
     
     local newClosestPlayer = nil
