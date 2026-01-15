@@ -189,6 +189,7 @@ local FindFirstChild = game.FindFirstChild
 local GetPlayers = plrs.GetPlayers
 local GetPartsObscuringTarget = Camera.GetPartsObscuringTarget
 local wasEnabledBeforeDeath = false
+local wasESPEnabledBeforeDeath = false  -- Add this lin
 local respawnLock = false
 local lastCharacter = nil
 local camera = workspace.CurrentCamera
@@ -413,60 +414,6 @@ local function hasForcefield(character)
     return false
 end
 
-local function SetupRespawnHandler()
-    plr.CharacterAdded:Connect(function(character)
-        
-        if respawnLock then
-            wait(1.5)
-            
-            local humanoid = character:WaitForChild("Humanoid", 5)
-            if humanoid and humanoid.Health > 0 then
-                if wasEnabledBeforeDeath then
-                    config.SA2_Enabled = true
-                end
-                
-                respawnLock = false
-                wasEnabledBeforeDeath = false
-            end
-        end
-    end)
-    
-    plr.CharacterRemoving:Connect(function(character)
-        
-        if config.SA2_Enabled then
-            wasEnabledBeforeDeath = true
-        end
-        config.SA2_Enabled = false
-        respawnLock = true
-    end)
-    
-    local function trackHumanoidDeath()
-        if plr.Character then
-            local humanoid = plr.Character:FindFirstChild("Humanoid")
-            if humanoid then
-                humanoid.Died:Connect(function()
-                    
-                    if config.SA2_Enabled then
-                        wasEnabledBeforeDeath = true
-                    end
-                    
-                    config.SA2_Enabled = false
-                    respawnLock = true
-                end)
-            end
-        end
-    end
-    
-    if plr.Character then
-        trackHumanoidDeath()
-    end
-    
-    plr.CharacterAdded:Connect(function()
-        wait(0.5)
-        trackHumanoidDeath()
-    end)
-end
-
 local function GetRandomTargetPart()
     return ValidTargetParts[math.random(1, #ValidTargetParts)]
 end
@@ -571,11 +518,10 @@ local function GetClosestPlayer()
         end
         
         if not foundPart then continue end
-        
         local screenPos, onScreen = func.GetScreenPosition(foundPart.Position)
         if not onScreen then continue end
-        
         screenPos = screenPos + Vector2.new(0, config.SA2_TArea)
+        
         local distToFov = (screenCenter - screenPos).Magnitude
         if distToFov > config.SA2_FovRadius then continue end
         
@@ -1070,6 +1016,7 @@ local function updateTeamTargetModes()
     updateESPColors()
 end
 
+
 local function applyESPMaster(state)
     config.espMasterEnabled = state
 
@@ -1088,9 +1035,6 @@ local function applyESPMaster(state)
 
         config.espon = false
         config.highlightesp = false
-        config.espData = {}
-        config.highlightData = {}
-        config.lineESPData = {}
     else
         if config.prefHighlightESP then
             for _, target in ipairs(getAllTargets()) do
@@ -1121,84 +1065,7 @@ local function applyESPMaster(state)
 
     updateESPColors()
 end
-local function cleanupAllESP()
-    local targetsToRemove = {}
-    for target in pairs(config.espData) do
-        table.insert(targetsToRemove, target)
-    end
-    for target in pairs(config.highlightData) do
-        if not table.find(targetsToRemove, target) then
-            table.insert(targetsToRemove, target)
-        end
-    end
-    for target in pairs(config.lineESPData) do
-        if not table.find(targetsToRemove, target) then
-            table.insert(targetsToRemove, target)
-        end
-    end
-    
-    for _, target in ipairs(targetsToRemove) do
-        removeESPLabel(target)
-        removeHighlightESP(target)
-        removeLineESP(target)
-    end
-    
-    config.espData = {}
-    config.highlightData = {}
-    config.lineESPData = {}
-end
 
-local function enhancedCleanplrdata(targetPlayer)
-    if not targetPlayer then return end
-
-    config.autoFarmOriginalPositions[targetPlayer] = nil
-    config.autoFarmCompleted[targetPlayer] = nil
-    
-    if config.currentAutoFarmTarget == targetPlayer then
-        config.currentAutoFarmTarget = nil
-    end
-
-    removeESPLabel(targetPlayer)
-    removeHighlightESP(targetPlayer)
-    removeLineESP(targetPlayer)
-    
-    restorePartForPlayer(targetPlayer)
-    restoreTorso(targetPlayer)
-
-    if config.playerConnections[targetPlayer] then
-        for _, conn in ipairs(config.playerConnections[targetPlayer]) do
-            pcall(function() conn:Disconnect() end)
-        end
-        config.playerConnections[targetPlayer] = nil
-    end
-
-    if config.characterConnections[targetPlayer] then
-        pcall(function() config.characterConnections[targetPlayer]:Disconnect() end)
-        config.characterConnections[targetPlayer] = nil
-    end
-
-    config.activeApplied[targetPlayer] = nil
-    config.originalSizes[targetPlayer] = nil
-    config.targethbSizes[targetPlayer] = nil
-    config.hitboxExpandedParts[targetPlayer] = nil
-    config.hitboxOriginalSizes[targetPlayer] = nil
-    config.centerLocked[targetPlayer] = nil
-
-    if config.currentTarget == targetPlayer then
-        config.currentTarget = nil
-    end
-    if config.aimbotCurrentTarget == targetPlayer then
-        config.aimbotCurrentTarget = nil
-    end
-    if config.SA2_currentTarget == targetPlayer then
-        config.SA2_currentTarget = nil
-    end
-    
-    updateESPColors()
-end
-Players.PlayerRemoving:Connect(function(pl)
-    enhancedCleanplrdata(pl)
-end)
 RunService.RenderStepped:Connect(function()
     local currentTime = tick()
     if currentTime - lastTargetUpdate > 0.6 then
@@ -2372,23 +2239,9 @@ end
 local function removeHighlightESP(targetPlayer)
     if not targetPlayer then return end
     local h = config.highlightData[targetPlayer]
-    if h then
-        pcall(function()
-            if h.Parent then
-                h:Destroy()
-            end
-        end)
-        
-        local char = getTargetCharacter(targetPlayer)
-        if char then
-            for _, child in ipairs(char:GetChildren()) do
-                if child:IsA("Highlight") and child.Name == "PlayerHighlight" then
-                    pcall(function() child:Destroy() end)
-                end
-            end
-        end
+    if h and h.Parent then
+        pcall(function() h:Destroy() end)
     end
-    
     config.highlightData[targetPlayer] = nil
 end
 
@@ -2785,34 +2638,6 @@ local function toggleHighlightESP(enabled)
         for _, targetPlayer in ipairs(targetsToRemove) do
             removeHighlightESP(targetPlayer)
         end
-        config.highlightData = {}
-    end
-end
-
-local function cleanupOrphanedESP()
-    local toRemoveHigh = {}
-    for targetPlayer, highlight in pairs(config.highlightData) do
-        if not targetPlayer or not highlight or not highlight.Parent then
-            table.insert(toRemoveHigh, targetPlayer)
-        elseif not Players:GetPlayerFromCharacter(targetPlayer) and 
-               not (typeof(targetPlayer) == "Instance" and targetPlayer:IsA("Model") and targetPlayer.Parent) then
-            table.insert(toRemoveHigh, targetPlayer)
-        end
-    end
-    
-    for _, targetPlayer in ipairs(toRemoveHigh) do
-        removeHighlightESP(targetPlayer)
-    end
-    
-    local toRemoveESP = {}
-    for targetPlayer, data in pairs(config.espData) do
-        if not targetPlayer or not data or not data.screenGui or not data.screenGui.Parent then
-            table.insert(toRemoveESP, targetPlayer)
-        end
-    end
-    
-    for _, targetPlayer in ipairs(toRemoveESP) do
-        removeESPLabel(targetPlayer)
     end
 end
 
@@ -6518,6 +6343,73 @@ local function isShiftDown()
     return leftShift or rightShift
 end
 
+local function SetupRespawnHandler()
+    plr.CharacterAdded:Connect(function(character)
+        if respawnLock then
+            wait(1.5)
+            
+            local humanoid = character:WaitForChild("Humanoid", 5)
+            if humanoid and humanoid.Health > 0 then
+                if wasEnabledBeforeDeath then
+                    config.SA2_Enabled = true
+                end
+                
+                if wasESPEnabledBeforeDeath then
+                    config.espMasterEnabled = true
+                end
+                
+                respawnLock = false
+                wasEnabledBeforeDeath = false
+                wasESPEnabledBeforeDeath = false
+            end
+        end
+    end)
+    
+    plr.CharacterRemoving:Connect(function(character)
+        if config.SA2_Enabled then
+            wasEnabledBeforeDeath = true
+        end
+        
+        if config.espMasterEnabled then
+            wasESPEnabledBeforeDeath = true
+        end
+        
+        config.SA2_Enabled = false
+        config.espMasterEnabled = false
+        respawnLock = true
+    end)
+    
+    local function trackHumanoidDeath()
+        if plr.Character then
+            local humanoid = plr.Character:FindFirstChild("Humanoid")
+            if humanoid then
+                humanoid.Died:Connect(function()
+                    if config.SA2_Enabled then
+                        wasEnabledBeforeDeath = true
+                    end
+                    
+                    if config.espMasterEnabled then
+                        wasESPEnabledBeforeDeath = true
+                    end
+                    
+                    config.SA2_Enabled = false
+                    config.espMasterEnabled = false
+                    respawnLock = true
+                end)
+            end
+        end
+    end
+    
+    if plr.Character then
+        trackHumanoidDeath()
+    end
+    
+    plr.CharacterAdded:Connect(function()
+        wait(0.5)
+        trackHumanoidDeath()
+    end)
+end
+
 local function init()
     pc()
     SetupRespawnHandler()
@@ -6892,10 +6784,6 @@ task.spawn(function()
         applyhb()
         aimbotfov()
         updateAimbotFOVRing()
-        local currentTime = tick()
-        if currentTime % 10 < 0.1 then
-            cleanupOrphanedESP()
-        end
         if config.nextGenRepDesiredState then
             if config.antiAimEnabled then
                 if not config.nextGenRepEnabled then
@@ -6962,3 +6850,4 @@ init()
 
 return config
 -- fin
+
