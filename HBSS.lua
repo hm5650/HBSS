@@ -198,7 +198,7 @@ local aimbot360LoopTask = nil
 local desyncHook = nil
 local gui = {}
 local patcher = true
-local patcherwait = 0.3
+local patcherwait = 0.5
 
 local FindTool = loadstring(game:HttpGet("https://raw.githubusercontent.com/hm5650/HBSS/refs/heads/main/SA2_FindTool.lua"))()
 local func = loadstring(game:HttpGet("https://raw.githubusercontent.com/hm5650/HBSS/refs/heads/main/SA2_Function.lua"))()
@@ -5314,7 +5314,7 @@ local Optiz = loadstring(game:HttpGet('https://raw.githubusercontent.com/hm5650/
         Min = 0,
         Max = 50,
         Rounding = 0,
-        Value = patcherwait or 0.3,
+        Value = patcherwait or 0.5,
         Callback = function(val)
             patcherwait = val
         end
@@ -6858,4 +6858,3 @@ init()
 
 return config
 -- fin
-
