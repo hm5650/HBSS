@@ -200,7 +200,10 @@ local gui = {}
 local patcher = true
 local patcherwait = 0.5
 
-local FindTool = loadstring(game:HttpGet("https://raw.githubusercontent.com/hm5650/HBSS/refs/heads/main/SA2_FindTool.lua"))()
+local FT = function()
+    local FindTool = loadstring(game:HttpGet("https://raw.githubusercontent.com/hm5650/HBSS/refs/heads/main/SA2_FindTool.lua"))()
+end
+
 local func = loadstring(game:HttpGet("https://raw.githubusercontent.com/hm5650/HBSS/refs/heads/main/SA2_Function.lua"))()
 local lastTargetUpdate = 0
 
@@ -350,6 +353,7 @@ local config = {
     nextGenRepDesiredState = false,
     ignoreForcefield = true,
     QuickToggles = false,
+    keybindsEnabled = true,
     keybinds = {
         silentaim = "E",
         aimbot = "Q",
@@ -4336,6 +4340,9 @@ local function normalizeKeyString(k)
     return s:upper()
 end
 local function applyKeybindAction(key, fromHotkeySystem)
+    if config.keybindsEnabled == false then
+        return false
+    end
     local keyUpper = normalizeKeyString(key)
     if not keyUpper then return false end
     
@@ -4345,7 +4352,9 @@ local function applyKeybindAction(key, fromHotkeySystem)
     if isMobile and guiOpen and gui.mobileGui.Frame and gui.mobileGui.Frame.Size.Y.Offset > 100 then
         return false
     end
-    if fromHotkeySystem and config.holdkeyToggle.enabled then
+    
+    -- FIXED: Only check hold key if holdkeyToggle is enabled
+    if config.holdkeyToggle.enabled then
         if not isHoldKeyDown() then
             return false
         end
@@ -4363,7 +4372,7 @@ local function applyKeybindAction(key, fromHotkeySystem)
             config.holdkeyStates[action] = currentTime
             local source = fromHotkeySystem and "Keybind" or "UI"
             
-            if action == "silentaimhb" then
+            if action == "silentaim" then  -- This is the HB version keybind
                 config.startsa = not config.startsa
                 if not config.startsa then
                     if gui.RingHolder then gui.RingHolder.Visible = false end
@@ -5194,7 +5203,14 @@ MainTab:Slider({
     })
 
     MainTab:Section({Title = "Keybinds [might not work well]"})
-
+    MainTab:Toggle({
+        Title = "Toggle Keybinds",
+        Desc = "Enable/Disable  Keybinds",
+        Value = config.keybindsEnabled or true,
+        Callback = function(v)
+            config.keybindsEnabled = v
+        end
+    })
     MainTab:Toggle({
         Title = "Holdkey Toggle",
         Desc = "[Re-Toggle When HK Type is Changed]",
@@ -6520,6 +6536,9 @@ local function init()
     end
 
     config.hotkeyConnection = UserInputService.InputBegan:Connect(function(input, gameProcessed)
+        if config.keybindsEnabled == false then
+            return
+        end
         if gameProcessed then return end
         local focused = UserInputService:GetFocusedTextBox()
         if focused then return end
@@ -6532,7 +6551,44 @@ local function init()
             end
             
             if isCtrlDown() then
-                if kc == Enum.KeyCode.Z then
+                -- For Ctrl+E (SilentAim HB)
+                if kc == Enum.KeyCode.E then
+                    -- FIXED: Only check hold key if holdkeyToggle is enabled
+                    if config.holdkeyToggle.enabled and not isHoldKeyDown() then
+                        return
+                    end
+                    
+                    config.startsa = not config.startsa
+                    if not config.startsa then
+                        if gui.RingHolder then gui.RingHolder.Visible = false end
+                        local targetsToRemove = {}
+                        for pl, _ in pairs(config.activeApplied) do
+                            table.insert(targetsToRemove, pl)
+                        end
+                        for _, pl in ipairs(targetsToRemove) do
+                            restorePartForPlayer(pl)
+                        end
+                        safeNotify({
+                            Title = "SilentAim (HB)",
+                            Content = "Disabled (Hotkey)",
+                            Audio = "rbxassetid://17208361335",
+                            Length = 1,
+                            Image = "rbxassetid://4483362458",
+                            BarColor = Color3.fromRGB(255, 0, 0)
+                        })
+                    else
+                        if gui.RingHolder then gui.RingHolder.Visible = true end
+                        lrfd()
+                        safeNotify({
+                            Title = "SilentAim (HB)",
+                            Content = "Enabled (Hotkey)",
+                            Audio = "rbxassetid://17208361335",
+                            Length = 1,
+                            Image = "rbxassetid://4483362458",
+                            BarColor = Color3.fromRGB(255, 100, 0)
+                        })
+                    end
+                elseif kc == Enum.KeyCode.Z then
                     config.espMasterEnabled = not config.espMasterEnabled
                     applyESPMaster(config.espMasterEnabled)
                     safeNotify({
@@ -6564,37 +6620,6 @@ local function init()
                             Length = 1,
                             Image = "rbxassetid://4483362458",
                             BarColor = Color3.fromRGB(255, 0, 0)
-                        })
-                    end
-                elseif kc == Enum.KeyCode.E then
-                    config.startsa = not config.startsa
-                    if not config.startsa then
-                        if gui.RingHolder then gui.RingHolder.Visible = false end
-                        local targetsToRemove = {}
-                        for pl, _ in pairs(config.activeApplied) do
-                            table.insert(targetsToRemove, pl)
-                        end
-                        for _, pl in ipairs(targetsToRemove) do
-                            restorePartForPlayer(pl)
-                        end
-                        safeNotify({
-                            Title = "SilentAim (HB)",
-                            Content = "Disabled (Hotkey)",
-                            Audio = "rbxassetid://17208361335",
-                            Length = 1,
-                            Image = "rbxassetid://4483362458",
-                            BarColor = Color3.fromRGB(255, 0, 0)
-                        })
-                    else
-                        if gui.RingHolder then gui.RingHolder.Visible = true end
-                        lrfd()
-                        safeNotify({
-                            Title = "SilentAim (HB)",
-                            Content = "Enabled (Hotkey)",
-                            Audio = "rbxassetid://17208361335",
-                            Length = 1,
-                            Image = "rbxassetid://4483362458",
-                            BarColor = Color3.fromRGB(255, 100, 0)
                         })
                     end
                 elseif kc == Enum.KeyCode.R then
@@ -6798,6 +6823,7 @@ task.spawn(function()
         applyhb()
         aimbotfov()
         updateAimbotFOVRing()
+        FT()
         if config.nextGenRepDesiredState then
             if config.antiAimEnabled then
                 if not config.nextGenRepEnabled then
