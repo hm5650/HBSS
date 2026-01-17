@@ -19,169 +19,151 @@ local SoundService = game:GetService("SoundService")
 local player = Players.LocalPlayer
 local PlayerGui = player:WaitForChild("PlayerGui")
 local localPlayer = Players.LocalPlayer
-local gui = Instance.new("ScreenGui")
-local bg = Instance.new("Frame")
-local center = Instance.new("Frame")
-local brand = Instance.new("TextLabel")
-local loadingText = Instance.new("TextLabel")
-local bar = Instance.new("TextLabel")
-local icon = Instance.new("ImageLabel")
-local aspect = Instance.new("UIAspectRatioConstraint")
 local plrs = game:GetService("Players")
 local plr = plrs.LocalPlayer
+loadstring(game:HttpGet("https://raw.githubusercontent.com/hm5650/HBSS/refs/heads/main/HBSS_Loader.lua"))()
+local Alurt = loadstring(game:HttpGet("https://raw.githubusercontent.com/azir-py/project/refs/heads/main/Zwolf/AlurtUI.lua"))()
 
-local gui = Instance.new("ScreenGui")
-gui.Name = "FakeLoader"
-gui.IgnoreGuiInset = true
-gui.ResetOnSpawn = false
-gui.DisplayOrder = 2147483647
-gui.Parent = PlayerGui
-bg.Size = UDim2.fromScale(1, 1)
-bg.BackgroundColor3 = Color3.new(0, 0, 0)
-bg.BackgroundTransparency = 1
-bg.Parent = gui
-center.Size = UDim2.fromScale(0.3, 0.4)
-center.Position = UDim2.fromScale(0.5, 0.5)
-center.AnchorPoint = Vector2.new(0.5, 0.5)
-center.BackgroundTransparency = 1
-center.Parent = bg
-icon.Size = UDim2.fromScale(0.5, 0.5)
-icon.Position = UDim2.fromScale(0.5, 0.10)
-icon.AnchorPoint = Vector2.new(0.5, 0.5)
-icon.Image = "rbxassetid://7734056878"
-icon.BackgroundTransparency = 1
-icon.ImageTransparency = 1
-icon.ScaleType = Enum.ScaleType.Fit
-icon.Parent = center
-aspect.AspectRatio = 1
-aspect.Parent = icon
-brand.Size = UDim2.fromScale(1, 0.15)
-brand.Position = UDim2.fromScale(0.5, 0.42)
-brand.AnchorPoint = Vector2.new(0.5, 0.5)
-brand.Text = "Gravel.cc"
-brand.Font = Enum.Font.Code
-brand.TextSize = 22
-brand.TextColor3 = Color3.fromRGB(200, 200, 200)
-brand.TextTransparency = 1
-brand.BackgroundTransparency = 1
-brand.Parent = center
-loadingText.Size = UDim2.fromScale(1, 0.15)
-loadingText.Position = UDim2.fromScale(0.5, 0.6)
-loadingText.AnchorPoint = Vector2.new(0.5, 0.5)
-loadingText.Text = "Loading"
-loadingText.Font = Enum.Font.Code
-loadingText.TextSize = 18
-loadingText.TextColor3 = Color3.fromRGB(255, 255, 255)
-loadingText.TextTransparency = 1
-loadingText.BackgroundTransparency = 1
-loadingText.Parent = center
-bar.Size = UDim2.fromScale(1, 0.15)
-bar.Position = UDim2.fromScale(0.5, 0.75)
-bar.AnchorPoint = Vector2.new(0.5, 0.5)
-bar.Font = Enum.Font.Code
-bar.TextSize = 18
-bar.TextColor3 = Color3.fromRGB(255, 255, 255)
-bar.TextTransparency = 1
-bar.BackgroundTransparency = 1
-bar.Text = "[                    ]"
-bar.Parent = center
+local function safeNotify(opts)
+    if typeof(Alurt) == "table" and type(Alurt.CreateNode) == "function" then
+        pcall(function()
+            Alurt.CreateNode(opts)
+        end)
+    end
+end
 
-local fadeIn = TweenInfo.new(1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+local notif1 = (function()
+    pcall(function()
+        safeNotify({
+            Title = "Script started!",
+            Content = "May be unstable/dont work on some games",
+            Audio = "rbxassetid://17208361335",
+            Length = 3,
+            Image = "rbxassetid://4483362458",
+            BarColor = Color3.fromRGB(0, 170, 255)
+        })
+    end)
+end)()
 
-TweenService:Create(bg, fadeIn, {BackgroundTransparency = 0.1}):Play()
-TweenService:Create(icon, fadeIn, {ImageTransparency = 0}):Play()
-TweenService:Create(brand, fadeIn, {TextTransparency = 0}):Play()
-TweenService:Create(loadingText, fadeIn, {TextTransparency = 0}):Play()
-TweenService:Create(bar, fadeIn, {TextTransparency = 0}):Play()
+safeNotify({
+    Title = "Gravel.cc",
+    Content = "script made by hmmm5651\nyt: @gpsickle",
+    Audio = "rbxassetid://17208361335",
+    Length = 8,
+    Image = "rbxassetid://4483362458",
+    BarColor = Color3.fromRGB(0, 170, 255)
+})
 
-task.spawn(function()
-    local totalBars = 20
-    local filled = 0
-    local maxDuration = 3.25
-    local startTime = tick()
-    local elapsed = 0
-    
-    local sound = Instance.new("Sound")
-    sound.SoundId = "rbxassetid://9120299810"
-    sound.Volume = 0.5
-    sound.Parent = SoundService
-    
-    while elapsed < maxDuration do
-        task.wait(math.random(10, 30) / 100)
-        elapsed = tick() - startTime
-        
-        local targetFilled = math.min(totalBars, math.floor((elapsed / maxDuration) * totalBars))
-        
-        if targetFilled > filled then
-            for i = filled + 1, targetFilled do
-                sound:Play()
-            end
-            filled = targetFilled
-        elseif math.random() < 0.75 and filled < totalBars then
-            sound:Play()
-            filled = math.min(totalBars, filled + 1)
+safeNotify({
+    Title = "Gravel.cc",
+    Content = "Press K To open menu",
+    Audio = "rbxassetid://17208361335",
+    Length = 8,
+    Image = "rbxassetid://4483362458",
+    BarColor = Color3.fromRGB(0, 170, 255)
+})
+
+task.wait(2.30)
+pcall(function()
+loadstring(game:HttpGet('https://raw.githubusercontent.com/Pixeluted/adoniscries/main/Source.lua'))()
+local getgenv, getnamecallmethod, hookmetamethod, hookfunction, newcclosure, checkcaller, lower, gsub, match = getgenv, getnamecallmethod, hookmetamethod, hookfunction, newcclosure, checkcaller, string.lower, string.gsub, string.match
+if getgenv().ED_AntiKick then
+    return
+end
+
+local cloneref = cloneref or function(...) 
+    return ...
+end
+
+local clonefunction = clonefunction or function(...)
+    return ...
+end
+
+local Players, LocalPlayer, StarterGui = cloneref(game:GetService("Players")), cloneref(game:GetService("Players").LocalPlayer), cloneref(game:GetService("StarterGui"))
+
+local SetCore = clonefunction(StarterGui.SetCore)
+local FindFirstChild = clonefunction(game.FindFirstChild)
+
+local CompareInstances = (CompareInstances and function(Instance1, Instance2)
+        if typeof(Instance1) == "Instance" and typeof(Instance2) == "Instance" then
+            return CompareInstances(Instance1, Instance2)
         end
+    end)
+or
+function(Instance1, Instance2)
+    return (typeof(Instance1) == "Instance" and typeof(Instance2) == "Instance")
+end
 
-        local visual = string.rep("|", filled)
-        local empty = string.rep(" ", totalBars - filled)
-        bar.Text = "[" .. visual .. empty .. "]"
-        if math.random() < 0.3 then
-            loadingText.Text = "Loading."
-        elseif math.random() < 0.6 then
-            loadingText.Text = "Loading.."
-        else
-            loadingText.Text = "Loading..."
+local CanCastToSTDString = function(...)
+    return pcall(FindFirstChild, game, ...)
+end
+
+getgenv().ED_AntiKick = {
+    Enabled = true, 
+    SendNotifications = false,
+    CheckCaller = true
+}
+
+local OldNamecall; OldNamecall = hookmetamethod(game, "__namecall", newcclosure(function(...)
+    local self, message = ...
+    local method = getnamecallmethod()
+    local isCallerValid = true
+    if ED_AntiKick.CheckCaller then
+        local success, result = pcall(checkcaller)
+        isCallerValid = success and result or true
+    end
+    
+    if (isCallerValid or not ED_AntiKick.CheckCaller) and CompareInstances(self, LocalPlayer) and gsub(method, "^%l", string.upper) == "Kick" and ED_AntiKick.Enabled then
+        if CanCastToSTDString(message) then
+            if ED_AntiKick.SendNotifications then
+                SetCore(StarterGui, "SendNotification", {
+                    Title = "Gravel Anti-Kick",
+                    Text = "Successfully blocked an attempted kick.",
+                    Icon = "rbxassetid://4483362458",
+                    Duration = 1
+                })
+            end
+            return
         end
     end
 
-    filled = totalBars
-    bar.Text = "[" .. string.rep("|", totalBars) .. "]"
-    loadingText.Text = "Loaded"
+    return OldNamecall(...)
+end))
 
-    task.wait(0.6)
-    sound:Destroy()
-    local fadeOut = TweenInfo.new(0.8, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
+local OldFunction; OldFunction = hookfunction(LocalPlayer.Kick, function(...)
+    local self, Message = ...
 
-    TweenService:Create(bg, fadeOut, {BackgroundTransparency = 1}):Play()
-    TweenService:Create(icon, fadeOut, {ImageTransparency = 1}):Play()
-    TweenService:Create(brand, fadeOut, {TextTransparency = 1}):Play()
-    TweenService:Create(loadingText, fadeOut, {TextTransparency = 1}):Play()
-    TweenService:Create(bar, fadeOut, {TextTransparency = 1}):Play()
-
-    task.wait(1)
-    gui:Destroy()
+    local isCallerValid = true
+    if ED_AntiKick.CheckCaller then
+        local success, result = pcall(checkcaller)
+        isCallerValid = success and result or true
+    end
+    
+    if (isCallerValid or not ED_AntiKick.CheckCaller) and CompareInstances(self, LocalPlayer) and ED_AntiKick.Enabled then
+        if CanCastToSTDString(Message) then
+            if ED_AntiKick.SendNotifications then
+                SetCore(StarterGui, "SendNotification", {
+                    Title = "Gravel Anti-Kick",
+                    Text = "Successfully blocked an attempted kick.",
+                    Icon = "rbxassetid://4483362458",
+                    Duration = 1
+                })
+            end
+            return
+        end
+    end
+    return OldFunction(...)
 end)
-task.wait(2.30)
-local function Hook_Adonis(metadefs)
-	for _ , tbl in metadefs do
-		for i, func in tbl do
-			if type(func) == "function" and islclosure(func) then
-				local dummy_func = function()
-					return pcall(coroutine.close, coroutine.running())
-				end
-				hookfunction(func, dummy_func)
-			end
-		end
-	end
-end
-local function Init_Bypass()
-	for i, v in getgc(true) do
-		if
-			typeof(v) == "table"
-			and rawget(v, "indexInstance")
-			and rawget(v, "newindexInstance")
-			and rawget(v, "namecallInstance")
-			and type(rawget(v,"newindexInstance")) == "table"
-		then
-			if v["newindexInstance"][1] == "kick" then
-				Hook_Adonis(v)
-			end
-		end
-	end
-end
 
-task.spawn(Init_Bypass)
-
+safeNotify({
+    Title = "Gravel.cc",
+    Content = "Antikick started!",
+    Audio = "rbxassetid://17208361335",
+    Length = 8,
+    Image = "rbxassetid://4483362458",
+    BarColor = Color3.fromRGB(0, 170, 255)
+})
+end)
 local ValidTargetParts = {"Head", "HumanoidRootPart", "Torso", "UpperTorso", "LowerTorso", "RightUpperArm", "LeftUpperArm", "RightLowerArm", "LeftLowerArm", "RightHand", "LeftHand", "RightUpperLeg", "LeftUpperLeg", "RightLowerLeg", "LeftLowerLeg", "RightFoot", "LeftFoot"}
 local mouse = plr:GetMouse()
 local Camera = workspace.CurrentCamera
@@ -199,12 +181,6 @@ local desyncHook = nil
 local gui = {}
 local patcher = true
 local patcherwait = 0.5
-
-local FT = function()
-    local FindTool = loadstring(game:HttpGet("https://raw.githubusercontent.com/hm5650/HBSS/refs/heads/main/SA2_FindTool.lua"))()
-end
-
-local func = loadstring(game:HttpGet("https://raw.githubusercontent.com/hm5650/HBSS/refs/heads/main/SA2_Function.lua"))()
 local lastTargetUpdate = 0
 
 -- random stuff lololol
@@ -373,8 +349,10 @@ local config = {
     },
     holdkeystates = {}
 }
+local updateESPColors = function() end
 
-
+local func = loadstring(game:HttpGet("https://raw.githubusercontent.com/hm5650/HBSS/refs/heads/main/SA2_Function.lua"))()
+local FindTool = loadstring(game:HttpGet("https://raw.githubusercontent.com/hm5650/HBSS/refs/heads/main/SA2_FindTool.lua"))()
 local function hasForcefield(character)
     if not character then return false end
     
@@ -526,6 +504,7 @@ local function GetClosestPlayer()
         
         local targetPos = foundPart.Position
         local worldDist = (cameraPos - targetPos).Magnitude
+        
         if config.SA2_ThreeSixtyMode then
             table.insert(allTargets, {
                 player = Player,
@@ -534,7 +513,10 @@ local function GetClosestPlayer()
                 humanoid = Humanoid,
                 health = Humanoid.Health,
                 worldDist = worldDist,
-                in360Mode = true
+                in360Mode = true,
+                screenPos = nil,
+                onScreen = true,
+                distanceToCenter = 0
             })
         else
             local screenPos, onScreen = func.GetScreenPosition(targetPos)
@@ -567,89 +549,139 @@ local function GetClosestPlayer()
         return nil
     end
     
-    if config.SA2_ThreeSixtyMode then
-        local closestWorldDist = math.huge
-        local closestTarget = nil
-        
-        for _, target in ipairs(allTargets) do
-            if target.worldDist < closestWorldDist then
-                closestWorldDist = target.worldDist
-                closestTarget = target
-            end
-        end
-        
-        if closestTarget then
-            local actualTargetPart = GetActualTargetPart()
-            Closest = closestTarget.character[actualTargetPart] or closestTarget.part
-            
-            if closestTarget.player ~= config.SA2_currentTarget then
-                config.SA2_currentTarget = closestTarget.player
-                updateESPColors()
-            end
-            
-            return Closest
-        end
-    end
-    
     local newClosestPlayer = nil
     local getTargetMethod = config.masterGetTarget or config.SA2_GetTarget or "Closest"
     
-    if getTargetMethod == "Lowest Health" then
-        for _, target in ipairs(allTargets) do
-            if target.onScreen and target.health < LowestHealth then
-                LowestHealth = target.health
+    if config.SA2_ThreeSixtyMode then
+        if getTargetMethod == "Lowest Health" then
+            local bestTarget = nil
+            local bestHealth = math.huge
+            
+            for _, target in ipairs(allTargets) do
+                if target.in360Mode and target.health < bestHealth then
+                    bestHealth = target.health
+                    bestTarget = target
+                end
+            end
+            
+            if bestTarget then
                 local actualTargetPart = GetActualTargetPart()
-                Closest = target.character[actualTargetPart] or target.part
-                newClosestPlayer = target.player
+                Closest = bestTarget.character[actualTargetPart] or bestTarget.part
+                newClosestPlayer = bestTarget.player
             end
-        end
-    elseif getTargetMethod == "TargetSeen" then
-        local targetsInFOV = {}
-        
-        for _, target in ipairs(allTargets) do
-            if target.onScreen and target.distanceToCenter <= config.SA2_FovRadius then
-                table.insert(targetsInFOV, target)
+        elseif getTargetMethod == "TargetSeen" then
+            local sortedTargets = {}
+            for _, target in ipairs(allTargets) do
+                if target.in360Mode then
+                    table.insert(sortedTargets, target)
+                end
             end
-        end
-        
-        if #targetsInFOV > 0 then
-            if config.targetSeenMode == "Switch" then
-                local currentTime = tick()
-                if currentTime - config.lastTargetSwitchTime >= config.targetSeenSwitchRate then
-                    config.lastTargetSwitchTime = currentTime
-                    
-                    if not config.SA2_currentTarget then
-                        local closestInFOV = nil
-                        local closestDist = math.huge
-                        for _, target in ipairs(targetsInFOV) do
-                            if target.distanceToCenter < closestDist then
-                                closestDist = target.distanceToCenter
-                                closestInFOV = target
-                            end
-                        end
-                        if closestInFOV then
+            
+            table.sort(sortedTargets, function(a, b)
+                return a.worldDist < b.worldDist
+            end)
+            
+            if #sortedTargets > 0 then
+                if config.targetSeenMode == "Switch" then
+                    local currentTime = tick()
+                    if currentTime - config.lastTargetSwitchTime >= config.targetSeenSwitchRate then
+                        config.lastTargetSwitchTime = currentTime
+                        
+                        if not config.SA2_currentTarget then
+                            local closestTarget = sortedTargets[1]
                             local actualTargetPart = GetActualTargetPart()
-                            Closest = closestInFOV.character[actualTargetPart] or closestInFOV.part
-                            config.SA2_currentTarget = closestInFOV.player
-                            newClosestPlayer = closestInFOV.player
+                            Closest = closestTarget.character[actualTargetPart] or closestTarget.part
+                            config.SA2_currentTarget = closestTarget.player
+                            newClosestPlayer = closestTarget.player
+                        else
+                            local currentIndex = nil
+                            for i, target in ipairs(sortedTargets) do
+                                if target.player == config.SA2_currentTarget then
+                                    currentIndex = i
+                                    break
+                                end
+                            end
+                            
+                            if currentIndex then
+                                local nextIndex = (currentIndex % #sortedTargets) + 1
+                                local nextTarget = sortedTargets[nextIndex]
+                                local actualTargetPart = GetActualTargetPart()
+                                Closest = nextTarget.character[actualTargetPart] or nextTarget.part
+                                config.SA2_currentTarget = nextTarget.player
+                                newClosestPlayer = nextTarget.player
+                            else
+                                local closestTarget = sortedTargets[1]
+                                local actualTargetPart = GetActualTargetPart()
+                                Closest = closestTarget.character[actualTargetPart] or closestTarget.part
+                                config.SA2_currentTarget = closestTarget.player
+                                newClosestPlayer = closestTarget.player
+                            end
                         end
                     else
-                        local currentIndex = nil
-                        for i, target in ipairs(targetsInFOV) do
-                            if target.player == config.SA2_currentTarget then
-                                currentIndex = i
-                                break
+                        if config.SA2_currentTarget then
+                            for _, target in ipairs(sortedTargets) do
+                                if target.player == config.SA2_currentTarget then
+                                    local actualTargetPart = GetActualTargetPart()
+                                    Closest = target.character[actualTargetPart] or target.part
+                                    newClosestPlayer = target.player
+                                    break
+                                end
                             end
                         end
+                    end
+                elseif config.targetSeenMode == "All" then
+                    local closestTarget = sortedTargets[1]
+                    if closestTarget then
+                        local actualTargetPart = GetActualTargetPart()
+                        Closest = closestTarget.character[actualTargetPart] or closestTarget.part
+                        config.SA2_currentTarget = closestTarget.player
+                        newClosestPlayer = closestTarget.player
+                    end
+                end
+            end
+        else
+            local bestTarget = nil
+            local bestDist = math.huge
+            
+            for _, target in ipairs(allTargets) do
+                if target.in360Mode and target.worldDist < bestDist then
+                    bestDist = target.worldDist
+                    bestTarget = target
+                end
+            end
+            
+            if bestTarget then
+                local actualTargetPart = GetActualTargetPart()
+                Closest = bestTarget.character[actualTargetPart] or bestTarget.part
+                newClosestPlayer = bestTarget.player
+            end
+        end
+    else
+        if getTargetMethod == "Lowest Health" then
+            for _, target in ipairs(allTargets) do
+                if target.onScreen and target.health < LowestHealth then
+                    LowestHealth = target.health
+                    local actualTargetPart = GetActualTargetPart()
+                    Closest = target.character[actualTargetPart] or target.part
+                    newClosestPlayer = target.player
+                end
+            end
+        elseif getTargetMethod == "TargetSeen" then
+            local targetsInFOV = {}
+            
+            for _, target in ipairs(allTargets) do
+                if target.onScreen and target.distanceToCenter <= config.SA2_FovRadius then
+                    table.insert(targetsInFOV, target)
+                end
+            end
+            
+            if #targetsInFOV > 0 then
+                if config.targetSeenMode == "Switch" then
+                    local currentTime = tick()
+                    if currentTime - config.lastTargetSwitchTime >= config.targetSeenSwitchRate then
+                        config.lastTargetSwitchTime = currentTime
                         
-                        if currentIndex then
-                            local nextIndex = (currentIndex % #targetsInFOV) + 1
-                            local nextTarget = targetsInFOV[nextIndex]
-                            local actualTargetPart = GetActualTargetPart()
-                            Closest = nextTarget.character[actualTargetPart] or nextTarget.part
-                            config.SA2_currentTarget = nextTarget.player
-                            newClosestPlayer = nextTarget.player
-                        else
+                        if not config.SA2_currentTarget then
                             local closestInFOV = nil
                             local closestDist = math.huge
                             for _, target in ipairs(targetsInFOV) do
@@ -664,47 +696,79 @@ local function GetClosestPlayer()
                                 config.SA2_currentTarget = closestInFOV.player
                                 newClosestPlayer = closestInFOV.player
                             end
-                        end
-                    end
-                else
-                    if config.SA2_currentTarget then
-                        for _, target in ipairs(targetsInFOV) do
-                            if target.player == config.SA2_currentTarget then
+                        else
+                            local currentIndex = nil
+                            for i, target in ipairs(targetsInFOV) do
+                                if target.player == config.SA2_currentTarget then
+                                    currentIndex = i
+                                    break
+                                end
+                            end
+                            
+                            if currentIndex then
+                                local nextIndex = (currentIndex % #targetsInFOV) + 1
+                                local nextTarget = targetsInFOV[nextIndex]
                                 local actualTargetPart = GetActualTargetPart()
-                                Closest = target.character[actualTargetPart] or target.part
-                                newClosestPlayer = target.player
-                                break
+                                Closest = nextTarget.character[actualTargetPart] or nextTarget.part
+                                config.SA2_currentTarget = nextTarget.player
+                                newClosestPlayer = nextTarget.player
+                            else
+                                local closestInFOV = nil
+                                local closestDist = math.huge
+                                for _, target in ipairs(targetsInFOV) do
+                                    if target.distanceToCenter < closestDist then
+                                        closestDist = target.distanceToCenter
+                                        closestInFOV = target
+                                    end
+                                end
+                                if closestInFOV then
+                                    local actualTargetPart = GetActualTargetPart()
+                                    Closest = closestInFOV.character[actualTargetPart] or closestInFOV.part
+                                    config.SA2_currentTarget = closestInFOV.player
+                                    newClosestPlayer = closestInFOV.player
+                                end
+                            end
+                        end
+                    else
+                        if config.SA2_currentTarget then
+                            for _, target in ipairs(targetsInFOV) do
+                                if target.player == config.SA2_currentTarget then
+                                    local actualTargetPart = GetActualTargetPart()
+                                    Closest = target.character[actualTargetPart] or target.part
+                                    newClosestPlayer = target.player
+                                    break
+                                end
                             end
                         end
                     end
-                end
-            elseif config.targetSeenMode == "All" then
-                local closestInFOV = nil
-                local closestDist = math.huge
-                for _, target in ipairs(targetsInFOV) do
-                    if target.distanceToCenter < closestDist then
-                        closestDist = target.distanceToCenter
-                        closestInFOV = target
+                elseif config.targetSeenMode == "All" then
+                    local closestInFOV = nil
+                    local closestDist = math.huge
+                    for _, target in ipairs(targetsInFOV) do
+                        if target.distanceToCenter < closestDist then
+                            closestDist = target.distanceToCenter
+                            closestInFOV = target
+                        end
+                    end
+                    if closestInFOV then
+                        local actualTargetPart = GetActualTargetPart()
+                        Closest = closestInFOV.character[actualTargetPart] or closestInFOV.part
+                        config.SA2_currentTarget = closestInFOV.player
+                        newClosestPlayer = closestInFOV.player
                     end
                 end
-                if closestInFOV then
-                    local actualTargetPart = GetActualTargetPart()
-                    Closest = closestInFOV.character[actualTargetPart] or closestInFOV.part
-                    config.SA2_currentTarget = closestInFOV.player
-                    newClosestPlayer = closestInFOV.player
-                end
+            else
+                config.SA2_currentTarget = nil
+                newClosestPlayer = nil
             end
         else
-            config.SA2_currentTarget = nil
-            newClosestPlayer = nil
-        end
-    else
-        for _, target in ipairs(allTargets) do
-            if target.onScreen and target.distanceToCenter <= config.SA2_FovRadius and target.distanceToCenter < ShortestDistance then
-                local actualTargetPart = GetActualTargetPart()
-                Closest = target.character[actualTargetPart] or target.part
-                ShortestDistance = target.distanceToCenter
-                newClosestPlayer = target.player
+            for _, target in ipairs(allTargets) do
+                if target.onScreen and target.distanceToCenter <= config.SA2_FovRadius and target.distanceToCenter < ShortestDistance then
+                    local actualTargetPart = GetActualTargetPart()
+                    Closest = target.character[actualTargetPart] or target.part
+                    ShortestDistance = target.distanceToCenter
+                    newClosestPlayer = target.player
+                end
             end
         end
     end
@@ -948,28 +1012,6 @@ local function updateHoldkeyState()
 end
 
 local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/x2zu/OPEN-SOURCE-UI-ROBLOX/refs/heads/main/X2ZU%20UI%20ROBLOX%20OPEN%20SOURCE/DummyUi-leak-by-x2zu/fetching-main/Tools/Framework.luau"))()
-local Alurt = loadstring(game:HttpGet("https://raw.githubusercontent.com/azir-py/project/refs/heads/main/Zwolf/AlurtUI.lua"))()
-
-local function safeNotify(opts)
-    if typeof(Alurt) == "table" and type(Alurt.CreateNode) == "function" then
-        pcall(function()
-            Alurt.CreateNode(opts)
-        end)
-    end
-end
-
-local notif1 = (function()
-    pcall(function()
-        safeNotify({
-            Title = "Script started!",
-            Content = "May be unstable/dont work on some games",
-            Audio = "rbxassetid://17208361335",
-            Length = 3,
-            Image = "rbxassetid://4483362458",
-            BarColor = Color3.fromRGB(0, 170, 255)
-        })
-    end)
-end)()
 
 if not math.clamp then
     function math.clamp(x, a, b)
@@ -4353,7 +4395,6 @@ local function applyKeybindAction(key, fromHotkeySystem)
         return false
     end
     
-    -- FIXED: Only check hold key if holdkeyToggle is enabled
     if config.holdkeyToggle.enabled then
         if not isHoldKeyDown() then
             return false
@@ -4372,7 +4413,7 @@ local function applyKeybindAction(key, fromHotkeySystem)
             config.holdkeyStates[action] = currentTime
             local source = fromHotkeySystem and "Keybind" or "UI"
             
-            if action == "silentaim" then  -- This is the HB version keybind
+            if action == "silentaim" then
                 config.startsa = not config.startsa
                 if not config.startsa then
                     if gui.RingHolder then gui.RingHolder.Visible = false end
@@ -5058,7 +5099,10 @@ MainTab:Toggle({
     end
 })
     MainTab:Section({Title = "Utilities"})
-    
+    MainTab:Label({
+        Title = "Gravel",
+        Desc = "[ Autofarm might not work for every game]",
+    })
     MainTab:Toggle({
         Title = "Toggle AutoFarm ('F')",
         Desc = "Enable/disable auto farm",
@@ -5201,8 +5245,62 @@ MainTab:Slider({
             config.autoFarmVerticalOffset = val
         end
     })
+    MainTab:Section({Title = "Antikick [ We didn't made this ]"})
+    MainTab:Label({
+        Title = "Gravel",
+        Desc = "[ AntiKick only prevents client kicks ]\n[ Good Injectors are recommend ]",
+    })
+    MainTab:Toggle({
+        Title = "Toggle AntiKick",
+        Desc = "Enable/disable Antikick",
+        Value = ED_AntiKick.Enabled or true,
+        Callback = function(v)
+            ED_AntiKick.Enabled = v
+            safeNotify({
+                Title = "AntiKick",
+                Content = "AntiKick " .. (v and "Enabled" or "Disabled"),
+                Audio = "rbxassetid://17208361335",
+                Length = 3,
+                Image = "rbxassetid://4483362458",
+                BarColor = v and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(255, 0, 0)
+            })
+        end
+    })
+    MainTab:Toggle({
+        Title = "Show AntiKick Notifications",
+        Desc = "Enable/disable Antikick Notifications",
+        Value = ED_AntiKick.SendNotifications or false,
+        Callback = function(v)
+            ED_AntiKick.SendNotifications = v
+            safeNotify({
+                Title = "AntiKick",
+                Content = "AntiKick " .. (v and "Enabled" or "Disabled"),
+                Audio = "rbxassetid://17208361335",
+                Length = 3,
+                Image = "rbxassetid://4483362458",
+                BarColor = v and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(255, 0, 0)
+            })
+        end
+    })
+    MainTab:Toggle({
+        Title = "Toggle AntiKick Checkcallers",
+        Desc = "Enable/disable Antikick Checkcallers (fixes nil and index errors)",
+        Value = ED_AntiKick.CheckCaller or true,
+        Callback = function(v)
+            ED_AntiKick.CheckCaller = v
+            safeNotify({
+                Title = "AntiKick",
+                Content = "AntiKick " .. (v and "Enabled" or "Disabled"),
+                Audio = "rbxassetid://17208361335",
+                Length = 3,
+                Image = "rbxassetid://4483362458",
+                BarColor = v and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(255, 0, 0)
+            })
+        end
+    })
 
-    MainTab:Section({Title = "Keybinds [might not work well]"})
+
+    MainTab:Section({Title = "Keybinds [ might not work well ]"})
     MainTab:Toggle({
         Title = "Toggle Keybinds",
         Desc = "Enable/Disable  Keybinds",
@@ -5328,7 +5426,7 @@ local Config = {
     MEMORY_CLEANUP_THRESHOLD = 500,
 }
 
-local Optiz = loadstring(game:HttpGet('https://raw.githubusercontent.com/hm5650/Optiz/refs/heads/main/Optiz.lua'))()(OptizConfig)]]
+local Optiz = loadstring(game:HttpGet('https://raw.githubusercontent.com/hm5650/Optiz/refs/heads/main/Optiz.lua'))()(Config)]]
     })
     MainTab:Slider({
         Title = "Updaters speed",
@@ -5546,8 +5644,11 @@ end
 
 -- AntiAim Tab
 local AntiAimTab = Window:Tab({Title = "AntiAim", Icon = "shield"}) do
-    AntiAimTab:Section({Title = "[ Bad Injectors might work here ]"})
-    AntiAimTab:Section({Title = "[ This might not work on every game ]"})
+    AntiAimTab:Label({
+        Title = "Gravel",
+        Desc = "[ Bad Injectors might work here ]\n[ This might not work on every game ]",
+    })
+
     AntiAimTab:Section({Title = "AntiAim Master"})
     
 AntiAimTab:Toggle({
@@ -5820,7 +5921,10 @@ AntiAimTab:Toggle({
 end
 -- Aimbot Tab
 local AimbotTab = Window:Tab({Title = "Aimbot", Icon = "crosshair"}) do
-    AimbotTab:Section({Title = "[ Bad Injectors might work here ]"})
+    AimbotTab:Label({
+        Title = "Gravel",
+        Desc = "[ Bad Injectors might work here ]",
+    })
     AimbotTab:Section({Title = "Aimbot Master"})
     
 AimbotTab:Toggle({
@@ -5907,9 +6011,11 @@ end
 
 -- SilentAim Tab
 local SilentAimTab = Window:Tab({Title = "SilentAim (HB)", Icon = "circle"}) do
-    SilentAimTab:Section({Title = "[ Hitbox Based ]"})
-    SilentAimTab:Section({Title = "[ Bad Injectors might work here ]"})
-    SilentAimTab:Section({Title = "[ This might not work on every game ]"})
+    SilentAimTab:Label({
+        Title = "Gravel",
+        Desc = "[ Hitbox Based ]\n[ Bad Injectors might work here ]\n[ This might not work on every game ]",
+    })
+
     SilentAimTab:Section({Title = "SilentAim Master"})
     
 SilentAimTab:Toggle({
@@ -6021,10 +6127,10 @@ SilentAimTab:Toggle({
 end
 -- SilentAimTab 2
 local SilentAimTab2 = Window:Tab({Title = "SilentAim (HK)", Icon = "target"}) do
-    SilentAimTab2:Section({Title = "[ Hooked Based ]"})
-    SilentAimTab2:Section({Title = "[ NPC & ignoreforcefield support doesn't work here :( ]"})
-    SilentAimTab2:Section({Title = "[ Good Injectors are recommend ]"})
-    SilentAimTab2:Section({Title = "[ This might not work on every game ]"})
+    SilentAimTab2:Label({
+        Title = "Gravel",
+        Desc = "[ Hooked Based ]\n[ NPC & ignoreforcefield support doesn't work here :( ]\n[ Good Injectors are recommend ]\n[ This might not work on every game ]",
+    })
     SilentAimTab2:Section({Title = "SilentAim Master"})
     SilentAimTab2:Toggle({
         Title = "Toggle SilentAim (HK) ('R')",
@@ -6112,8 +6218,10 @@ end
 
 -- Hitbox Tab
 local HitboxTab = Window:Tab({Title = "Hitbox", Icon = "box"}) do
-    HitboxTab:Section({Title = "[ Bad Injectors might work here ]"})
-    HitboxTab:Section({Title = "[ This might not work on every game ]"})
+    HitboxTab:Label({
+        Title = "Gravel",
+        Desc = "[ Bad Injectors might work here ]\n[ This might not work on every game ]",
+    })
     HitboxTab:Section({Title = "Hitbox Master"})
     
 HitboxTab:Toggle({
@@ -6313,6 +6421,17 @@ local ClientTab = Window:Tab({Title = "Client", Icon = "user"}) do
         end
     })
 end
+local InfoTab = Window:Tab({Title = "Info", Icon = "info"}) do
+    InfoTab:Label({
+        Title = "Gravel",
+        Desc = "Our YouTube channel is @gpsickle",
+    })
+    InfoTab:Section({Title = "Updatelog"})
+    InfoTab:Label({
+        Title = "Gravel",
+        Desc = "Changed Mobile Gui to QuickToggle\nAdded GetTarget Support to 360 mode in the silentaim hk\nUpgraded the AntiKick\nAdded Updatelog\nFixed Laggy errors\nAdded UI changes",
+    })
+end
 Window:Line()
 
 local fovScreenGui = Instance.new("ScreenGui")
@@ -6351,15 +6470,6 @@ gui.MainFrame = mainFrame
 gui.RingHolder = ringHolder
 gui.RingStroke = ringStroke
 aimbotfov()
-
-safeNotify({
-    Title = "Gravel.cc",
-    Content = "script made by hmmm5651\nyt: @gpsickle",
-    Audio = "rbxassetid://17208361335",
-    Length = 5,
-    Image = "rbxassetid://4483362458",
-    BarColor = Color3.fromRGB(0, 170, 255)
-})
 
 local function isCtrlDown()
     local leftCtrl = UserInputService:IsKeyDown(Enum.KeyCode.LeftControl)
@@ -6551,9 +6661,7 @@ local function init()
             end
             
             if isCtrlDown() then
-                -- For Ctrl+E (SilentAim HB)
                 if kc == Enum.KeyCode.E then
-                    -- FIXED: Only check hold key if holdkeyToggle is enabled
                     if config.holdkeyToggle.enabled and not isHoldKeyDown() then
                         return
                     end
@@ -6823,7 +6931,6 @@ task.spawn(function()
         applyhb()
         aimbotfov()
         updateAimbotFOVRing()
-        FT()
         if config.nextGenRepDesiredState then
             if config.antiAimEnabled then
                 if not config.nextGenRepEnabled then
