@@ -1,7 +1,6 @@
 local plrs = game:GetService("Players")
 local lplr = plrs.LocalPlayer
 local Camera = workspace.CurrentCamera
-local WorldToScreen = Camera.WorldToScreenPoint
 local GetPlayers = plrs.GetPlayers
 local GetPartsObscuringTarget = Camera.GetPartsObscuringTarget
 local mouse = lplr:GetMouse()
@@ -9,10 +8,10 @@ local UserInputService = game:GetService("UserInputService")
 local GetMouseLocation = UserInputService.GetMouseLocation
 
 local functions = {}
-
 functions.GetScreenPosition = function(Vector)
-    local Vec3, OnScreen = WorldToScreen(Camera, Vector)
-    return Vector2.new(Vec3.X, Vec3.Y), OnScreen
+    local screenPos, depth = Camera:ProjectPoint(Vector)
+    local onScreen = depth > 0
+    return Vector2.new(screenPos.X, screenPos.Y), onScreen
 end
 
 functions.IsTool = function(Tool)
@@ -43,9 +42,9 @@ end
 
 functions.HitChance = function(Percentage)
     Percentage = math.floor(Percentage)
-    local chance = math.floor(Random.new().NextNumber(Random.new(),0,1) * 100) / 100
-
-    return chance <= Percentage / 100
+    -- Optimized math.random usage
+    local chance = math.random(1, 100)
+    return chance <= Percentage
 end
 
 functions.Direction = function(Origin, Pos)
