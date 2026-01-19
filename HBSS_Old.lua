@@ -1,4 +1,4 @@
--- This version of the script wouldn't contain any updates
+-- This is a full recovery version of the script it wouldn't contain any updates
 -- Gravel.cc Legacy
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
