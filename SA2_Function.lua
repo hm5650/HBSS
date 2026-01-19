@@ -1,3 +1,4 @@
+-- ts useless bru
 local plrs = game:GetService("Players")
 local lplr = plrs.LocalPlayer
 local Camera = workspace.CurrentCamera
