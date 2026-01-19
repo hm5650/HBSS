@@ -6374,6 +6374,337 @@ HitboxTab:Toggle({
     })
 end
 
+-- ReachTab
+local ReachTab = Window:Tab({Title = "Reach", Icon = "sword"}) do
+    ReachTab:Label({
+        Title = "Gravel",
+        Desc = "[ FireTouchInterest ]\n[ Melees Recommended ]\n[ Bad Injectors might work here ]\n[ This might not work for every game ]",
+    })
+    
+    ReachTab:Section({Title = "Reach Master"})
+    
+    local reachEnabled = false
+    local visualizerEnabled = false
+    local autoSwingEnabled = false
+    local currentReach = 10
+    local visualizerColor = Color3.fromRGB(255, 0, 0)
+    local visualizerMaterial = "ForceField"
+    local reachType = "Sphere"
+    
+    local materialMap = {
+        ["ForceField"] = Enum.Material.ForceField,
+        ["Plastic"] = Enum.Material.Plastic,
+        ["Glass"] = Enum.Material.Glass,
+        ["Neon"] = Enum.Material.Neon,
+        ["SmoothPlastic"] = Enum.Material.SmoothPlastic,
+        ["Metal"] = Enum.Material.Metal,
+        ["DiamondPlate"] = Enum.Material.DiamondPlate
+    }
+    local visualizer = Instance.new("Part") 
+    visualizer.BrickColor = BrickColor.new(visualizerColor)
+    visualizer.Transparency = 0.6 
+    visualizer.Anchored = true 
+    visualizer.CanCollide = false 
+    visualizer.Size = Vector3.new(0.5, 0.5, 0.5) 
+    visualizer.BottomSurface = Enum.SurfaceType.Smooth 
+    visualizer.TopSurface = Enum.SurfaceType.Smooth 
+    visualizer.Material = Enum.Material.ForceField
+    local autoSwingConnection = nil
+    
+    ReachTab:Toggle({
+        Title = "Enable Reach",
+        Desc = "Extend weapon reach distance",
+        Value = reachEnabled or false,
+        Callback = function(v)
+            reachEnabled = v
+            if not v then
+                visualizer.Parent = nil
+                if autoSwingConnection then
+                    autoSwingConnection:Disconnect()
+                    autoSwingConnection = nil
+                end
+            end
+        end
+    })
+    
+    ReachTab:Section({Title = "Reach Settings"})
+    
+    ReachTab:Dropdown({
+        Title = "Reach Type",
+        Desc = "Shape of the reach area",
+        List = {"Sphere", "Flat"},
+        Value = reachType or "Sphere",
+        Callback = function(Option)
+            reachType = Option
+        end
+    })
+    
+    ReachTab:Textbox({
+        Title = "Reach Distance",
+        Desc = "Enter exact reach value",
+        Placeholder = "10",
+        Value = tostring(currentReach or 10),
+        ClearTextOnFocus = false,
+        Callback = function(text)
+            local n = tonumber(text)
+            if n and n >= 1 and n <= 100 then
+                currentReach = n
+            end
+        end
+    })
+    
+    ReachTab:Section({Title = "Visuals"})
+    
+    ReachTab:Toggle({
+        Title = "Show Visualizer",
+        Desc = "Display reach area visually",
+        Value = visualizerEnabled or false,
+        Callback = function(v)
+            visualizerEnabled = v
+            if not v then
+                visualizer.Parent = nil
+            end
+        end
+    })
+    
+    ReachTab:Dropdown({
+        Title = "Visualizer Material",
+        Desc = "Material for visualizer",
+        List = {"ForceField", "Plastic", "Glass", "Neon", "SmoothPlastic", "Metal", "DiamondPlate"},
+        Value = visualizerMaterial or "ForceField",
+        Callback = function(Option)
+            visualizerMaterial = Option
+            if visualizer.Parent then
+                visualizer.Material = materialMap[visualizerMaterial]
+            end
+        end
+    })
+    
+    
+    ReachTab:Slider({
+        Title = "Visualizer Transparency",
+        Desc = "Transparency of reach visualizer",
+        Min = 0,
+        Max = 1,
+        Rounding = 2,
+        Value = 0.6,
+        Callback = function(val)
+            visualizer.Transparency = val
+        end
+    })
+    
+    ReachTab:Toggle({
+        Title = "Auto activate",
+        Desc = "Automatically activate tool",
+        Value = autoSwingEnabled or false,
+        Callback = function(v)
+            autoSwingEnabled = v
+            if v then
+                if autoSwingConnection then
+                    autoSwingConnection:Disconnect()
+                end
+                
+                autoSwingConnection = RunService.Heartbeat:Connect(function()
+                    if autoSwingEnabled and localPlayer.Character then
+                        local tool = localPlayer.Character:FindFirstChildOfClass("Tool")
+                        if tool then
+                            pcall(function()
+                                tool:Activate()
+                            end)
+                        end
+                    end
+                end)
+            else
+                if autoSwingConnection then
+                    autoSwingConnection:Disconnect()
+                    autoSwingConnection = nil
+                end
+            end
+        end
+    })
+    
+    ReachTab:Slider({
+        Title = "Activate Delay",
+        Desc = "Delay between Activate",
+        Min = 0.05,
+        Max = 2,
+        Rounding = 2,
+        Suffix = "seconds",
+        Value = 0.1,
+        Callback = function(val)
+            if autoSwingConnection then
+                autoSwingConnection:Disconnect()
+                autoSwingConnection = RunService.Heartbeat:Connect(function()
+                    if autoSwingEnabled and localPlayer.Character then
+                        local tool = localPlayer.Character:FindFirstChildOfClass("Tool")
+                        if tool then
+                            pcall(function()
+                                tool:Activate()
+                            end)
+                            task.wait(val)
+                        end
+                    end
+                end)
+            end
+        end
+    })
+    
+    local function onHit(hit, handle)
+        if not reachEnabled then return end
+        
+        local hitCharacter = hit.Parent
+        if not hitCharacter then return end
+        
+        local victim = hitCharacter:FindFirstChildOfClass("Humanoid") 
+        if victim and victim.Parent ~= localPlayer then
+            pcall(function()
+                firetouchinterest(hit, handle, 0) 
+                firetouchinterest(hit, handle, 1)
+            end)
+        end
+    end
+    
+    local function getTargetsInRange()
+        local targets = {}
+        local character = localPlayer.Character
+        if not character then return targets end
+        
+        local tool = character:FindFirstChildOfClass("Tool") 
+        if not tool then return targets end
+        
+        local handle = tool:FindFirstChild("Handle") or tool:FindFirstChildOfClass("Part")
+        if not handle then return targets end
+        
+        for _, player in ipairs(Players:GetPlayers()) do
+            if player ~= localPlayer and player.Character then
+                local hrp = player.Character:FindFirstChild("HumanoidRootPart")
+                if hrp then
+                    local distance = (hrp.Position - handle.Position).Magnitude
+                    if distance <= currentReach then
+                        table.insert(targets, {
+                            player = player,
+                            hrp = hrp,
+                            distance = distance
+                        })
+                    end
+                end
+            end
+        end
+        
+        return targets
+    end
+    
+    RunService.RenderStepped:Connect(function()
+        if not reachEnabled then 
+            visualizer.Parent = nil
+            return 
+        end
+        
+        local character = localPlayer.Character
+        if not character then 
+            visualizer.Parent = nil
+            return 
+        end
+        
+        local tool = character:FindFirstChildOfClass("Tool") 
+        if not tool then 
+            visualizer.Parent = nil
+            return 
+        end
+        
+        local handle = tool:FindFirstChild("Handle") or tool:FindFirstChildOfClass("Part")
+        if not handle then 
+            visualizer.Parent = nil
+            return 
+        end
+        
+        if visualizerEnabled then 
+            visualizer.Parent = workspace 
+            visualizer.Material = materialMap[visualizerMaterial] or Enum.Material.ForceField
+            
+            if reachType == "Sphere" then
+                visualizer.Shape = Enum.PartType.Ball
+                visualizer.Size = Vector3.new(currentReach, currentReach, currentReach)
+                visualizer.CFrame = handle.CFrame
+            elseif reachType == "Flat" then
+                visualizer.Shape = Enum.PartType.Block
+                visualizer.Size = Vector3.new(currentReach, 0.2, currentReach)
+                local rootPart = character:FindFirstChild("HumanoidRootPart")
+                if rootPart then
+                    visualizer.CFrame = CFrame.new(rootPart.Position) * CFrame.new(0, -2.5, 0)
+                end
+            end
+            
+            visualizer.Color = visualizerColor
+        else 
+            visualizer.Parent = nil 
+        end
+        
+        local targets = getTargetsInRange()
+        for _, target in ipairs(targets) do
+            onHit(target.hrp, handle)
+        end
+    end)
+    
+    ReachTab:Section({Title = "Utilities"})
+    
+    ReachTab:Button({
+        Title = "Clear Visualizer",
+        Desc = "Remove reach visualizer",
+        Callback = function()
+            visualizer.Parent = nil
+            safeNotify({
+                Title = "Reach",
+                Content = "Visualizer cleared",
+                Length = 1,
+                Image = "rbxassetid://4483362458",
+                BarColor = Color3.fromRGB(0, 170, 255)
+            })
+        end
+    })
+    
+    ReachTab:Button({
+        Title = "Find Nearby Weapons",
+        Desc = "Scan for nearby weapons/tools",
+        Callback = function()
+            local weapons = {}
+            local character = localPlayer.Character
+            
+            if character then
+                for _, child in ipairs(character:GetChildren()) do
+                    if child:IsA("Tool") then
+                        table.insert(weapons, child.Name)
+                    end
+                end
+                
+                for _, child in ipairs(localPlayer.Backpack:GetChildren()) do
+                    if child:IsA("Tool") then
+                        table.insert(weapons, child.Name)
+                    end
+                end
+            end
+            
+            if #weapons > 0 then
+                safeNotify({
+                    Title = "Weapons Found",
+                    Content = "Found " .. #weapons .. " weapon(s): " .. table.concat(weapons, ", "),
+                    Length = 3,
+                    Image = "rbxassetid://4483362458",
+                    BarColor = Color3.fromRGB(0, 255, 0)
+                })
+            else
+                safeNotify({
+                    Title = "No Weapons",
+                    Content = "No weapons/tools found",
+                    Length = 2,
+                    Image = "rbxassetid://4483362458",
+                    BarColor = Color3.fromRGB(255, 0, 0)
+                })
+            end
+        end
+    })
+end
+
 -- Client Tab
 local ClientTab = Window:Tab({Title = "Client", Icon = "user"}) do
     ClientTab:Section({Title = "Client Master"})
