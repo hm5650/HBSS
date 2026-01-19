@@ -1,4 +1,5 @@
--- Gravel.cc old
+-- This version of the script wouldn't contain any updates
+-- Gravel.cc Legacy
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
@@ -2672,7 +2673,7 @@ local function applyClientMaster(state)
 end
 
 local function makeui()
-    lib:SetTitle("Gravel.cc")
+    lib:SetTitle("Gravel.cc (Legacy)")
     lib:SetIcon("http://www.roblox.com/asset/?id=132214308111067")
     lib:SetTheme("HighContrast")
     local T0 = lib:CreateTab("Client")
