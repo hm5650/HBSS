@@ -7110,6 +7110,11 @@ local InfoTab = Window:Tab({Title = "Info", Icon = "info"}) do
         Title = "Gravel",
         Desc = "Our YouTube channel is @gpsickle",
     })
+    InfoTab:Section({Title = "UI"})
+    InfoTab:Label({
+        Title = "Gravel",
+        Desc = "UI: Dummy UI\nNotifcation: Alurt",
+    })
     InfoTab:Section({Title = "Updatelog"})
     InfoTab:Label({
         Title = "Gravel",
