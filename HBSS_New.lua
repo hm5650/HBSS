@@ -6390,7 +6390,6 @@ local ReachTab = Window:Tab({Title = "Reach", Icon = "sword"}) do
     local visualizerColor = Color3.fromRGB(255, 0, 0)
     local visualizerMaterial = "ForceField"
     local reachType = "Sphere"
-    
     local materialMap = {
         ["ForceField"] = Enum.Material.ForceField,
         ["Plastic"] = Enum.Material.Plastic,
@@ -6410,7 +6409,7 @@ local ReachTab = Window:Tab({Title = "Reach", Icon = "sword"}) do
     visualizer.TopSurface = Enum.SurfaceType.Smooth 
     visualizer.Material = Enum.Material.ForceField
     local autoSwingConnection = nil
-    
+
     ReachTab:Toggle({
         Title = "Enable Reach",
         Desc = "Extend weapon reach distance",
@@ -6424,6 +6423,14 @@ local ReachTab = Window:Tab({Title = "Reach", Icon = "sword"}) do
                     autoSwingConnection = nil
                 end
             end
+            safeNotify({
+                Title = "Reach",
+                Content = "Reach " .. (v and "Enabled" or "Disabled"),
+                Audio = "rbxassetid://17208361335",
+                Length = 3,
+                Image = "rbxassetid://4483362458",
+                BarColor = v and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(255, 0, 0)
+            })
         end
     })
     
@@ -6446,10 +6453,7 @@ local ReachTab = Window:Tab({Title = "Reach", Icon = "sword"}) do
         Value = tostring(currentReach or 10),
         ClearTextOnFocus = false,
         Callback = function(text)
-            local n = tonumber(text)
-            if n and n >= 1 and n <= 100 then
-                currentReach = n
-            end
+             currentReach = text
         end
     })
     
