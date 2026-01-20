@@ -7109,7 +7109,7 @@ local InfoTab = Window:Tab({Title = "Info", Icon = "info"}) do
     InfoTab:Section({Title = "Updatelog"})
     InfoTab:Label({
         Title = "Gravel",
-        Desc = "Changed Mobile Gui to QuickToggle\nAdded GetTarget Support to 360 mode in the silentaim hk\nUpgraded the AntiKick\nAdded Updatelog\nFixed Laggy errors\nAdded UI changes",
+        Desc = "Added: Legacy\nAdded: Reachtab\nAdded: Wallbang in Silentaim HK\nFixed Bugs",
     })
 end
 Window:Line()
