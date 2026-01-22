@@ -12,6 +12,7 @@ end
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
+local VirtualUser = game:GetService('VirtualUser')
 local TweenService = game:GetService("TweenService")
 local Teams = game:GetService("Teams")
 local Workspace = game:GetService("Workspace")
@@ -38,7 +39,7 @@ local notif1 = (function()
             Title = "Script started!",
             Content = "May be unstable/dont work on some games",
             Audio = "rbxassetid://17208361335",
-            Length = 3,
+            Length = 1,
             Image = "rbxassetid://4483362458",
             BarColor = Color3.fromRGB(0, 170, 255)
         })
@@ -182,7 +183,7 @@ local gui = {}
 local patcher = true
 local patcherwait = 0.5
 local lastTargetUpdate = 0
-
+local updateESPColors = function() end
 -- random stuff lololol
 local config = {
     startsa = false,
@@ -340,6 +341,7 @@ local config = {
     autorespawnEnabled = false,
     autorespawnConnections = {},
     autorespawnDeathPosition = nil,
+    antiafk = false,
     keybinds = {
         silentaim = "E",
         aimbot = "Q",
@@ -359,7 +361,123 @@ local config = {
     },
     holdkeystates = {}
 }
-local updateESPColors = function() end
+local animConfig = {
+    animations = false,
+    anim_speed = 1,
+    R15 = false,
+    Ids_R6 = {
+        "90814669",
+        "182436935",
+        "48957148",
+        "35634514",
+        "27789359",
+        "327324663",
+    },
+    Ids_R15 = {
+        "15698404340",
+        "10147821284",
+        "10147823318",
+        "10714340543",
+        "2733837253",
+        "10714089137",
+    }
+}
+
+local currentAnimation = nil
+local animationTrack = nil
+local humanoid = nil
+local character = nil
+local animationLoopConnection = nil
+
+local function loadAnimation(id)
+    if not tonumber(id) then return nil end
+    
+    local success, animation = pcall(function()
+        return Instance.new("Animation")
+    end)
+    
+    if not success then return nil end
+    
+    animation.AnimationId = "rbxassetid://" .. id
+    return animation
+end
+
+local function stopCurrentAnimation()
+    if animationTrack then
+        animationTrack:Stop()
+        animationTrack:Destroy()
+        animationTrack = nil
+    end
+    
+    if animationLoopConnection then
+        animationLoopConnection:Disconnect()
+        animationLoopConnection = nil
+    end
+end
+
+local function playAnimation(animationId, isR15)
+    stopCurrentAnimation()
+    
+    if not animConfig.animations then return end
+    
+    character = localPlayer.Character
+    if not character then return end
+    humanoid = character:FindFirstChildOfClass("Humanoid")
+    if not humanoid then return end
+    local animator = humanoid:FindFirstChildOfClass("Animator")
+    if not animator then return end
+    local animation = loadAnimation(animationId)
+    if not animation then return end
+    animationTrack = animator:LoadAnimation(animation)
+    if not animationTrack then return end
+    animationTrack:AdjustSpeed(animConfig.anim_speed)
+    animationTrack.Looped = true
+    animationTrack.Priority = Enum.AnimationPriority.Core
+    animationTrack:Play()
+    
+    if animationLoopConnection then
+        animationLoopConnection:Disconnect()
+    end
+    
+    animationLoopConnection = humanoid.Died:Connect(function()
+        task.wait(0.1)
+        if animConfig.animations then
+            playAnimation(animationId, isR15)
+        end
+    end)
+    
+    local charRemovingConnection
+    charRemovingConnection = character.AncestryChanged:Connect(function()
+        if not character or not character.Parent then
+            if animConfig.animations then
+                task.wait(0.1)
+                playAnimation(animationId, isR15)
+            end
+            charRemovingConnection:Disconnect()
+        end
+    end)
+    
+    currentAnimation = animationId
+    safeNotify({
+        Title = "Animation",
+        Content = "Playing animation ID: " .. animationId,
+        Audio = "rbxassetid://17208361335",
+        Length = 1,
+        Image = "rbxassetid://4483362458",
+        BarColor = Color3.fromRGB(0, 170, 255)
+    })
+end
+
+local function updateAnimation()
+    if not animConfig.animations then
+        stopCurrentAnimation()
+        return
+    end
+    
+    if animationTrack then
+        animationTrack:AdjustSpeed(animConfig.anim_speed)
+    end
+end
 
 local func = loadstring(game:HttpGet("https://raw.githubusercontent.com/hm5650/HBSS/refs/heads/main/SA2_Function.lua"))()
 local FindTool = loadstring(game:HttpGet("https://raw.githubusercontent.com/hm5650/HBSS/refs/heads/main/SA2_FindTool.lua"))()
@@ -811,27 +929,18 @@ OldNamecall = hookmetamethod(game, "__namecall", newcclosure(function(...)
         if HitPart then
             config.SA2_FovIsTargeted = true
             
-            -- Wallbang logic
             if config.SA2_WallbangEnabled then
-                -- For wallbang, we need to return the hit part directly
                 if Method == "FindPartOnRayWithIgnoreList" or Method == "FindPartOnRayWithWhitelist" then
                     local A_Ray = Args[2]
                     local Origin = A_Ray.Origin
                     local Distance = A_Ray.Direction.Magnitude
-                    
-                    -- Return the hit part and position directly
                     local hitPosition = HitPart.Position
                     local normal = (hitPosition - Origin).Unit
                     local material = HitPart.Material
-                    
-                    -- Return format: hitPart, position, normal, material
-                    return HitPart, hitPosition, normal, material
                 elseif Method == "Raycast" then
-                    -- For Raycast, return a RaycastResult
                     local hitPosition = HitPart.Position
                     local normal = (hitPosition - Args[2]).Unit
                     
-                    -- Create a fake RaycastResult
                     local fakeResult = {
                         Instance = HitPart,
                         Position = hitPosition,
@@ -843,12 +952,13 @@ OldNamecall = hookmetamethod(game, "__namecall", newcclosure(function(...)
                 end
             end
             
-            -- Normal silent aim logic (no wallbang)
             if config.SA2_Method == "All" then
-                if Method == "FindPartOnRayWithIgnoreList" or Method == "FindPartOnRayWithWhitelist" or Method == "FindPartOnRay" or Method == "findPartOnRay" or Method == "Raycast" then
+                if Method == "FindPartOnRayWithIgnoreList" or Method == "FindPartOnRayWithWhitelist" or 
+                   Method == "FindPartOnRay" or Method == "findPartOnRay" or Method == "Raycast" or
+                   Method == "Cast" then
                     local A_Origin = Args[2].Origin or Args[2]
                     local Direction = func.Direction(A_Origin, HitPart.Position)
-                    if Method == "Raycast" then
+                    if Method == "Raycast" or Method == "Cast" then
                         Args[3] = Direction
                     else
                         Args[2] = Ray.new(A_Origin, Direction)
@@ -873,7 +983,27 @@ OldNamecall = hookmetamethod(game, "__namecall", newcclosure(function(...)
                 local Direction = func.Direction(Origin, HitPart.Position)
                 Args[2] = Ray.new(Origin, Direction)
                 return OldNamecall(unpack(Args))
+            elseif Method == "SetPrimaryPartCframe" and config.SA2_Method == "Raycast" then
+                local A_Origin = Args[2]
+                Args[3] = func.Direction(A_Origin, HitPart.Position)
+                return OldNamecall(unpack(Args))
+            elseif Method == "ScreenPointToRay" and config.SA2_Method == "Raycast" then
+                local A_Origin = Args[2]
+                Args[3] = func.Direction(A_Origin, HitPart.Position)
+                return OldNamecall(unpack(Args))
+            elseif Method == "Ray" and config.SA2_Method == "Raycast" then
+                local A_Origin = Args[2]
+                Args[3] = func.Direction(A_Origin, HitPart.Position)
+                return OldNamecall(unpack(Args))
             elseif Method == "Raycast" and config.SA2_Method == "Raycast" then
+                local A_Origin = Args[2]
+                Args[3] = func.Direction(A_Origin, HitPart.Position)
+                return OldNamecall(unpack(Args))
+            elseif Method == "Cast" and config.SA2_Method == "Cast" then
+                local A_Origin = Args[2]
+                Args[3] = func.Direction(A_Origin, HitPart.Position)
+                return OldNamecall(unpack(Args))
+            elseif Method == "CframeTrajectory" and config.SA2_Method == "Raycast" then
                 local A_Origin = Args[2]
                 Args[3] = func.Direction(A_Origin, HitPart.Position)
                 return OldNamecall(unpack(Args))
@@ -885,7 +1015,6 @@ OldNamecall = hookmetamethod(game, "__namecall", newcclosure(function(...)
     return OldNamecall(...)
 end))
 
--- Also update the Mouse.Hit method
 local OldIndex
 OldIndex = hookmetamethod(game, "__index", newcclosure(function(Self, Index)
     if respawnLock then
@@ -903,6 +1032,7 @@ OldIndex = hookmetamethod(game, "__index", newcclosure(function(Self, Index)
     end
     return OldIndex(Self, Index)
 end))
+
 local ScreenGui = Instance.new("ScreenGui")
 local CircleFrame = Instance.new("Frame")
 local UIStroke = Instance.new("UIStroke")
@@ -996,11 +1126,18 @@ local function calculateDiameter(worldDist, screenRadius, cam)
     return math.max(0.01, worldFull)
 end
 
+game:GetService('Players').LocalPlayer.Idled:Connect(function()
+    if config.antiafk then
+        VirtualUser:CaptureController()
+        VirtualUser:ClickButton2(Vector2.new())
+    end
+end)
+
 local function nextgenrep(state)
     config.nextGenRepDesiredState = state
     if state then
-        if config.antiAimEnabled then return end -- Guard clause
-        if config.nextGenRepEnabled then return end -- Prevent multiple loops
+        if config.antiAimEnabled then return end
+        if config.nextGenRepEnabled then return end
         
         config.nextGenRepEnabled = true
         
@@ -5166,7 +5303,7 @@ MainTab:Toggle({
                     Title = "AutoFarm",
                     Content = "Enabled",
                     Audio = "rbxassetid://17208361335",
-                    Length = 2,
+                    Length = 1,
                     Image = "rbxassetid://4483362458",
                     BarColor = Color3.fromRGB(0, 255, 0)
                 })
@@ -5194,7 +5331,7 @@ MainTab:Toggle({
                 Title = "Autofarm Wall Check",
                 Content = "Enabled - Targets behind walls will be ignored",
                 Audio = "rbxassetid://17208361335",
-                Length = 2,
+                Length = 1,
                 Image = "rbxassetid://4483362458",
                 BarColor = Color3.fromRGB(0, 170, 255)
             })
@@ -5203,7 +5340,7 @@ MainTab:Toggle({
                 Title = "Autofarm Wall Check",
                 Content = "Disabled - Will teleport targets even behind walls",
                 Audio = "rbxassetid://17208361335",
-                Length = 2,
+                Length = 1,
                 Image = "rbxassetid://4483362458",
                 BarColor = Color3.fromRGB(255, 100, 0)
             })
@@ -5231,7 +5368,7 @@ MainTab:Toggle({
                 Title = "PartClaim",
                 Content = "Refreshed",
                 Audio = "rbxassetid://17208361335",
-                Length = 3,
+                Length = 1,
                 Image = "rbxassetid://4483362458",
                 BarColor = Color3.fromRGB(0, 255, 0)
             })
@@ -5311,7 +5448,7 @@ MainTab:Slider({
                 Title = "AntiKick",
                 Content = "AntiKick " .. (v and "Enabled" or "Disabled"),
                 Audio = "rbxassetid://17208361335",
-                Length = 3,
+                Length = 1,
                 Image = "rbxassetid://4483362458",
                 BarColor = v and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(255, 0, 0)
             })
@@ -5327,7 +5464,7 @@ MainTab:Slider({
                 Title = "AntiKick",
                 Content = "AntiKick " .. (v and "Enabled" or "Disabled"),
                 Audio = "rbxassetid://17208361335",
-                Length = 3,
+                Length = 1,
                 Image = "rbxassetid://4483362458",
                 BarColor = v and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(255, 0, 0)
             })
@@ -5343,7 +5480,7 @@ MainTab:Slider({
                 Title = "AntiKick",
                 Content = "AntiKick " .. (v and "Enabled" or "Disabled"),
                 Audio = "rbxassetid://17208361335",
-                Length = 3,
+                Length = 1,
                 Image = "rbxassetid://4483362458",
                 BarColor = v and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(255, 0, 0)
             })
@@ -5371,7 +5508,7 @@ MainTab:Slider({
                 safeNotify({
                     Title = "Holdkey",
                     Content = "Enabled - Hold " .. config.holdkeyToggle.modifier .. " + key to toggle",
-                    Length = 2,
+                    Length = 1,
                     Image = "rbxassetid://4483362458",
                     BarColor = Color3.fromRGB(0, 170, 255)
                 })
@@ -5667,7 +5804,7 @@ VisualsTab:Toggle({
                 Title = "Full Bright",
                 Content = "Enabled",
                 Audio = "rbxassetid://17208361335",
-                Length = 2,
+                Length = 1,
                 Image = "rbxassetid://4483362458",
                 BarColor = Color3.fromRGB(0, 255, 0)
             })
@@ -6193,7 +6330,7 @@ local SilentAimTab2 = Window:Tab({Title = "SilentAim (HK)", Icon = "target"}) do
                 Title = "Silent Aim",
                 Content = "Silent Aim " .. (v and "Enabled" or "Disabled"),
                 Audio = "rbxassetid://17208361335",
-                Length = 3,
+                Length = 1,
                 Image = "rbxassetid://4483362458",
                 BarColor = v and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(255, 0, 0)
             })
@@ -6219,7 +6356,7 @@ local SilentAimTab2 = Window:Tab({Title = "SilentAim (HK)", Icon = "target"}) do
                     Title = "Wallbang",
                     Content = "Enabled - Will shoot through walls",
                     Audio = "rbxassetid://17208361335",
-                    Length = 2,
+                    Length = 1,
                     Image = "rbxassetid://4483362458",
                     BarColor = Color3.fromRGB(0, 170, 255)
                 })
@@ -6244,14 +6381,15 @@ local SilentAimTab2 = Window:Tab({Title = "SilentAim (HK)", Icon = "target"}) do
         end
     })
 
-    SilentAimTab2:Dropdown({
-        Title = "Aim Method",
-        List = {"Raycast", "FindPartOnRay", "FindPartOnRayWithWhitelist", "FindPartOnRayWithIgnoreList", "Mouse.Hit", "All"},
-        Value = config.SA2_Method or "Raycast",
-        Callback = function(choice)
-            config.SA2_Method = choice
-        end
-    })
+SilentAimTab2:Dropdown({
+    Title = "Aim Method",
+    List = {"Raycast", "CframeTrajectory", "ScreenPointToRay", "Ray", "Cast", "SetPrimaryPartCframe", "FindPartOnRay", "FindPartOnRayWithWhitelist", "FindPartOnRayWithIgnoreList", "Mouse.Hit", "All"},
+    Value = config.SA2_Method or "Raycast",
+    Callback = function(choice)
+        config.SA2_Method = choice
+    end
+})
+
     SilentAimTab2:Dropdown({
         Title = "Target Part",
         List = {"Head", "HumanoidRootPart"},
@@ -6262,7 +6400,7 @@ local SilentAimTab2 = Window:Tab({Title = "SilentAim (HK)", Icon = "target"}) do
                 Title = "Target Part",
                 Content = "Targeting: " .. choice,
                 Audio = "rbxassetid://17208361335",
-                Length = 3,
+                Length = 1,
                 Image = "rbxassetid://4483362458",
                 BarColor = Color3.fromRGB(0, 255, 0)
             })
@@ -6427,7 +6565,7 @@ local ReachTab = Window:Tab({Title = "Reach", Icon = "sword"}) do
                 Title = "Reach",
                 Content = "Reach " .. (v and "Enabled" or "Disabled"),
                 Audio = "rbxassetid://17208361335",
-                Length = 3,
+                Length = 1,
                 Image = "rbxassetid://4483362458",
                 BarColor = v and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(255, 0, 0)
             })
@@ -6692,7 +6830,7 @@ local ReachTab = Window:Tab({Title = "Reach", Icon = "sword"}) do
                 safeNotify({
                     Title = "Weapons Found",
                     Content = "Found " .. #weapons .. " weapon(s): " .. table.concat(weapons, ", "),
-                    Length = 3,
+                    Length = 1,
                     Image = "rbxassetid://4483362458",
                     BarColor = Color3.fromRGB(0, 255, 0)
                 })
@@ -6700,7 +6838,7 @@ local ReachTab = Window:Tab({Title = "Reach", Icon = "sword"}) do
                 safeNotify({
                     Title = "No Weapons",
                     Content = "No weapons/tools found",
-                    Length = 2,
+                    Length = 1,
                     Image = "rbxassetid://4483362458",
                     BarColor = Color3.fromRGB(255, 0, 0)
                 })
@@ -6849,7 +6987,7 @@ ClientTab:Toggle({
                     Title = "Truss",
                     Content = "Character not found!",
                     Audio = "rbxassetid://17208361335",
-                    Length = 1.5,
+                    Length = 1,
                     Image = "rbxassetid://4483362458",
                     BarColor = Color3.fromRGB(255, 0, 0)
                 })
@@ -6862,7 +7000,7 @@ ClientTab:Toggle({
                     Title = "Truss",
                     Content = "HumanoidRootPart not found!",
                     Audio = "rbxassetid://17208361335",
-                    Length = 1.5,
+                    Length = 1,
                     Image = "rbxassetid://4483362458",
                     BarColor = Color3.fromRGB(255, 0, 0)
                 })
@@ -6901,7 +7039,7 @@ ClientTab:Toggle({
                 Title = "Truss",
                 Content = "Enabled - Created climb part",
                 Audio = "rbxassetid://17208361335",
-                Length = 2,
+                Length = 1,
                 Image = "rbxassetid://4483362458",
                 BarColor = Color3.fromRGB(0, 255, 0)
             })
@@ -6920,7 +7058,7 @@ ClientTab:Toggle({
                 Title = "Truss",
                 Content = "Disabled - Removed climb part",
                 Audio = "rbxassetid://17208361335",
-                Length = 1.5,
+                Length = 1,
                 Image = "rbxassetid://4483362458",
                 BarColor = Color3.fromRGB(255, 0, 0)
             })
@@ -6941,7 +7079,7 @@ ClientTab:Toggle({
                     Title = "Airwalk",
                     Content = "Character not found!",
                     Audio = "rbxassetid://17208361335",
-                    Length = 1.5,
+                    Length = 1,
                     Image = "rbxassetid://4483362458",
                     BarColor = Color3.fromRGB(255, 0, 0)
                 })
@@ -6954,7 +7092,7 @@ ClientTab:Toggle({
                     Title = "Airwalk",
                     Content = "HumanoidRootPart not found!",
                     Audio = "rbxassetid://17208361335",
-                    Length = 1.5,
+                    Length = 1,
                     Image = "rbxassetid://4483362458",
                     BarColor = Color3.fromRGB(255, 0, 0)
                 })
@@ -6989,7 +7127,7 @@ ClientTab:Toggle({
                 Title = "Airwalk",
                 Content = "Enabled - Created air platform",
                 Audio = "rbxassetid://17208361335",
-                Length = 2,
+                Length = 1,
                 Image = "rbxassetid://4483362458",
                 BarColor = Color3.fromRGB(0, 255, 0)
             })
@@ -7008,7 +7146,7 @@ ClientTab:Toggle({
                 Title = "Airwalk",
                 Content = "Disabled - Removed air platform",
                 Audio = "rbxassetid://17208361335",
-                Length = 1.5,
+                Length = 1,
                 Image = "rbxassetid://4483362458",
                 BarColor = Color3.fromRGB(255, 0, 0)
             })
@@ -7050,11 +7188,11 @@ ClientTab:Toggle({
                         Title = "AutoRespawn",
                         Content = "Teleported to death location",
                         Audio = "rbxassetid://17208361335",
-                        Length = 2,
+                        Length = 1,
                         Image = "rbxassetid://4483362458",
                         BarColor = Color3.fromRGB(0, 255, 0)
                     })
-                    config.autorespawnDeathPosition = nil -- Clear after use
+                    config.autorespawnDeathPosition = nil
                 end
             end
             
@@ -7078,7 +7216,7 @@ ClientTab:Toggle({
                 Title = "AutoRespawn",
                 Content = "Enabled - Will respawn at death location",
                 Audio = "rbxassetid://17208361335",
-                Length = 2,
+                Length = 1,
                 Image = "rbxassetid://4483362458",
                 BarColor = Color3.fromRGB(0, 255, 0)
             })
@@ -7097,13 +7235,118 @@ ClientTab:Toggle({
                 Title = "AutoRespawn",
                 Content = "Disabled",
                 Audio = "rbxassetid://17208361335",
-                Length = 1.5,
+                Length = 1,
                 Image = "rbxassetid://4483362458",
                 BarColor = Color3.fromRGB(255, 0, 0)
             })
         end
     end
 })
+end
+
+local MiscTab = Window:Tab({Title = "Misc", Icon = "settings"}) do
+    MiscTab:Section({Title = "Animation System"})
+    
+    MiscTab:Toggle({
+        Title = "Enable Animations",
+        Desc = "Toggle animation system on/off",
+        Value = animConfig.animations or false,
+        Callback = function(v)
+            animConfig.animations = v
+            if not v then
+                stopCurrentAnimation()
+            elseif currentAnimation then
+                playAnimation(currentAnimation, animConfig.R15)
+            end
+            updateAnimation()
+        end
+    })
+    
+    local r6AnimDropdown = MiscTab:Dropdown({
+        Title = "R6 Animation Presets",
+        Desc = "Select from R6 animation presets",
+        List = animConfig.Ids_R6,
+        Value = "",
+        Callback = function(Option)
+            if Option and Option ~= "" then
+                animConfig.R15 = false
+                playAnimation(Option, false)
+            end
+        end
+    })
+    
+    local r15AnimDropdown = MiscTab:Dropdown({
+        Title = "R15 Animation Presets",
+        Desc = "Select from R15 animation presets",
+        List = animConfig.Ids_R15,
+        Value = "",
+        Callback = function(Option)
+            if Option and Option ~= "" then
+                animConfig.R15 = true
+                playAnimation(Option, true)
+            end
+        end
+    })
+    
+    MiscTab:Textbox({
+        Title = "Custom Animation ID",
+        Desc = "Enter custom animation ID",
+        Placeholder = "1234567891011",
+        Value = "",
+        ClearTextOnFocus = false,
+        Callback = function(text)
+            if text and text ~= "" and tonumber(text) then
+                playAnimation(text, animConfig.R15)
+            end
+        end
+    })
+    
+    MiscTab:Slider({
+        Title = "Animation Speed",
+        Desc = "Adjust animation playback speed",
+        Min = 0.1,
+        Max = 5,
+        Rounding = 1,
+        Value = animConfig.anim_speed or 1,
+        Callback = function(val)
+            animConfig.anim_speed = val
+            updateAnimation()
+        end
+    })
+    
+    MiscTab:Button({
+        Title = "Stop Animation",
+        Desc = "Stop current animation",
+        Callback = function()
+            stopCurrentAnimation()
+            currentAnimation = nil
+            safeNotify({
+                Title = "Animation",
+                Content = "Animation stopped",
+                Audio = "rbxassetid://17208361335",
+                Length = 1,
+                Image = "rbxassetid://4483362458",
+                BarColor = Color3.fromRGB(255, 100, 0)
+            })
+        end
+    })
+    MiscTab:Section({Title = "Other"})
+    MiscTab:Toggle({
+        Title = "Toggle AntiAfk",
+        Desc = "Prevents idle kick",
+        Value = config.antiafk or false,
+        Callback = function(v)
+            config.antiafk = v
+            safeNotify({
+                Title = "AntiAfk",
+                Content = "AntiAfk " .. (v and "Enabled" or "Disabled"),
+                Audio = "rbxassetid://17208361335",
+                Length = 1,
+                Image = "rbxassetid://4483362458",
+                BarColor = v and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(255, 0, 0)
+            })
+        end
+    })
 end
 local InfoTab = Window:Tab({Title = "Info", Icon = "info"}) do
     InfoTab:Label({
@@ -7117,8 +7360,12 @@ local InfoTab = Window:Tab({Title = "Info", Icon = "info"}) do
     })
     InfoTab:Section({Title = "Updatelog"})
     InfoTab:Label({
-        Title = "Gravel",
+        Title = "Gravel (14/01/2026)",
         Desc = "Added: Legacy\nAdded: Reachtab\nAdded: Wallbang in Silentaim HK\nFixed Bugs",
+    })
+    InfoTab:Label({
+        Title = "Gravel (22/01/2026)",
+        Desc = "Added: More Options in the aim method in the tab SilentAimTab (HK)\nAdded: MiscTab\nChanged: Redesigned the OptionGui\nFixed Bugs: 9",
     })
 end
 Window:Line()
@@ -7375,7 +7622,7 @@ local function init()
                         })
                     else
                         if gui.RingHolder then gui.RingHolder.Visible = true end
-                        lrfd()
+                        d()
                         safeNotify({
                             Title = "SilentAim (HB)",
                             Content = "Enabled (Hotkey)",
@@ -7404,7 +7651,7 @@ local function init()
                             Title = "AutoFarm",
                             Content = "Enabled (Hotkey)\nAligning " .. config.autoFarmTargetPart .. " to crosshair",
                             Audio = "rbxassetid://17208361335",
-                            Length = 3,
+                            Length = 1,
                             Image = "rbxassetid://4483362458",
                             BarColor = Color3.fromRGB(0, 255, 0)
                         })
@@ -7610,6 +7857,7 @@ local function cleanup()
     config.nextGenRepEnabled = false
     config.nextGenRepDesiredState = false
     restoreClientValues()
+    setupAnimationOnSpawn()
 end
 
 task.spawn(function()
@@ -7620,6 +7868,7 @@ task.spawn(function()
         applyhb()
         aimbotfov()
         updateAimbotFOVRing()
+        updateAnimation()
         if config.nextGenRepDesiredState then
             if config.antiAimEnabled then
                 if not config.nextGenRepEnabled then
