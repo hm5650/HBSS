@@ -1,4 +1,3 @@
-
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
@@ -6,7 +5,6 @@ local SoundService = game:GetService("SoundService")
 
 local player = Players.LocalPlayer
 local PlayerGui = player:WaitForChild("PlayerGui")
-
 local gui = Instance.new("ScreenGui")
 local bg = Instance.new("Frame")
 local center = Instance.new("Frame")
@@ -16,8 +14,11 @@ local bar = Instance.new("TextLabel")
 local icon = Instance.new("ImageLabel")
 local aspect = Instance.new("UIAspectRatioConstraint")
 local plrs = game:GetService("Players")
+local blurEffect = Instance.new("BlurEffect")
 local plr = plrs.LocalPlayer
 
+blurEffect.Size = 0
+blurEffect.Parent = game:GetService("Lighting")
 gui.Name = "load"
 gui.IgnoreGuiInset = true
 gui.ResetOnSpawn = false
@@ -74,8 +75,8 @@ bar.Text = "[                    ]"
 bar.Parent = center
 
 local fadeIn = TweenInfo.new(1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
-
-TweenService:Create(bg, fadeIn, {BackgroundTransparency = 0.1}):Play()
+TweenService:Create(blurEffect, fadeIn, {Size = 24}):Play()
+TweenService:Create(bg, fadeIn, {BackgroundTransparency = 0.4}):Play()
 TweenService:Create(icon, fadeIn, {ImageTransparency = 0}):Play()
 TweenService:Create(brand, fadeIn, {TextTransparency = 0}):Play()
 TweenService:Create(loadingText, fadeIn, {TextTransparency = 0}):Play()
@@ -128,7 +129,7 @@ task.spawn(function()
     task.wait(0.6)
     sound:Destroy()
     local fadeOut = TweenInfo.new(0.8, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
-
+    TweenService:Create(blurEffect, fadeOut, {Size = 0}):Play()
     TweenService:Create(bg, fadeOut, {BackgroundTransparency = 1}):Play()
     TweenService:Create(icon, fadeOut, {ImageTransparency = 1}):Play()
     TweenService:Create(brand, fadeOut, {TextTransparency = 1}):Play()
@@ -137,4 +138,5 @@ task.spawn(function()
 
     task.wait(1)
     gui:Destroy()
+    blurEffect:Destroy()
 end)
