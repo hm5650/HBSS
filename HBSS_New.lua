@@ -561,14 +561,10 @@ end
 local IsPlayerVisible = function(Player)
     local PlayerCharacter = Player.Character
     local LocalPlayerCharacter = plr.Character
-    
     if not (PlayerCharacter or LocalPlayerCharacter) then return end
-    
     local actualTargetPart = GetActualTargetPart()
     local PlayerRoot = FindFirstChild(PlayerCharacter, actualTargetPart) or FindFirstChild(PlayerCharacter, "HumanoidRootPart")
-    
     if not PlayerRoot then return end
-    
     local CastPoints, IgnoreList = {PlayerRoot.Position, LocalPlayerCharacter, PlayerCharacter}, {LocalPlayerCharacter, PlayerCharacter}
     local ObscuringObjects = #GetPartsObscuringTarget(Camera, CastPoints, IgnoreList)
     
@@ -983,15 +979,15 @@ OldNamecall = hookmetamethod(game, "__namecall", newcclosure(function(...)
                 local Direction = func.Direction(Origin, HitPart.Position)
                 Args[2] = Ray.new(Origin, Direction)
                 return OldNamecall(unpack(Args))
-            elseif Method == "SetPrimaryPartCframe" and config.SA2_Method == "Raycast" then
+            elseif Method == "Raycast" and config.SA2_Method == "SetPrimaryPartCframe" then
                 local A_Origin = Args[2]
                 Args[3] = func.Direction(A_Origin, HitPart.Position)
                 return OldNamecall(unpack(Args))
-            elseif Method == "ScreenPointToRay" and config.SA2_Method == "Raycast" then
+            elseif Method == "Raycast" and config.SA2_Method == "ScreenPointToRay" then
                 local A_Origin = Args[2]
                 Args[3] = func.Direction(A_Origin, HitPart.Position)
                 return OldNamecall(unpack(Args))
-            elseif Method == "Ray" and config.SA2_Method == "Raycast" then
+            elseif Method == "Raycast" and config.SA2_Method == "AimPos" then
                 local A_Origin = Args[2]
                 Args[3] = func.Direction(A_Origin, HitPart.Position)
                 return OldNamecall(unpack(Args))
@@ -999,11 +995,11 @@ OldNamecall = hookmetamethod(game, "__namecall", newcclosure(function(...)
                 local A_Origin = Args[2]
                 Args[3] = func.Direction(A_Origin, HitPart.Position)
                 return OldNamecall(unpack(Args))
-            elseif Method == "Cast" and config.SA2_Method == "Cast" then
+            elseif Method == "Raycast" and config.SA2_Method == "Cast" then
                 local A_Origin = Args[2]
                 Args[3] = func.Direction(A_Origin, HitPart.Position)
                 return OldNamecall(unpack(Args))
-            elseif Method == "CframeTrajectory" and config.SA2_Method == "Raycast" then
+            elseif Method == "Raycast" and config.SA2_Method == "CframeTrajectory" then
                 local A_Origin = Args[2]
                 Args[3] = func.Direction(A_Origin, HitPart.Position)
                 return OldNamecall(unpack(Args))
@@ -6383,7 +6379,7 @@ local SilentAimTab2 = Window:Tab({Title = "SilentAim (HK)", Icon = "target"}) do
 
 SilentAimTab2:Dropdown({
     Title = "Aim Method",
-    List = {"Raycast", "CframeTrajectory", "ScreenPointToRay", "Ray", "Cast", "SetPrimaryPartCframe", "FindPartOnRay", "FindPartOnRayWithWhitelist", "FindPartOnRayWithIgnoreList", "Mouse.Hit", "All"},
+    List = {"Raycast", "ScreenPointToRay", "AimPos", "Cast", "SetPrimaryPartCframe", "CframeTrajectory", "FindPartOnRay", "FindPartOnRayWithWhitelist", "FindPartOnRayWithIgnoreList", "Mouse.Hit", "All"},
     Value = config.SA2_Method or "Raycast",
     Callback = function(choice)
         config.SA2_Method = choice
@@ -7361,11 +7357,15 @@ local InfoTab = Window:Tab({Title = "Info", Icon = "info"}) do
     InfoTab:Section({Title = "Updatelog"})
     InfoTab:Label({
         Title = "Gravel (14/01/2026)",
-        Desc = "Added: Legacy\nAdded: Reachtab\nAdded: Wallbang in Silentaim HK\nFixed Bugs",
+        Desc = "Added: Legacy\nAdded: Reachtab\nAdded: Wallbang in Silentaim HK\nFixed Bugs: 0",
     })
     InfoTab:Label({
         Title = "Gravel (22/01/2026)",
         Desc = "Added: More Options in the aim method in the tab SilentAimTab (HK)\nAdded: MiscTab\nChanged: Redesigned the OptionGui\nFixed Bugs: 9",
+    })
+    InfoTab:Label({
+        Title = "Gravel (23/01/2026)",
+        Desc = "Fixed: Execution Problem\nFixed: Bugs in the SilentAimTab (HK)\nAdded: BackgroundBlur on the loading screeen\nFixed Bugs: 27",
     })
 end
 Window:Line()
