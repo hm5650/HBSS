@@ -183,6 +183,11 @@ local gui = {}
 local patcher = true
 local patcherwait = 0.5
 local lastTargetUpdate = 0
+local currentAnimation = nil
+local animationTrack = nil
+local humanoid = nil
+local character = nil
+local animationLoopConnection = nil
 local updateESPColors = function() end
 -- random stuff lololol
 local config = {
@@ -342,6 +347,7 @@ local config = {
     autorespawnConnections = {},
     autorespawnDeathPosition = nil,
     antiafk = false,
+    LowRender = true,
     keybinds = {
         silentaim = "E",
         aimbot = "Q",
@@ -383,11 +389,17 @@ local animConfig = {
     }
 }
 
-local currentAnimation = nil
-local animationTrack = nil
-local humanoid = nil
-local character = nil
-local animationLoopConnection = nil
+local LowRender = function()
+    if config and config.LowRender then
+        pcall(function()
+            settings().Physics.AllowSleep = true
+            settings().Rendering.QualityLevel = 1
+            settings().Rendering.EagerBulkExecution = true
+            settings().Rendering.EnableFRM = true
+            settings().Rendering.MeshPartDetailLevel = 1
+        end)
+    end
+end
 
 local function loadAnimation(id)
     if not tonumber(id) then return nil end
@@ -5631,6 +5643,14 @@ MainTab:Toggle({
         patcher = v
     end
 })
+MainTab:Toggle({
+    Title = "Low Render",
+    Desc = "Renders the game in lower visuals",
+    Value = config.LowRender or true,
+    Callback = function(v)
+        config.LowRender = v
+    end
+})
 end
 
 -- Visuals Tab
@@ -6335,7 +6355,7 @@ local SilentAimTab2 = Window:Tab({Title = "SilentAim (HK)", Icon = "target"}) do
     SilentAimTab2:Section({Title = "SilentAim Settings"})
     SilentAimTab2:Toggle({
         Title = "WallCheck ('T')",
-        Desc = "Check for walls before targeting",
+        Desc = "Check for walls (Might lag)",
         Value = config.SA2_Wallcheck or false,
         Callback = function(v)
             config.SA2_Wallcheck = v
@@ -7869,6 +7889,7 @@ task.spawn(function()
         aimbotfov()
         updateAimbotFOVRing()
         updateAnimation()
+        LowRender()
         if config.nextGenRepDesiredState then
             if config.antiAimEnabled then
                 if not config.nextGenRepEnabled then
