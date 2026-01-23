@@ -991,7 +991,7 @@ OldNamecall = hookmetamethod(game, "__namecall", newcclosure(function(...)
                 local Direction = func.Direction(Origin, HitPart.Position)
                 Args[2] = Ray.new(Origin, Direction)
                 return OldNamecall(unpack(Args))
-            elseif Method == "Raycast" and config.SA2_Method == "SetPrimaryPartCframe" then
+            elseif Method == "Raycast" and config.SA2_Method == "SetPrimaryPartCframe" then -- yea ik some of these are raycasts its just random kids asking me to add this and that so i just shut them up by doing this
                 local A_Origin = Args[2]
                 Args[3] = func.Direction(A_Origin, HitPart.Position)
                 return OldNamecall(unpack(Args))
