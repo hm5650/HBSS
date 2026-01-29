@@ -182,7 +182,6 @@ local lastCharacter = nil
 local camera = workspace.CurrentCamera
 local aimbot360LoopRunning = false
 local aimbot360LoopTask = nil
-local desyncHook = nil
 local gui = {}
 local patcher = true
 local patcherwait = 0.5
@@ -334,15 +333,6 @@ local config = {
     antiAimGetTarget = "Closest",
     autoFarmPartClaimStarted = false,
     autoFarmLastRefresh = 0,
-    desyncEnabled = false,
-    desyncToggleEnabled = false,
-    customDesyncEnabled = false,
-    desyncX = 0,
-    desyncY = 0,
-    desyncZ = -2,
-    desyncLoc = CFrame.new(),
-    nextGenRepEnabled = false,
-    nextGenRepDesiredState = false,
     ignoreForcefield = true,
     QuickToggles = false,
     keybindsEnabled = true,
@@ -1300,8 +1290,6 @@ local function updateHoldkeyState()
         config.holdkeyStates = {}
     end
 end
-
-local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/x2zu/OPEN-SOURCE-UI-ROBLOX/refs/heads/main/X2ZU%20UI%20ROBLOX%20OPEN%20SOURCE/DummyUi-leak-by-x2zu/fetching-main/Tools/Framework.luau"))()
 
 if not math.clamp then
     function math.clamp(x, a, b)
@@ -2312,53 +2300,6 @@ local function antiAimUpdate()
         end
     end
 end
-local function getDesyncOffset()
-    if config.customDesyncEnabled then
-        local x = tonumber(config.desyncX) or 0
-        local y = tonumber(config.desyncY) or 0
-        local z = tonumber(config.desyncZ) or 0
-        return CFrame.new(x, y, z)
-    else
-        local ping = localPlayer:GetNetworkPing() * 1000
-        if ping < 100 then return CFrame.new(0, 0, -2)
-        elseif ping <= 170 then return CFrame.new(0, 0, -2.7)
-        else return CFrame.new(0, 0, -3.7) end
-    end
-end
-local function desyncUpdate()
-    if not config.antiAimEnabled or not config.desyncEnabled or not localPlayer.Character then return end
-    
-    local character = localPlayer.Character
-    local root = character:FindFirstChild("HumanoidRootPart")
-    if not root then return end
-    
-    config.desyncLoc = root.CFrame
-    
-    local offset = getDesyncOffset()
-    local newCFrame = config.desyncLoc * offset
-    root.CFrame = newCFrame
-    
-    RunService.RenderStepped:Wait()
-    root.CFrame = config.desyncLoc
-end
-local function setupDesyncHook()
-    if desyncHook then return end
-    
-    desyncHook = hookmetamethod(game, "__index", newcclosure(function(self, key)
-        if config.desyncEnabled and not checkcaller() and 
-           key == "CFrame" and 
-           localPlayer.Character and 
-           self == localPlayer.Character:FindFirstChild("HumanoidRootPart") then
-            return config.desyncLoc
-        end
-        return desyncHook(self, key)
-    end))
-end
-
-task.spawn(function()
-    task.wait(2)
-    setupDesyncHook()
-end)
 
 local function RFD(targetPlayer)
     local char = getTargetCharacter(targetPlayer)
@@ -3925,7 +3866,6 @@ RunService.Heartbeat:Connect(antiAimUpdate)
 RunService.RenderStepped:Connect(function()
     aimbotUpdate()
     updateLineESP()
-    desyncUpdate()
     hb()
 end)
 
@@ -5296,6 +5236,8 @@ local function applyClientMaster(state)
     end
 end
 
+-- UI
+local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/x2zu/OPEN-SOURCE-UI-ROBLOX/refs/heads/main/X2ZU%20UI%20ROBLOX%20OPEN%20SOURCE/DummyUi-leak-by-x2zu/fetching-main/Tools/Framework.luau"))()
 local isPC = not UserInputService.TouchEnabled
 local dang = isPC and UDim2.new(0, 600, 0, 450) or UDim2.new(0.7, 0, 0.9, 0)
 
@@ -5955,9 +5897,6 @@ AntiAimTab:Toggle({
     Value = config.antiAimEnabled or false,
     Callback = function(v)
         config.antiAimEnabled = v
-        if config.desyncEnabled ~= nil then
-            config.desyncEnabled = v and config.desyncToggleEnabled
-        end
         
         if not v then
             returnToOriginalPosition()
@@ -6144,78 +6083,6 @@ AntiAimTab:Toggle({
             end
         end
     })
-    AntiAimTab:Section({Title = "Network Settings"})
-    
-    AntiAimTab:Toggle({
-        Title = "Enable Desync",
-        Desc = "Enable/disable desync",
-        Value = config.desyncToggleEnabled or false,
-        Callback = function(v)
-            config.desyncToggleEnabled = v
-            config.desyncEnabled = v and config.antiAimEnabled
-        end
-    })
-    
-    AntiAimTab:Toggle({
-        Title = "Modify Desync Offset",
-        Desc = "Use custom desync offset instead of ping-based",
-        Value = config.customDesyncEnabled or false,
-        Callback = function(v)
-            config.customDesyncEnabled = v
-        end
-    })
-    
-    AntiAimTab:Textbox({
-        Title = "Desync X Offset",
-        Desc = "X-axis desync offset",
-        Placeholder = "0",
-        Value = tostring(config.desyncX or 0),
-        ClearTextOnFocus = false,
-        Callback = function(text)
-            local n = tonumber(text)
-            if n then
-                config.desyncX = n
-            end
-        end
-    })
-    
-    AntiAimTab:Textbox({
-        Title = "Desync Y Offset",
-        Desc = "Y-axis desync offset",
-        Placeholder = "0",
-        Value = tostring(config.desyncY or 0),
-        ClearTextOnFocus = false,
-        Callback = function(text)
-            local n = tonumber(text)
-            if n then
-                config.desyncY = n
-            end
-        end
-    })
-    
-    AntiAimTab:Textbox({
-        Title = "Desync Z Offset",
-        Desc = "Z-axis desync offset",
-        Placeholder = "-2",
-        Value = tostring(config.desyncZ or -2),
-        ClearTextOnFocus = false,
-        Callback = function(text)
-            local n = tonumber(text)
-            if n then
-                config.desyncZ = n
-            end
-        end
-    })
-
-AntiAimTab:Toggle({
-    Title = "Lock Serverside",
-    Desc = "Locks you in Servers not in the client (You would still get killed in the server but not in the client)",
-    Value = config.nextGenRepDesiredState or false,
-    Callback = function(v)
-        nextgenrep(v)
-    end
-})
-
 end
 -- Aimbot Tab
 local AimbotTab = Window:Tab({Title = "Aimbot", Icon = "crosshair"}) do
@@ -7568,6 +7435,56 @@ local InfoTab = Window:Tab({Title = "Info", Icon = "info"}) do
         Title = "Gravel",
         Desc = "Our YouTube channel is @gpsickle",
     })
+    InfoTab:Section({Title = "Tabs"})
+    InfoTab:Label({
+        Title = "MainTab",
+        Desc = "All basic features, Team targeting, Configuring, optimizing and etc",
+    })
+    InfoTab:Label({
+        Title = "Visualstab",
+        Desc = "Changes your visuals full bright or rendering in esps",
+    })
+    InfoTab:Label({
+        Title = "AntiAimTab",
+        Desc = "It would do it's best to make your opponents miss every shot",
+    })
+    InfoTab:Label({
+        Title = "AimbotTab",
+        Desc = "Manipulates your camera and it would automatically aim at your opponents",
+    })
+    InfoTab:Label({
+        Title = "SilentAimTab (HB)",
+        Desc = "Automatically resizes opponents hitbox and aligning it to your crosshair or the center of your screen",
+    })
+    InfoTab:Label({
+        Title = "SilentAimTab (HK)",
+        Desc = "Hooks on to weapons raycasts and redirects it to your opponents which is way more accurate",
+    })
+    InfoTab:Label({
+        Title = "HitboxTab",
+        Desc = "Resizes opponents hitbox to easily hit or shoot at opponents",
+    })
+    InfoTab:Label({
+        Title = "ReachTab",
+        Desc = "Resizes your melee or any tools Firetouchinterest to hit opponents further",
+    })
+    InfoTab:Label({
+        Title = "ClientTab",
+        Desc = "Change your walkspeed or jump power or even fly around to dodge any attacks from your opponents",
+    })
+    InfoTab:Label({
+        Title = "BotTab",
+        Desc = "Automatic bot that would try to kill any opponents with in range",
+    })
+    InfoTab:Label({
+        Title = "MiscTab",
+        Desc = "Basically experiment any features that are or aren't related to combating",
+    })
+    InfoTab:Label({
+        Title = "InfoTab",
+        Desc = "InfoTab the tab that your in just shows informations or details",
+    })
+
     InfoTab:Section({Title = "UI"})
     InfoTab:Label({
         Title = "Gravel",
@@ -7580,7 +7497,7 @@ local InfoTab = Window:Tab({Title = "Info", Icon = "info"}) do
     })
     InfoTab:Label({
         Title = "Gravel (22/01/2026)",
-        Desc = "Added: More Options in the aim method in the tab SilentAimTab (HK)\nAdded: MiscTab\nChanged: Redesigned the OptionGui\nFixed Bugs: 9",
+        Desc = "Added: MiscTab\nChanged: Redesigned the OptionGui\nFixed Bugs: 9",
     })
     InfoTab:Label({
         Title = "Gravel (23/01/2026)",
@@ -8163,10 +8080,6 @@ function cleanup()
         pcall(function() config.hotkeyConnection:Disconnect() end)
         config.hotkeyConnection = nil
     end
-    if desyncHook then
-        pcall(function()
-        end)
-    end
     aimbot360LoopRunning = false
     if aimbot360LoopTask then
         aimbot360LoopTask = nil
@@ -8218,10 +8131,6 @@ function cleanup()
         gui.mobileGui.ScreenGui:Destroy()
     end
 
-    config.desyncEnabled = false
-    config.desyncToggleEnabled = false
-    config.customDesyncEnabled = false
-    config.desyncLoc = CFrame.new()
     config.activeApplied = {}
     config.originalSizes = {}
     config.espData = {}
