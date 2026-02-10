@@ -17,6 +17,7 @@ local VirtualUser = game:GetService('VirtualUser')
 local TweenService = game:GetService("TweenService")
 local VirtualInputManager = game:GetService("VirtualInputManager")
 local Teams = game:GetService("Teams")
+local HttpService = game:GetService("HttpService")
 local AntiAimTabWorkspace = game:GetService("Workspace")
 local SoundService = game:GetService("SoundService")
 local player = Players.LocalPlayer
@@ -186,6 +187,8 @@ local aimbot360LoopTask = nil
 local gui = {}
 local patcher = true
 local patcherwait = 0.5
+local lowpatcher = true
+local lowpatcherwait = 0.03
 local lastTargetUpdate = 0
 local currentAnimation = nil
 local animationTrack = nil
@@ -194,7 +197,7 @@ local character = nil
 local animationLoopConnection = nil
 local updateESPColors = function() end
 
--- Colors for UI elements
+-- uicolor
 local lightGreen = Color3.fromRGB(144, 238, 144)
 local darkGray = Color3.fromRGB(40, 40, 40)
 local lightGray = Color3.fromRGB(200, 200, 200)
@@ -223,6 +226,7 @@ local config = {
     SA2_GetTarget = "Closest",
     SA2_currentTarget = nil,
     SA2_TArea = 35,
+    SA2_TargetRange = 1000,
     SA2_WallbangEnabled = false,
     currentTarget = nil,
     espc = Color3.fromRGB(255, 182, 193),
@@ -699,6 +703,7 @@ local function GetClosestPlayer()
     local allTargets = {}
     local cameraCFrame = Camera.CFrame
     local cameraPos = cameraCFrame.Position
+    local maxTargetRange = config.SA2_TargetRange or 1000
     
     for _, Player in next, GetPlayers(plrs) do
         if Player == plr then continue end
@@ -708,6 +713,7 @@ local function GetClosestPlayer()
         if not Character then continue end
         local Humanoid = FindFirstChild(Character, "Humanoid")
         if not Humanoid or Humanoid.Health <= 0 then continue end
+
         if config.SA2_Wallcheck and not IsPlayerVisible(Player) then continue end
         
         local bodyPartsToCheck = {"HumanoidRootPart", "Head", "Torso", "UpperTorso"}
@@ -725,6 +731,7 @@ local function GetClosestPlayer()
         
         local targetPos = foundPart.Position
         local worldDist = (cameraPos - targetPos).Magnitude
+        if worldDist > maxTargetRange then continue end
         
         if config.SA2_ThreeSixtyMode then
             table.insert(allTargets, {
@@ -769,6 +776,20 @@ local function GetClosestPlayer()
         end
         return nil
     end
+    local aliveTargets = {}
+    for _, target in ipairs(allTargets) do
+        if target.humanoid and target.humanoid.Health > 0 then
+            table.insert(aliveTargets, target)
+        end
+    end
+    
+    if #aliveTargets == 0 then
+        if config.SA2_currentTarget then
+            config.SA2_currentTarget = nil
+            updateESPColors()
+        end
+        return nil
+    end
     
     local newClosestPlayer = nil
     local getTargetMethod = config.masterGetTarget or config.SA2_GetTarget or "Closest"
@@ -778,7 +799,7 @@ local function GetClosestPlayer()
             local bestTarget = nil
             local bestHealth = math.huge
             
-            for _, target in ipairs(allTargets) do
+            for _, target in ipairs(aliveTargets) do
                 if target.in360Mode and target.health < bestHealth then
                     bestHealth = target.health
                     bestTarget = target
@@ -792,7 +813,7 @@ local function GetClosestPlayer()
             end
         elseif getTargetMethod == "TargetSeen" then
             local sortedTargets = {}
-            for _, target in ipairs(allTargets) do
+            for _, target in ipairs(aliveTargets) do
                 if target.in360Mode then
                     table.insert(sortedTargets, target)
                 end
@@ -864,7 +885,7 @@ local function GetClosestPlayer()
             local bestTarget = nil
             local bestDist = math.huge
             
-            for _, target in ipairs(allTargets) do
+            for _, target in ipairs(aliveTargets) do
                 if target.in360Mode and target.worldDist < bestDist then
                     bestDist = target.worldDist
                     bestTarget = target
@@ -879,7 +900,7 @@ local function GetClosestPlayer()
         end
     else
         if getTargetMethod == "Lowest Health" then
-            for _, target in ipairs(allTargets) do
+            for _, target in ipairs(aliveTargets) do
                 if target.onScreen and target.health < LowestHealth then
                     LowestHealth = target.health
                     local actualTargetPart = GetActualTargetPart()
@@ -890,7 +911,7 @@ local function GetClosestPlayer()
         elseif getTargetMethod == "TargetSeen" then
             local targetsInFOV = {}
             
-            for _, target in ipairs(allTargets) do
+            for _, target in ipairs(aliveTargets) do
                 if target.onScreen and target.distanceToCenter <= config.SA2_FovRadius then
                     table.insert(targetsInFOV, target)
                 end
@@ -983,7 +1004,7 @@ local function GetClosestPlayer()
                 newClosestPlayer = nil
             end
         else
-            for _, target in ipairs(allTargets) do
+            for _, target in ipairs(aliveTargets) do
                 if target.onScreen and target.distanceToCenter <= config.SA2_FovRadius and target.distanceToCenter < ShortestDistance then
                     local actualTargetPart = GetActualTargetPart()
                     Closest = target.character[actualTargetPart] or target.part
@@ -1001,102 +1022,212 @@ local function GetClosestPlayer()
     
     return Closest
 end
+local ExpectedArguments = {
+    FindPartOnRayWithIgnoreList = {
+        ArgCountRequired = 3,
+        Args = {
+            "Instance", "Ray", "table", "boolean", "boolean"
+        }
+    },
+    FindPartOnRayWithWhitelist = {
+        ArgCountRequired = 3,
+        Args = {
+            "Instance", "Ray", "table", "boolean"
+        }
+    },
+    FindPartOnRay = {
+        ArgCountRequired = 2,
+        Args = {
+            "Instance", "Ray", "Instance", "boolean", "boolean"
+        }
+    },
+    Raycast = {
+        ArgCountRequired = 3,
+        Args = {
+            "Instance", "Vector3", "Vector3", "RaycastParams"
+        }
+    },
+    Cast = {
+        ArgCountRequired = 3,
+        Args = {
+            "Instance", "Vector3", "Vector3", "RaycastParams"
+        }
+    }
+}
+
+local function validate_args(Args, RayMethod)
+    if not RayMethod then return false end
+    if not Args then return false end
+    
+    local Matches = 0
+    if #Args < RayMethod.ArgCountRequired then
+        return false
+    end
+    for Pos, Argument in next, Args do
+        if typeof(Argument) == RayMethod.Args[Pos] then
+            Matches = Matches + 1
+        end
+    end
+    return Matches >= RayMethod.ArgCountRequired
+end
+
+if OldNamecall then
+    hookmetamethod(game, "__namecall", OldNamecall)
+    OldNamecall = nil
+end
+
+if OldIndex then
+    hookmetamethod(game, "__index", OldIndex)
+    OldIndex = nil
+end
+
+local function validate_args(Args, RayMethod)
+    local Matches = 0
+    if #Args < RayMethod.ArgCountRequired then
+        return false
+    end
+    for Pos, Argument in next, Args do
+        if typeof(Argument) == RayMethod.Args[Pos] then
+            Matches = Matches + 1
+        end
+    end
+    return Matches >= RayMethod.ArgCountRequired
+end
+
+local ExpectedArguments = {
+    FindPartOnRayWithIgnoreList = {
+        ArgCountRequired = 3,
+        Args = {
+            "Instance", "Ray", "table", "boolean", "boolean"
+        }
+    },
+    FindPartOnRayWithWhitelist = {
+        ArgCountRequired = 3,
+        Args = {
+            "Instance", "Ray", "table", "boolean"
+        }
+    },
+    FindPartOnRay = {
+        ArgCountRequired = 2,
+        Args = {
+            "Instance", "Ray", "Instance", "boolean", "boolean"
+        }
+    },
+    Raycast = {
+        ArgCountRequired = 3,
+        Args = {
+            "Instance", "Vector3", "Vector3", "RaycastParams"
+        }
+    }
+}
+
+local function calc_chance(chance)
+    if chance == 100 then
+        return true
+    elseif chance <= 0 then
+        return false
+    else
+        return math.random(1, 100) <= chance
+    end
+end
+
 local OldNamecall
 OldNamecall = hookmetamethod(game, "__namecall", newcclosure(function(...)
     if respawnLock then
         return OldNamecall(...)
     end
-    
+    if not config.SA2_Enabled then
+        return OldNamecall(...)
+    end
     local Method = getnamecallmethod()
-    local Args = {...}
-    local self = Args[1]
-    local chance = func.HitChance(config.SA2_HitChance)
+    local Arguments = {...}
+    local self = Arguments[1]
+    local chance = calc_chance(config.SA2_HitChance)
+    
     if config.SA2_Enabled and self == workspace and not checkcaller() then
-        local isShootingMethod = Method == "FindPartOnRayWithIgnoreList" or 
-                               Method == "FindPartOnRayWithWhitelist" or
-                               Method == "Raycast" or
-                               Method == "FindPartOnRay" or
-                               Method == "findPartOnRay" or
-                               Method == "Cast"
-        
-        if not isShootingMethod then
-            return OldNamecall(...)
-        end
-        
         if not config.SA2_ThreeSixtyMode and not chance then
             config.SA2_FovIsTargeted = false
             return OldNamecall(...)
         end
         
         local HitPart = GetClosestPlayer()
-        if HitPart then
-            config.SA2_FovIsTargeted = true
-            
-            if config.SA2_WallbangEnabled then
-                if Method == "FindPartOnRayWithIgnoreList" or Method == "FindPartOnRayWithWhitelist" then
-                    local A_Ray = Args[2]
-                    local Origin = A_Ray.Origin
-                    local Distance = A_Ray.Direction.Magnitude
-                    local hitPosition = HitPart.Position
-                    local normal = (hitPosition - Origin).Unit
-                    local material = HitPart.Material
-                elseif Method == "Raycast" then
-                    local hitPosition = HitPart.Position
-                    local normal = (hitPosition - Args[2]).Unit
-                    
-                    local fakeResult = {
-                        Instance = HitPart,
-                        Position = hitPosition,
-                        Normal = normal,
-                        Material = HitPart.Material
-                    }
-                    
-                    return fakeResult
-                end
-            end
-            
-            if config.SA2_Method == "All" then
-                if isShootingMethod then
-                    local A_Origin = Args[2].Origin or Args[2]
-                    local Direction = func.Direction(A_Origin, HitPart.Position)
-                    if Method == "Raycast" or Method == "Cast" then
-                        Args[3] = Direction
-                    else
-                        Args[2] = Ray.new(A_Origin, Direction)
-                    end
-                    return OldNamecall(unpack(Args))
-                end
-            elseif Method == "FindPartOnRayWithIgnoreList" and config.SA2_Method == "FindPartOnRayWithIgnoreList" then
-                local A_Ray = Args[2]
-                local Origin = A_Ray.Origin
-                local Direction = func.Direction(Origin, HitPart.Position)
-                Args[2] = Ray.new(Origin, Direction)
-                return OldNamecall(unpack(Args))
-            elseif Method == "FindPartOnRayWithWhitelist" and config.SA2_Method == "FindPartOnRayWithWhitelist" then
-                local A_Ray = Args[2]
-                local Origin = A_Ray.Origin
-                local Direction = func.Direction(Origin, HitPart.Position)
-                Args[2] = Ray.new(Origin, Direction)
-                return OldNamecall(unpack(Args))
-            elseif (Method == "FindPartOnRay" or Method == "findPartOnRay") and config.SA2_Method == "FindPartOnRay" then
-                local A_Ray = Args[2]
-                local Origin = A_Ray.Origin
-                local Direction = func.Direction(Origin, HitPart.Position)
-                Args[2] = Ray.new(Origin, Direction)
-                return OldNamecall(unpack(Args))
-            elseif Method == "Raycast" and config.SA2_Method == "Raycast" then
-                local A_Origin = Args[2]
-                Args[3] = func.Direction(A_Origin, HitPart.Position)
-                return OldNamecall(unpack(Args))
-            elseif Method == "Raycast" and config.SA2_Method == "Cast" then
-                local A_Origin = Args[2]
-                Args[3] = func.Direction(A_Origin, HitPart.Position)
-                return OldNamecall(unpack(Args))
-            end
-        else
+        if not HitPart then
             config.SA2_FovIsTargeted = false
+            return OldNamecall(...)
+        end
+        
+        config.SA2_FovIsTargeted = true
+        
+        if config.SA2_WallbangEnabled then
+            if Method == "FindPartOnRayWithIgnoreList" or Method == "FindPartOnRayWithWhitelist" then
+                local A_Ray = Arguments[2]
+                local Origin = A_Ray.Origin
+                local Distance = A_Ray.Direction.Magnitude
+                local hitPosition = HitPart.Position
+                local normal = (hitPosition - Origin).Unit
+                local material = HitPart.Material
+            elseif Method == "Raycast" then
+                local hitPosition = HitPart.Position
+                local normal = (hitPosition - Arguments[2]).Unit
+                
+                local fakeResult = {
+                    Instance = HitPart,
+                    Position = hitPosition,
+                    Normal = normal,
+                    Material = HitPart.Material
+                }
+                
+                return fakeResult
+            end
+        end
+        
+        if config.SA2_Method == "All" then
+            if Method == "FindPartOnRayWithIgnoreList" or Method == "FindPartOnRayWithWhitelist" or 
+               Method == "FindPartOnRay" or Method == "findPartOnRay" or Method == "Raycast" then
+                local A_Origin = Arguments[2].Origin or Arguments[2]
+                local Direction = func.Direction(A_Origin, HitPart.Position)
+                if Method == "Raycast" then
+                    Arguments[3] = Direction
+                else
+                    Arguments[2] = Ray.new(A_Origin, Direction)
+                end
+                return OldNamecall(unpack(Arguments))
+            end
+        end
+        
+        if Method == "FindPartOnRayWithIgnoreList" and config.SA2_Method == "FindPartOnRayWithIgnoreList" then
+            if validate_args(Arguments, ExpectedArguments.FindPartOnRayWithIgnoreList) then
+                local A_Ray = Arguments[2]
+                local Origin = A_Ray.Origin
+                local Direction = func.Direction(Origin, HitPart.Position)
+                Arguments[2] = Ray.new(Origin, Direction)
+                return OldNamecall(unpack(Arguments))
+            end
+        elseif Method == "FindPartOnRayWithWhitelist" and config.SA2_Method == "FindPartOnRayWithWhitelist" then
+            if validate_args(Arguments, ExpectedArguments.FindPartOnRayWithWhitelist) then
+                local A_Ray = Arguments[2]
+                local Origin = A_Ray.Origin
+                local Direction = func.Direction(Origin, HitPart.Position)
+                Arguments[2] = Ray.new(Origin, Direction)
+                return OldNamecall(unpack(Arguments))
+            end
+        elseif (Method == "FindPartOnRay" or Method == "findPartOnRay") and config.SA2_Method == "FindPartOnRay" then
+            if validate_args(Arguments, ExpectedArguments.FindPartOnRay) then
+                local A_Ray = Arguments[2]
+                local Origin = A_Ray.Origin
+                local Direction = func.Direction(Origin, HitPart.Position)
+                Arguments[2] = Ray.new(Origin, Direction)
+                return OldNamecall(unpack(Arguments))
+            end
+        elseif Method == "Raycast" and config.SA2_Method == "Raycast" then
+            if validate_args(Arguments, ExpectedArguments.Raycast) then
+                local A_Origin = Arguments[2]
+                Arguments[3] = func.Direction(A_Origin, HitPart.Position)
+                return OldNamecall(unpack(Arguments))
+            end
         end
     end
+    
     return OldNamecall(...)
 end))
 
@@ -1106,19 +1237,40 @@ OldIndex = hookmetamethod(game, "__index", newcclosure(function(Self, Index)
         return OldIndex(Self, Index)
     end
     
-    if config.SA2_Enabled and config.SA2_Method == "Mouse.Hit" and not checkcaller() and Self == mouse and Index == "Hit" then
-        local HitPart = GetClosestPlayer()
-        if HitPart then
-            config.SA2_FovIsTargeted = true
-            return HitPart.CFrame
-        else
-            config.SA2_FovIsTargeted = false
+    if config.SA2_Enabled and config.SA2_Method == "Mouse.Hit" and not checkcaller() and Self == mouse then
+        if Index == "Target" or Index == "target" then
+            local HitPart = GetClosestPlayer()
+            if HitPart then
+                config.SA2_FovIsTargeted = true
+                return HitPart
+            else
+                config.SA2_FovIsTargeted = false
+            end
+        elseif Index == "Hit" or Index == "hit" then
+            local HitPart = GetClosestPlayer()
+            if HitPart then
+                config.SA2_FovIsTargeted = true
+                return HitPart.CFrame
+            else
+                config.SA2_FovIsTargeted = false
+            end
+        elseif Index == "X" or Index == "x" then
+            return mouse.X
+        elseif Index == "Y" or Index == "y" then
+            return mouse.Y
+        elseif Index == "UnitRay" then
+            local HitPart = GetClosestPlayer()
+            if HitPart then
+                config.SA2_FovIsTargeted = true
+                return Ray.new(mouse.Origin, (HitPart.Position - mouse.Origin).Unit)
+            else
+                config.SA2_FovIsTargeted = false
+            end
         end
     end
+    
     return OldIndex(Self, Index)
 end))
-
-
 local ScreenGui = Instance.new("ScreenGui")
 local CircleFrame = Instance.new("Frame")
 local UIStroke = Instance.new("UIStroke")
@@ -1134,6 +1286,7 @@ CircleFrame.AnchorPoint = Vector2.new(0.5, 0.5)
 CircleFrame.BackgroundColor3 = config.SA2_FovColor
 CircleFrame.BackgroundTransparency = 1
 CircleFrame.BorderSizePixel = 0
+CircleFrame.Visible = false
 
 UICorner.CornerRadius = UDim.new(1, 0)
 UICorner.Parent = CircleFrame
@@ -5514,6 +5667,30 @@ local Optiz = loadstring(game:HttpGet('https://raw.githubusercontent.com/hm5650/
             patcher = v
         end
     })
+
+    MainTab:Slider({
+        Title = "Clean Cache Every",
+        Desc = "Cleans up cache every second",
+        IsTextbox = true,
+        Step = 0.01,
+        Value = {
+            Min = 0,
+            Max = 50,
+            Default = lowpatcherwait or 0.03
+        },
+        Callback = function(value)
+            lowpatcherwait = value
+        end
+    })
+    
+    MainTab:Toggle({
+        Title = "Cache Cleaners",
+        Desc = "Turning this off Might cause lag",
+        Value = patcher or true,
+        Callback = function(v)
+            lowpatcher = v
+        end
+    })
     
     MainTab:Toggle({
         Title = "Low Render",
@@ -6528,6 +6705,20 @@ local SilentAimTab2 = Window:Tab({
         },
         Callback = function(value)
             config.SA2_FovRadius = value
+        end
+    })
+    SilentAimTab2:Slider({
+        Title = "Target Range",
+        Desc = "How far a target should a targeted",
+        IsTextbox = true,
+        Step = 10,
+        Value = {
+            Min = 5,
+            Max = 999999,
+            Default = config.SA2_FovRadius or 1000
+        },
+        Callback = function(value)
+            config.SA2_TargetRange = value
         end
     })
 end
@@ -7764,6 +7955,11 @@ local InfoTab = Window:Tab({
         Desc = "Changed: DummyUI to WindUI Rewritten UI Creation\nFixed: Keybind Systems are now more accurate and Rewritten\nFixed: SilentAimTab (HK) hooks now less laggy\nFixed: Loop Errors\nFixed: Notification Spam\nAdded: Colorpickers to the VisualsTab\nAdded: Random Messages to the OpenButton and Popup UI\nFixed: UI Causing errors, Callback errors\nFixed Bugs: 34+",
         Color = darkGray
     })
+    InfoTab:Paragraph({
+        Title = "Gravel (10/02/2026)",
+        Desc = "Added: Optimization and tweaks\nFixed: Optimized SilentAimTab (HK)/nAdded: Distance limitation to SilentAimTab (HK)\nAdded: Cache Optimization\nFixed Bugs: 5",
+        Color = darkGray
+    })
 end
 
 local fovScreenGui = Instance.new("ScreenGui")
@@ -7784,6 +7980,7 @@ ringHolder.AnchorPoint = Vector2.new(0.5, 0.5)
 ringHolder.Size = UDim2.new(0, config.fovsize * 2, 0, config.fovsize * 2)
 ringHolder.Position = UDim2.new(0.5, 0, 0.5, -28)
 ringHolder.BackgroundTransparency = 1
+ringHolder.Visible = false
 ringHolder.Parent = mainFrame
 
 local ringCorner = Instance.new("UICorner")
@@ -8382,10 +8579,25 @@ function cleanup()
     config.currentAntiAimTarget = nil
     config.hitboxExpandedParts = {}
     config.hitboxOriginalSizes = {}
-    restoreClientValues()
-    setupAnimationOnSpawn()
-    LowRender()
 end
+
+local clearTargetCache = function()
+    pcall(function()
+        config.SA2_currentTarget = nil
+        config.currentTarget = nil
+        config.aimbotCurrentTarget = nil
+        config.SA2_FovIsTargeted = false
+        config.targetSeenTargets = {}
+        config.autoFarmTargets = {}
+        config.autoFarmCompleted = {}
+    end)
+end
+task.spawn(function()
+    while lowpatcher do
+        clearTargetCache()
+        task.wait(lowpatcherwait)
+    end
+end)
 
 task.spawn(function()
     while patcher do
@@ -8397,33 +8609,6 @@ task.spawn(function()
         updateAimbotFOVRing()
         updateAnimation()
         LowRender()
-        if config.nextGenRepDesiredState then
-            if config.antiAimEnabled then
-                if not config.nextGenRepEnabled then
-                    pcall(function()
-                        setfflag("NextGenReplicatorEnabledWrite4", "false")
-                        task.wait(0.1)
-                        setfflag("NextGenReplicatorEnabledWrite4", "true")
-                        config.nextGenRepEnabled = true
-                    end)
-                else
-                    pcall(function()
-                        setfflag("NextGenReplicatorEnabledWrite4", "true")
-                    end)
-                end
-            else
-                if config.nextGenRepEnabled then
-                    setfflag("NextGenReplicatorEnabledWrite4", "false")
-                    config.nextGenRepEnabled = false
-                end
-            end
-        else
-            if config.nextGenRepEnabled then
-                setfflag("NextGenReplicatorEnabledWrite4", "false")
-                config.nextGenRepEnabled = false
-            end
-        end
-        
         local toRemove = {}
         for player, data in pairs(config.hitboxExpandedParts) do
             if not player or not getTargetCharacter(player) or not plralive(player) then
@@ -8458,8 +8643,6 @@ task.spawn(function()
     end
 end)
 
-
 init()
-
 return config
 -- fin
