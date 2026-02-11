@@ -61,15 +61,6 @@ n({
     BarColor = Color3.fromRGB(0, 170, 255)
 })
 
-n({
-    Title = "Gravel.cc",
-    Content = "Press K To open menu",
-    Audio = "rbxassetid://17208361335",
-    Length = 8,
-    Image = "rbxassetid://4483362458",
-    BarColor = Color3.fromRGB(0, 170, 255)
-})
-
 task.wait(2.30)
 pcall(function()
 loadstring(game:HttpGet('https://raw.githubusercontent.com/Pixeluted/adoniscries/main/Source.lua'))()
