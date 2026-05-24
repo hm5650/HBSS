@@ -1,5 +1,5 @@
 
--- Gravel.cc
+-- Nyx Store
 repeat wait() until game:IsLoaded()
 
 for _, v in pairs(getconnections(game:GetService("ScriptContext").Error)) do
