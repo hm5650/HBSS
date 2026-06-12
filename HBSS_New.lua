@@ -187,6 +187,8 @@ local humanoid = nil
 local character = nil
 local animationLoopConnection = nil
 local updateESPColors = function() end
+local sa2thing = 0
+local sa2stuff = 0.05
 
 -- uicolor
 local lightGreen = Color3.fromRGB(144, 238, 144)
@@ -1112,6 +1114,16 @@ local ExpectedArguments = {
     }
 }
 
+RunService.RenderStepped:Connect(function()
+    local now = tick()
+    if now - sa2thing >= sa2stuff then
+        sa2thing = now
+        if config.SA2_Enabled then
+            cachedTarget = GetClosestPlayer()
+        end
+    end
+end)
+
 local function calc_chance(chance)
     if chance == 100 then
         return true
@@ -1141,7 +1153,7 @@ OldNamecall = hookmetamethod(game, "__namecall", newcclosure(function(...)
             return OldNamecall(...)
         end
         
-        local HitPart = GetClosestPlayer()
+        local HitPart = cachedTarget
         if not HitPart then
             config.SA2_FovIsTargeted = false
             return OldNamecall(...)
@@ -2156,6 +2168,13 @@ local function teleportAboveTarget(target)
     
     local targetPos = targetRoot.Position
     local abovePos = targetPos + Vector3.new(0, config.antiAimAboveHeight, 0)
+    if abovePos.Y > 500 then
+        abovePos = Vector3.new(abovePos.X, 100, abovePos.Z)
+    end
+    
+    if abovePos.Y < -100 then
+        abovePos = Vector3.new(abovePos.X, 0, abovePos.Z)
+    end
     
     if not config.originalPosition then
         config.originalPosition = localRoot.Position
@@ -2177,8 +2196,11 @@ local function teleportBehindTarget(target)
     if not targetRoot or not localRoot then return end
     
     local targetCFrame = targetRoot.CFrame
-    local behindOffset = -targetCFrame.LookVector * config.antiAimBehindDistance
+    local behindOffset = -targetCFrame.LookVector * math.min(config.antiAimBehindDistance, 15)
     local behindPos = targetRoot.Position + behindOffset
+    if behindPos.Y < -100 then
+        behindPos = Vector3.new(behindPos.X, 0, behindPos.Z)
+    end
     
     if not config.originalPosition then
         config.originalPosition = localRoot.Position
@@ -2326,6 +2348,22 @@ local function antiAimUpdate()
         end
         return
     end
+    
+    if not localPlayer.Character or not localPlayer.Character:FindFirstChild("HumanoidRootPart") then
+        if config.isTeleported then
+            returnToOriginalPosition()
+        end
+        return
+    end
+    
+    local humanoid = localPlayer.Character:FindFirstChildOfClass("Humanoid")
+    if not humanoid or humanoid.Health <= 0 then
+        if config.isTeleported then
+            returnToOriginalPosition()
+        end
+        return
+    end
+    
     if config.antiAimOrbitEnabled then
         local closestEnemy = findClosestEnemy()
         if closestEnemy and getTargetCharacter(closestEnemy) then
@@ -2345,6 +2383,9 @@ local function antiAimUpdate()
                 local height = config.antiAimOrbitHeight or 0
                 local offset = Vector3.new(math.cos(angle) * radius, height, math.sin(angle) * radius)
                 local newPos = tpos + offset
+                
+                newPos = Vector3.new(newPos.X, math.clamp(newPos.Y, -100, 100), newPos.Z)
+                
                 pcall(function()
                     local localRoot = localPlayer.Character and localPlayer.Character:FindFirstChild("HumanoidRootPart")
                     if localRoot then
@@ -2364,10 +2405,21 @@ local function antiAimUpdate()
         end
         return
     end
+    
     if config.antiAimAbovePlayer then
         local closestEnemy = findClosestEnemy()
         if closestEnemy then
-            teleportAboveTarget(closestEnemy)
+            local targetChar = getTargetCharacter(closestEnemy)
+            if targetChar and localPlayer.Character then
+                local targetRoot = targetChar:FindFirstChild("HumanoidRootPart")
+                local localRoot = localPlayer.Character:FindFirstChild("HumanoidRootPart")
+                if targetRoot and localRoot then
+                    local distance = (localRoot.Position - targetRoot.Position).Magnitude
+                    if distance < 200 then
+                        teleportAboveTarget(closestEnemy)
+                    end
+                end
+            end
         else
             if config.isTeleported then
                 returnToOriginalPosition()
@@ -2379,7 +2431,17 @@ local function antiAimUpdate()
     if config.antiAimBehindPlayer then
         local closestEnemy = findClosestEnemy()
         if closestEnemy then
-            teleportBehindTarget(closestEnemy)
+            local targetChar = getTargetCharacter(closestEnemy)
+            if targetChar and localPlayer.Character then
+                local targetRoot = targetChar:FindFirstChild("HumanoidRootPart")
+                local localRoot = localPlayer.Character:FindFirstChild("HumanoidRootPart")
+                if targetRoot and localRoot then
+                    local distance = (localRoot.Position - targetRoot.Position).Magnitude
+                    if distance < 200 then
+                        teleportBehindTarget(closestEnemy)
+                    end
+                end
+            end
         else
             if config.isTeleported then
                 returnToOriginalPosition()
@@ -2419,8 +2481,8 @@ local function antiAimUpdate()
                         if math.random(1, 2) == 1 then
                             teleportDirection = -teleportDirection
                         end
-                        
-                        teleportLocalPlayer(teleportDirection.Unit, config.antiAimTPDistance)
+                        local teleportDistance = math.min(config.antiAimTPDistance, 15)
+                        teleportLocalPlayer(teleportDirection.Unit, teleportDistance)
                         break
                     end
                 end
@@ -2432,7 +2494,6 @@ local function antiAimUpdate()
         end
     end
 end
-
 local function RFD(targetPlayer)
     local char = getTargetCharacter(targetPlayer)
     if not char then return end
@@ -5072,7 +5133,7 @@ local nd = function()
         "helloworld(''print'')",
         "hello whoever you are :D\ni don't have the capacity to see your usernames yet because I'm too lazy to script dat in",
         "me is want chat roblox",
-        "this script isn't full ban proof so if you get banned to blame on us when your using risky features :/",
+        "this script isn't full ban proof so if you get banned DON'T blame on us when your using risky features :/",
     }
     local mc = m[math.random(1, #m)]
     return WindUI:Popup({
@@ -5081,7 +5142,7 @@ local nd = function()
         Content = mc,
         Buttons = {
             {
-                Title = "yh",
+                Title = "no",
                 Icon = "hammer",
                 Variant = "Tertiary"
             }
@@ -7951,6 +8012,11 @@ local InfoTab = Window:Tab({
         Desc = "Added: Optimization and tweaks\nFixed: Optimized SilentAimTab (HK)\nAdded: Distance limitation to SilentAimTab (HK)\nAdded: Cache Optimization\nFixed Bugs: 5",
         Color = darkGray
     })
+    InfoTab:Paragraph({
+        Title = "Gravel (6/06/2026)",
+        Desc = "More optimizations!",
+        Color = darkGray
+    })
 end
 
 local fovScreenGui = Instance.new("ScreenGui")
@@ -8591,45 +8657,63 @@ task.spawn(function()
 end)
 
 task.spawn(function()
+    local lastRespawnTime = os.clock()
     while patcher do
-        UpdateQT()
-        d()
-        espRefresher()
-        applyhb()
-        aimbotfov()
-        updateAimbotFOVRing()
-        updateAnimation()
-        LowRender()
-        local toRemove = {}
-        for player, data in pairs(config.hitboxExpandedParts) do
-            if not player or not getTargetCharacter(player) or not plralive(player) then
-                table.insert(toRemove, player)
-            elseif not targethb(player) then
-                table.insert(toRemove, player)
-            end
-        end
-        
-        for _, player in ipairs(toRemove) do
-            restoreTorso(player)
-        end
-        
-        local lineToRemove = {}
-        for player, _ in pairs(config.lineESPData) do
-            local found = false
-            for _, target in ipairs(getAllTargets()) do
-                if target == player then
-                    found = true
-                    break
+        local localPlayer = game.Players.LocalPlayer
+        local character = localPlayer.Character
+        local isRespawning = false
+        if character and character:FindFirstChild("Humanoid") then
+            local humanoid = character.Humanoid
+            if humanoid.Health > 0 then
+                local currentTime = os.clock()
+                if currentTime - lastRespawnTime >= 0.1 then
+                    lastRespawnTime = currentTime
+                    isRespawning = true
                 end
             end
-            if not found then
-                table.insert(lineToRemove, player)
+        end
+        if isRespawning then
+            UpdateQT()
+            d()
+            espRefresher()
+            applyhb()
+            aimbotfov()
+            updateAimbotFOVRing()
+            updateAnimation()
+            LowRender()
+            
+            local toRemove = {}
+            for player, data in pairs(config.hitboxExpandedParts) do
+                if not player or not getTargetCharacter(player) or not plralive(player) then
+                    table.insert(toRemove, player)
+                elseif not targethb(player) then
+                    table.insert(toRemove, player)
+                end
+            end
+            
+            for _, player in ipairs(toRemove) do
+                restoreTorso(player)
+            end
+            
+            local lineToRemove = {}
+            for player, _ in pairs(config.lineESPData) do
+                local found = false
+                for _, target in ipairs(getAllTargets()) do
+                    if target == player then
+                        found = true
+                        break
+                    end
+                end
+                if not found then
+                    table.insert(lineToRemove, player)
+                end
+            end
+            
+            for _, player in ipairs(lineToRemove) do
+                removeLineESP(player)
             end
         end
         
-        for _, player in ipairs(lineToRemove) do
-            removeLineESP(player)
-        end
         task.wait(patcherwait)
     end
 end)
