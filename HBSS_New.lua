@@ -379,7 +379,7 @@ local config = {
         ["Metal"] = Enum.Material.Metal,
         ["DiamondPlate"] = Enum.Material.DiamondPlate
     },
-    LowRender = true,
+    LowRender = false,
     animations = false,
     anim_speed = 1,
     R15 = false,
@@ -5747,7 +5747,7 @@ local Optiz = loadstring(game:HttpGet('https://raw.githubusercontent.com/hm5650/
     MainTab:Toggle({
         Title = "Low Render",
         Desc = "Renders the game in lower visuals",
-        Value = config.LowRender or true,
+        Value = config.LowRender or false,
         Callback = function(v)
             config.LowRender = v
         end
