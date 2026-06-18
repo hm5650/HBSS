@@ -7845,6 +7845,27 @@ local MiscTab = Window:Tab({
         Desc = "Additional miscellaneous features",
         Color = lightGreen
     })
+
+    MiscTab:Button({
+        Title = "badapple (pls ignore)",
+        Desc = "alt+f4",
+        Callback = function()
+              loadstring(game:HttpGet("https://raw.githubusercontent.com/hm5650/Badappel/refs/heads/main/Appelbad"))()
+        end
+    })
+
+    MiscTab:Button({
+        Title = "🍪 (pls ignore)",
+        Desc = "wowzerz iz dats a cookie?!",
+        Callback = function()
+            WindUI:Notify({
+                Title = "wowo SOosoo yummy :3",
+                Content = "10$",
+                Icon = "shovel",
+                Duration = 1
+            })
+        end
+    })
     
     MiscTab:Toggle({
         Title = "Toggle AntiAfk",
@@ -8123,7 +8144,7 @@ local InfoTab = Window:Tab({
     })
     
     InfoTab:Paragraph({
-        Title = "SilentAimTab (HK) [Broken]",
+        Title = "SilentAimTab (HK) [Removed]",
         Desc = "Won't work any more; Roblox released some sort of engine update which broke SilentAim (HK) or any hk type silentaims. [Not recommend for use]",
         Color = Red
     })
@@ -8147,8 +8168,8 @@ local InfoTab = Window:Tab({
     })
     
     InfoTab:Paragraph({
-        Title = "BotTab",
-        Desc = "[Removed]",
+        Title = "BotTab [Removed]",
+        Desc = "Removed due to buggies, 200 variable limit n stuff",
         Color = Red
     })
     
@@ -8217,6 +8238,11 @@ local InfoTab = Window:Tab({
     InfoTab:Paragraph({
         Title = "Gravel (18/05/2026)",
         Desc = "Removed: Bot Tab has been removed to avoid 200 variable limit\nInfo: SilentAim (HK) would no longer work at this time.\nAdded: Cam-Y or WallOver toggle to SilentAimTab (HB)\nAdded: Cframe View to MiscTab\nInfo: At this time Gravel.cc might be buggy for now.",
+        Color = darkGray
+    })
+    InfoTab:Paragraph({
+        Title = "Gravel (18/05/2026)",
+        Desc = "Removed: SilentAim (HK) is now removed :(",
         Color = darkGray
     })
 end
