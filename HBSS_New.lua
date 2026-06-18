@@ -214,6 +214,14 @@ local config = {
     espc = Color3.fromRGB(255, 182, 193),
     esptargetc = Color3.fromRGB(255, 255, 0),
     espteamc = Color3.fromRGB(0, 255, 0),
+    groundBarrier = {
+        enabled = true,
+        height = 2.5,
+        squishFactor = 1,
+        detectionRadius = 1,
+        barrierPart = nil,
+        barrierConnection = nil,
+    },
     rfd = false,
     eme = true,
     wallc = false,
@@ -2630,6 +2638,80 @@ local function chooseBodyPartInstance(target)
     end
 end
 
+local function createGroundBarrier()
+    if config.groundBarrier.barrierPart then
+        pcall(function()
+            config.groundBarrier.barrierPart:Destroy()
+        end)
+        config.groundBarrier.barrierPart = nil
+    end
+    
+    if config.groundBarrier.barrierConnection then
+        pcall(function()
+            config.groundBarrier.barrierConnection:Disconnect()
+        end)
+        config.groundBarrier.barrierConnection = nil
+    end
+    
+    if not config.groundBarrier.enabled then
+        return
+    end
+    local barrier = Instance.new("Part")
+    barrier.Name = "GroundBarrier"
+    barrier.Transparency = 1
+    barrier.CanCollide = false
+    barrier.CanQuery = true
+    barrier.Anchored = true
+    barrier.Size = Vector3.new(50, 0.5, 50)
+    barrier.Material = Enum.Material.SmoothPlastic
+    barrier.BrickColor = BrickColor.new("White")
+    barrier.Parent = workspace
+    pcall(function()
+        barrier.LocalTransparencyModifier = 1
+    end)
+    
+    config.groundBarrier.barrierPart = barrier
+    config.groundBarrier.barrierConnection = game:GetService("RunService").RenderStepped:Connect(function()
+        if not config.groundBarrier.enabled or not config.groundBarrier.barrierPart then
+            return
+        end
+        
+        local localPlayer = game.Players.LocalPlayer
+        if not localPlayer or not localPlayer.Character then
+            return
+        end
+        
+        local rootPart = localPlayer.Character:FindFirstChild("HumanoidRootPart")
+        if not rootPart then
+            return
+        end
+        local rayOrigin = rootPart.Position
+        local rayDirection = Vector3.new(0, -config.groundBarrier.detectionRadius, 0)
+        local ray = Ray.new(rayOrigin, rayDirection)
+        
+        local hit, hitPos, normal = workspace:FindPartOnRayWithIgnoreList(ray, {localPlayer.Character})
+        
+        local groundY = 0
+        if hit and hitPos then
+            groundY = hitPos.Y + 0.5
+        else
+            groundY = rootPart.Position.Y - config.groundBarrier.height
+        end
+        local barrierPos = Vector3.new(
+            rootPart.Position.X,
+            math.max(groundY, rootPart.Position.Y - config.groundBarrier.height * 2),
+            rootPart.Position.Z
+        )
+        barrierPos = Vector3.new(
+            barrierPos.X,
+            math.clamp(barrierPos.Y, -1000, 1000),
+            barrierPos.Z
+        )
+        
+        config.groundBarrier.barrierPart.CFrame = CFrame.new(barrierPos)
+    end)
+end
+
 local function applySizeToPart(targetPlayer, targetDiameter, chosenPart)
     local char = getTargetCharacter(targetPlayer)
     if not char or targetPlayer == localPlayer then return end
@@ -2647,13 +2729,72 @@ local function applySizeToPart(targetPlayer, targetDiameter, chosenPart)
     if not config.originalSizes[targetPlayer] then
         saveOriginalPartInfo(targetPlayer, part)
     end
-
-    local expansionSize = Vector3.new(
-        targetDiameter,
-        targetDiameter,
-        targetDiameter
-    )
-
+    local camera = workspace.CurrentCamera
+    if not camera then return end
+    
+    local viewportSize = camera.ViewportSize
+    local center = Vector2.new(viewportSize.X / 2, viewportSize.Y / 2)
+    local targetScreenPos, onScreen = camera:WorldToViewportPoint(part.Position)
+    if not onScreen then return end
+    local screenVec = Vector2.new(targetScreenPos.X, targetScreenPos.Y)
+    local distFromCenter = (screenVec - center).Magnitude
+    local isNearBarrier = false
+    local barrierSquish = 1.0
+    
+    if config.groundBarrier.enabled and config.groundBarrier.barrierPart then
+        local barrierPos = config.groundBarrier.barrierPart.Position
+        local targetPos = part.Position
+        local verticalDist = math.abs(targetPos.Y - barrierPos.Y)
+        if verticalDist < config.groundBarrier.height + 1 then
+            isNearBarrier = true
+            local proximity = 1 - (verticalDist / (config.groundBarrier.height + 1))
+            barrierSquish = 1 - (proximity * (1 - config.groundBarrier.squishFactor))
+            barrierSquish = math.clamp(barrierSquish, config.groundBarrier.squishFactor, 1)
+        end
+    end
+    local partPos = part.Position
+    local cameraPos = camera.CFrame.Position
+    local lookVector = camera.CFrame.LookVector
+    local toPart = (partPos - cameraPos).Unit
+    local rightVector = camera.CFrame.RightVector
+    local upVector = camera.CFrame.UpVector
+    
+    local horizontalOffset = toPart:Dot(rightVector)
+    local verticalOffset = toPart:Dot(upVector)
+    local depthOffset = toPart:Dot(lookVector)
+    
+    local worldDistFromCenter = math.sqrt(horizontalOffset^2 + verticalOffset^2)
+    local baseSize = targetDiameter
+    local hScaleFactor = 1.0
+    local vScaleFactor = 1.0
+    local dScaleFactor = 1.0
+    if worldDistFromCenter < 0.01 then
+        hScaleFactor = 0.6
+        vScaleFactor = 0.4
+        dScaleFactor = 0.7
+    else
+        local horizontalAbs = math.abs(horizontalOffset)
+        local verticalAbs = math.abs(verticalOffset)
+        if horizontalAbs > 0 then
+            hScaleFactor = math.clamp(1 + (horizontalAbs / (worldDistFromCenter + 0.01)) * 0.4, 0.4, 1.6)
+        else
+            hScaleFactor = 0.5
+        end
+        if verticalAbs > 0 then
+            vScaleFactor = math.clamp(1 + (verticalAbs / (worldDistFromCenter + 0.01)) * 0.4, 0.4, 1.6)
+        else
+            vScaleFactor = 0.5
+        end
+        dScaleFactor = math.clamp(1 - (worldDistFromCenter / (worldDistFromCenter + 5)) * 0.3, 0.4, 1.0)
+    end
+    if isNearBarrier then
+        vScaleFactor = vScaleFactor * barrierSquish
+        hScaleFactor = hScaleFactor * (0.8 + (1 - barrierSquish) * 0.4)
+        if barrierSquish < 0.7 then
+            vScaleFactor = vScaleFactor * 0.5
+            hScaleFactor = hScaleFactor * 1.2
+        end
+    end
     local useExpanded = true
     local chance = math.clamp(tonumber(config.hitchance) or 100, 0, 100)
     if chance <= 0 then
@@ -2664,22 +2805,190 @@ local function applySizeToPart(targetPlayer, targetDiameter, chosenPart)
         else
             useExpanded = false
         end
-    else
-        useExpanded = true
     end
-
+    
     if useExpanded then
-        config.targethbSizes[targetPlayer] = expansionSize
+        local finalSize = Vector3.new(
+            math.max(0.3, baseSize * hScaleFactor),
+            math.max(0.3, baseSize * vScaleFactor),
+            math.max(0.3, baseSize * dScaleFactor)
+        )
+        
+        local distanceFactor = 1 - math.min(1, distFromCenter / 200) * 0.3
+        
+        if distFromCenter < 50 then
+            local nearCenterSize = Vector3.new(
+                math.max(0.3, finalSize.X * (1 + (1 - distanceFactor) * 0.2)),
+                math.max(0.3, finalSize.Y * (1 + (1 - distanceFactor) * 0.2)),
+                math.max(0.3, finalSize.Z * (1 - (1 - distanceFactor) * 0.2))
+            )
+           
+            if isNearBarrier and barrierSquish < 0.8 then
+                nearCenterSize = Vector3.new(
+                    nearCenterSize.X * 1.3,
+                    nearCenterSize.Y * 0.4,
+                    nearCenterSize.Z * 0.8
+                )
+            end
+            
+            finalSize = nearCenterSize
+        end
+        
+        config.targethbSizes[targetPlayer] = finalSize
     else
         local original = config.originalSizes[targetPlayer]
         if original and original.size then
             config.targethbSizes[targetPlayer] = original.size
         else
-            config.targethbSizes[targetPlayer] = Vector3.new(0.05, 0.05, 0.05)
+            config.targethbSizes[targetPlayer] = Vector3.new(0.3, 0.3, 0.3)
         end
     end
 
     config.activeApplied[targetPlayer] = true
+end
+
+local function hb()
+    local targetsToRemove = {}
+    for playerObj, targetSize in pairs(config.targethbSizes) do
+        if playerObj and playerObj ~= localPlayer and getTargetCharacter(playerObj) and plralive(playerObj) then
+            local part = getTargetCharacter(playerObj):FindFirstChild(config.originalSizes[playerObj] and config.originalSizes[playerObj].partName) 
+                         or getTargetCharacter(playerObj):FindFirstChild(config.bodypart) 
+                         or getTargetCharacter(playerObj):FindFirstChild("Head")
+            if not part then
+                local p1 = getTargetCharacter(playerObj):FindFirstChild("HumanoidRootPart")
+                local p2 = getTargetCharacter(playerObj):FindFirstChild("Head")
+                part = p1 or p2
+            end
+
+            if part then
+                local currentSize = part.Size
+                local lerpAlpha = math.clamp(tonumber(config.predic) or 1, 0, 1)
+                local newSize = Vector3.new(
+                    currentSize.X + (targetSize.X - currentSize.X) * lerpAlpha,
+                    currentSize.Y + (targetSize.Y - currentSize.Y) * lerpAlpha,
+                    currentSize.Z + (targetSize.Z - currentSize.Z) * lerpAlpha
+                )
+                
+                newSize = Vector3.new(
+                    math.max(0.3, newSize.X),
+                    math.max(0.3, newSize.Y),
+                    math.max(0.3, newSize.Z)
+                )
+
+                pcall(function()
+                    part.Size = newSize
+                    part.Transparency = config.hbtrans
+                    part.CanCollide = false
+                    part.Massless = (part.Name ~= "HumanoidRootPart")
+                end)
+            end
+        else
+            if playerObj ~= localPlayer then
+                table.insert(targetsToRemove, playerObj)
+            end
+        end
+    end
+    
+    for _, playerObj in ipairs(targetsToRemove) do
+        restorePartForPlayer(playerObj)
+    end
+    
+    updateHitboxes()
+end
+
+local function calculateDiameter(worldDist, screenRadius, cam)
+    local viewportSize = cam.ViewportSize
+    local H = viewportSize.Y
+    local vFovDeg = cam.FieldOfView
+    local vFovRad = math.rad(vFovDeg)
+    local halfVFov = vFovRad / 2
+    local alpha = (screenRadius / (H / 2)) * halfVFov
+    local worldHalf = worldDist * math.tan(alpha)
+    local worldFull = worldHalf * 2
+    local baseSize = math.max(0.3, worldFull)
+    local distanceFromCenter = math.max(0, screenRadius)
+    local distanceFactor = 1 - math.min(1, distanceFromCenter / 200) * 0.2
+    
+    return math.max(0.3, baseSize * distanceFactor)
+end
+local function processTarget(best, camera, radiusPx)
+    if best and plralive(best.player) then
+        local diameter = calculateDiameter(best.worldDist, radiusPx, camera)
+        diameter = math.max(0.3, diameter)
+
+        local localChar = localPlayer.Character
+        local targetChar = getTargetCharacter(best.player)
+        local distance = math.huge
+
+        if localChar and targetChar then
+            local localRoot = localChar:FindFirstChild("HumanoidRootPart") or localChar:FindFirstChild("Head")
+            local targetRoot = targetChar:FindFirstChild("HumanoidRootPart") or targetChar:FindFirstChild("Head")
+
+            if localRoot and targetRoot then
+                distance = (localRoot.Position - targetRoot.Position).Magnitude
+            end
+        end
+
+        local studz = 5 
+        if distance <= studz then
+            diameter = math.max(0.3, math.min(0.8, diameter))
+        else
+            local ok, pixelRadius = pcall(function()
+                local rightWorld = camera.CFrame:VectorToWorldSpace(Vector3.new(1, 0, 0)).Unit
+                local upWorld = camera.CFrame:VectorToWorldSpace(Vector3.new(0, 1, 0)).Unit
+                local worldHalf = diameter / 2
+                local maxPixel = 0
+                local samples = 24
+                for i = 0, samples - 1 do
+                    local angle = (i / samples) * 2 * math.pi
+                    local offsetWorld = rightWorld * math.cos(angle) * worldHalf + upWorld * math.sin(angle) * worldHalf
+                    local samplePointWorld = best.part.Position + offsetWorld
+                    local sp, onScreenSample = camera:WorldToViewportPoint(samplePointWorld)
+                    if onScreenSample then
+                        local sampleScreen = Vector2.new(sp.X, sp.Y)
+                        local d = (sampleScreen - best.screenPos).Magnitude
+                        if d > maxPixel then
+                            maxPixel = d
+                        end
+                    end
+                end
+
+                if maxPixel <= 0 then
+                    return nil
+                end
+
+                return maxPixel
+            end)
+
+            if ok and pixelRadius and pixelRadius > 0 then
+                local scale = best.screenDist / pixelRadius
+                scale = math.clamp(scale, 1 / config.maxExpansion, config.maxExpansion)
+                diameter = math.max(0.3, diameter * scale)
+            end
+        end
+
+        diameter = math.max(0.3, diameter)
+        
+        if best.screenDist <= 1 then
+            if not config.centerLocked[best.player] then
+                config.centerLocked[best.player] = true
+                applySizeToPart(best.player, diameter, best.part)
+            else
+                local prevSize = config.targethbSizes[best.player]
+                if prevSize then
+                    diameter = prevSize.X
+                end
+                applySizeToPart(best.player, diameter, best.part)
+            end
+        else
+            config.centerLocked[best.player] = nil
+            applySizeToPart(best.player, diameter, best.part)
+        end
+
+        if config.rfd then
+            RFD(best.player)
+        end
+    end
 end
 
 local function restorePartForPlayer(targetPlayer)
@@ -2875,46 +3184,6 @@ local function applyhb()
             restoreTorso(target)
         end
     end
-end
-
-
-local function hb()
-    local targetsToRemove = {}
-    for playerObj, targetSize in pairs(config.targethbSizes) do
-        if playerObj and playerObj ~= localPlayer and getTargetCharacter(playerObj) and plralive(playerObj) then
-            local part = getTargetCharacter(playerObj):FindFirstChild(config.originalSizes[playerObj] and config.originalSizes[playerObj].partName) 
-                         or getTargetCharacter(playerObj):FindFirstChild(config.bodypart) 
-                         or getTargetCharacter(playerObj):FindFirstChild("Head")
-            if not part then
-                local p1 = getTargetCharacter(playerObj):FindFirstChild("HumanoidRootPart")
-                local p2 = getTargetCharacter(playerObj):FindFirstChild("Head")
-                part = p1 or p2
-            end
-
-            if part then
-                local currentSize = part.Size
-                local lerpAlpha = math.clamp(tonumber(config.predic) or 1, 0, 1)
-                local newSize = currentSize:Lerp(targetSize, lerpAlpha)
-
-                pcall(function()
-                    part.Size = newSize
-                    part.Transparency = config.hbtrans
-                    part.CanCollide = false
-                    part.Massless = (part.Name ~= "HumanoidRootPart")
-                end)
-            end
-        else
-            if playerObj ~= localPlayer then
-                table.insert(targetsToRemove, playerObj)
-            end
-        end
-    end
-    
-    for _, playerObj in ipairs(targetsToRemove) do
-        restorePartForPlayer(playerObj)
-    end
-    
-    updateHitboxes()
 end
 
 local function handleHitboxForRespawnedPlayer(player)
@@ -5785,12 +6054,6 @@ SilentAimTab:Toggle({
                 config.camYOffsetConnection = nil
             end
             config.camYOffsetOriginalCFrame = nil
-            WindUI:Notify({
-                Title = "Cam-Y Offset",
-                Content = "Disabled",
-                Icon = "x",
-                Duration = 1
-            })
         else
             if not config.camYOffsetConnection then
                 config.camYOffsetConnection = game:GetService("RunService").RenderStepped:Connect(function()
@@ -5810,12 +6073,6 @@ SilentAimTab:Toggle({
                     end
                 end)
             end
-            WindUI:Notify({
-                Title = "Cam Offset",
-                Content = "Enabled - Offset: " .. config.camYOffsetValue,
-                Icon = "check",
-                Duration = 1
-            })
         end
     end
 })
@@ -7296,6 +7553,11 @@ local InfoTab = Window:Tab({
     InfoTab:Paragraph({
         Title = "Gravel (18/05/2026)",
         Desc = "Removed: SilentAim (HK) is now removed due to an update :(",
+        Color = darkGray
+    })
+    InfoTab:Paragraph({
+        Title = "Gravel (18/05/2026)",
+        Desc = "Improved: SilentAim (HB) Accuracy",
         Color = darkGray
     })
 end
