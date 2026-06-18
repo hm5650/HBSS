@@ -282,11 +282,6 @@ local config = {
     antiAimBehindDistance = 5,
     originalPosition = nil,
     isTeleported = false,
-    BotSpeed = 1,
-    BotMReach = 15,
-    BotAttackrange = 25,
-    Botin = false,
-    PrimaryAction = "tool:Activate()",
     currentAntiAimTarget = nil,
     antiAimOrbitEnabled = false,
     antiAimOrbitSpeed = 5,
@@ -355,6 +350,10 @@ local config = {
     SSConnection = nil,
     fastspawn = false,
     antiafk = false,
+    camYOffsetEnabled = false,
+    camYOffsetValue = 0,
+    camYOffsetOriginalCFrame = nil,
+    camYOffsetConnection = nil,
     reach = {
         enabled = false,
         type = "Sphere",
@@ -6546,6 +6545,67 @@ local SilentAimTab = Window:Tab({
         end
     })
     
+SilentAimTab:Toggle({
+    Title = "Toggle Cam-Y Offset",
+    Desc = "Enable/disable camera Y offset (allows you to shoot through walls)",
+    Value = config.camYOffsetEnabled or false,
+    Callback = function(v)
+        config.camYOffsetEnabled = v
+        if not v then
+            if config.camYOffsetConnection then
+                config.camYOffsetConnection:Disconnect()
+                config.camYOffsetConnection = nil
+            end
+            config.camYOffsetOriginalCFrame = nil
+            WindUI:Notify({
+                Title = "Cam-Y Offset",
+                Content = "Disabled",
+                Icon = "x",
+                Duration = 1
+            })
+        else
+            if not config.camYOffsetConnection then
+                config.camYOffsetConnection = game:GetService("RunService").RenderStepped:Connect(function()
+                    if config.camYOffsetEnabled then
+                        local cam = workspace.CurrentCamera
+                        if cam then
+                            if not config.camYOffsetOriginalCFrame then
+                                config.camYOffsetOriginalCFrame = cam.CFrame
+                            end
+                            local offset = Vector3.new(0, config.camYOffsetValue, 0)
+                            local newCFrame = CFrame.new(
+                                cam.CFrame.Position + offset,
+                                cam.CFrame.Position + offset + cam.CFrame.LookVector
+                            )
+                            cam.CFrame = newCFrame
+                        end
+                    end
+                end)
+            end
+            WindUI:Notify({
+                Title = "Cam-Y Offset",
+                Content = "Enabled - Offset: " .. config.camYOffsetValue,
+                Icon = "check",
+                Duration = 1
+            })
+        end
+    end
+})
+
+SilentAimTab:Slider({
+    Title = "Y Offset Value",
+    Desc = "Vertical offset amount (0-500)",
+    IsTextbox = true,
+    Step = 1,
+    Value = {
+        Min = 0,
+        Max = 500,
+        Default = config.camYOffsetValue or 0
+    },
+    Callback = function(value)
+        config.camYOffsetValue = value
+    end
+})
     SilentAimTab:Dropdown({
         Title = "Target Part",
         Desc = "Part to target",
@@ -6615,14 +6675,14 @@ end
 -- SA2Tab
 local SilentAimTab2 = Window:Tab({
     Title = "SilentAim (HK)",
-    Desc = "Hook-based silent aim",
+    Desc = "Hook-based silent aim [Broken]",
     Icon = "target",
-    IconColor = lightGray
+    IconColor = Red
 }) do
     SilentAimTab2:Paragraph({
         Title = "Gravel",
-        Desc = "[ Hooked Based ]\n[ NPC & ignoreforcefield support doesn't work here :( ]\n[ Good Injectors are recommend ]\n[ This might not work on every game ]",
-        Color = darkGray
+        Desc = "[ Broken ]",
+        Color = Red
     })
     
     SilentAimTab2:Paragraph({
@@ -7669,91 +7729,6 @@ local ClientTab = Window:Tab({
         end
     })
 end
--- Bot Tab
-local BotTab = Window:Tab({
-    Title = "Bot",
-    Desc = "Automated bot features",
-    Icon = "monitor",
-    IconColor = lightGray
-}) do
-    BotTab:Paragraph({
-        Title = "Bot Master",
-        Desc = "Master control for bot features",
-        Color = lightGreen
-    })
-    
-    BotTab:Toggle({
-        Title = "Auto Attack",
-        Desc = "Enable/disable auto-attack",
-        Value = config.Botin or false,
-        Callback = function(v)
-            config.Botin = v
-            n({
-                Title = "Bot",
-                Content = "Bot " .. (v and "Enabled" or "Disabled"),
-                Audio = "rbxassetid://17208361335",
-                Length = 1,
-                Image = "rbxassetid://4483362458",
-                BarColor = v and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(255, 0, 0)
-            })
-        end
-    })
-    BotTab:Space()
-    BotTab:Paragraph({
-        Title = "Bot Settings",
-        Desc = "Configuration for bot behavior",
-        Color = lightGreen
-    })
-    
-    BotTab:Toggle({
-        Title = "Wall Check",
-        Desc = "Check for walls",
-        Value = config.botWallCheck or false,
-        Callback = function(v)
-            config.botWallCheck = v
-        end
-    })
-    
-    BotTab:Dropdown({
-        Title = "Primary Action",
-        Desc = "Choose attack method",
-        Values = {"tool:Activate()", "Leftclick"},
-        Value = config.PrimaryAction or "tool:Activate()",
-        Multi = false,
-        Callback = function(choice)
-            config.PrimaryAction = choice
-        end
-    })
-    
-    BotTab:Slider({
-        Title = "Rotation Speed",
-        Desc = "Speed of rotation towards target",
-        Step = 0.1,
-        Value = {
-            Min = 0,
-            Max = 10,
-            Default = config.BotSpeed or 1
-        },
-        Callback = function(value)
-            config.BotSpeed = value
-        end
-    })
-    
-    BotTab:Slider({
-        Title = "Attack Range",
-        Desc = "Maximum detection range",
-        IsTextbox = true,
-        Step = 50,
-        Value = {
-            Min = 0,
-            Max = 10000,
-            Default = config.BotAttackrange or 25
-        },
-        Callback = function(value)
-            config.BotAttackrange = value
-        end
-    })
-end
 
 -- Misc Tab
 local MiscTab = Window:Tab({
@@ -7921,14 +7896,14 @@ local InfoTab = Window:Tab({
     
     InfoTab:Paragraph({
         Title = "SilentAimTab (HB)",
-        Desc = "Automatically resizes opponents hitbox and aligning it to your crosshair or the center of your screen",
+        Desc = "Automatically resizes opponents hitbox and aligning it to your crosshair or the center of your screen (the only working SilentAim)",
         Color = darkGray
     })
     
     InfoTab:Paragraph({
-        Title = "SilentAimTab (HK)",
-        Desc = "Hooks on to weapons raycasts and redirects it to your opponents which is way more accurate",
-        Color = darkGray
+        Title = "SilentAimTab (HK) [Broken]",
+        Desc = "Won't work any more; Roblox released some sort of engine update which broke SilentAim (HK) or any hk type silentaims. [Not recommend for use]",
+        Color = Red
     })
     
     InfoTab:Paragraph({
@@ -7951,8 +7926,8 @@ local InfoTab = Window:Tab({
     
     InfoTab:Paragraph({
         Title = "BotTab",
-        Desc = "Automatic bot that would try to kill any opponents with in range",
-        Color = darkGray
+        Desc = "[Removed]",
+        Color = Red
     })
     
     InfoTab:Paragraph({
@@ -8015,6 +7990,11 @@ local InfoTab = Window:Tab({
     InfoTab:Paragraph({
         Title = "Gravel (6/06/2026)",
         Desc = "More optimizations!",
+        Color = darkGray
+    })
+    InfoTab:Paragraph({
+        Title = "Gravel (18/05/2026)",
+        Desc = "Removed: Bot Tab has been removed to avoid 200 variable limit\nInfo: SilentAim (HK) would no longer work at this time.\nAdded: Cam-Y toggle to SilentAim (HB)\nInfo: At this time Gravel.cc might be buggy for now.",
         Color = darkGray
     })
 end
@@ -8124,45 +8104,6 @@ local function SetupRespawnHandler()
     end)
 end
 
-local function BgetClosestPlayer()
-    local closestPlayer = nil
-    local shortestDistance = config.BotAttackrange
-    local allTargets = getAllTargets()
-    local localChar = localPlayer.Character
-    if not localChar or not localChar:FindFirstChild("HumanoidRootPart") then 
-        return nil 
-    end
-    
-    local localPos = localChar.HumanoidRootPart.Position
-    
-    for _, target in ipairs(allTargets) do
-        if target ~= localPlayer then
-            local tgtChar = getTargetCharacter(target)
-            if tgtChar and tgtChar:FindFirstChild("Humanoid") and tgtChar.Humanoid.Health > 0 and tgtChar:FindFirstChild("HumanoidRootPart") then
-                if config.ignoreForcefield and hasForcefield(tgtChar) then
-                    continue
-                end
-                if config.botWallCheck then
-                    local targetPos = tgtChar.HumanoidRootPart.Position
-                    if not aimbotWallCheck(targetPos, localPos) then
-                        continue
-                    end
-                end
-                local magnitude = (tgtChar.HumanoidRootPart.Position - localPos).magnitude
-                if magnitude < shortestDistance then
-                    closestPlayer = target
-                    shortestDistance = magnitude
-                end
-            end
-        end
-    end
-    if config.masterGetTarget == "TargetSeen" then
-        return findClosestEnemy()
-    end
-    
-    return closestPlayer
-end
-
 LocalPlayer.CharacterAdded:Connect(function(character)
     local humanoid = character:WaitForChild("Humanoid")
     humanoid:SetStateEnabled(Enum.HumanoidStateType.FallingDown, false)
@@ -8176,116 +8117,6 @@ if LocalPlayer.Character then
         humanoid:SetStateEnabled(Enum.HumanoidStateType.Ragdoll, false)
     end
 end
-
-local function simulateLeftClick()
-    VirtualInputManager:SendMouseButtonEvent(0, 0, 0, true, game, 1)
-    task.wait(0.05)
-    VirtualInputManager:SendMouseButtonEvent(0, 0, 0, false, game, 1)
-    local tool = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Tool")
-    if tool then
-        for _, child in pairs(tool:GetDescendants()) do
-            if child:IsA("RemoteEvent") then
-                if child.Name:lower():find("mouse") or child.Name:lower():find("click") or child.Name:lower():find("attack") then
-                    child:FireServer()
-                end
-            end
-        end
-        for _, child in pairs(tool:GetDescendants()) do
-            if child:IsA("BindableEvent") then
-                if child.Name:lower():find("mouse") or child.Name:lower():find("click") or child.Name:lower():find("attack") then
-                    child:Fire()
-                end
-            end
-        end
-    end
-end
-
-local function performAttack()
-    if not config.Botin then return end
-    
-    local target = BgetClosestPlayer()
-    if not target then return end
-    
-    local tgtChar = getTargetCharacter(target)
-    if not tgtChar or not tgtChar:FindFirstChild("Humanoid") or tgtChar.Humanoid.Health <= 0 then
-        return
-    end
-    if typeof(target) == "Instance" and target:IsA("Player") then
-        local mode = config.masterTeamTarget or "Enemies"
-        
-        if mode == "Enemies" then
-            if isTeammate(target) then
-                return
-            end
-        elseif mode == "Teams" then
-            if not isTeammate(target) then
-                return
-            end
-        end
-    end
-    
-    local tool = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Tool")
-    if not tool then return end
-    
-    if config.PrimaryAction == "tool:Activate()" then
-        if tool:FindFirstChild("Handle") then
-            tool:Activate()
-            if LocalPlayer:DistanceFromCharacter(tgtChar.HumanoidRootPart.Position) <= config.BotMReach then
-                for _, part in pairs(tgtChar:GetChildren()) do
-                    if part:IsA("BasePart") then
-                        firetouchinterest(tool.Handle, part, 0)
-                        task.wait()
-                        firetouchinterest(tool.Handle, part, 1)
-                    end
-                end
-            end
-        else
-            tool:Activate()
-        end
-        
-    elseif config.PrimaryAction == "Leftclick" then
-        simulateLeftClick()
-        tool:Activate()
-    end
-end
-
-game:GetService("RunService").RenderStepped:Connect(function()
-    if config.Botin then
-        local currentTime = tick()
-        if currentTime - lastAttackTime >= attackCooldown then
-            spawn(performAttack)
-            lastAttackTime = currentTime
-        end
-    end
-end)
-
-game:GetService("RunService").Heartbeat:Connect(function()
-    if config.Botin and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-        local target = BgetClosestPlayer()
-        if target and getTargetCharacter(target) and getTargetCharacter(target):FindFirstChild("HumanoidRootPart") then
-            local humanoid = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
-            if humanoid then
-                humanoid.AutoRotate = false
-                local root = LocalPlayer.Character.HumanoidRootPart
-                local targetPos = getTargetCharacter(target).HumanoidRootPart.Position
-                root.CFrame = root.CFrame:Lerp(
-                    CFrame.new(root.Position, Vector3.new(targetPos.X, root.Position.Y, targetPos.Z)) * 
-                    CFrame.Angles(0, math.rad(25), 0), 
-                    config.BotSpeed
-                )
-                humanoid:MoveTo(getTargetCharacter(target).HumanoidRootPart.CFrame * CFrame.new(-3, 0, 0).p)
-                if getTargetCharacter(target).Humanoid:GetState() == Enum.HumanoidStateType.Freefall then
-                    humanoid.Jump = true
-                end
-            end
-        end
-    else
-        local humanoid = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
-        if humanoid then
-            humanoid.AutoRotate = true
-        end
-    end
-end)
 
 local function initKeybinds()
     local UserInputService = game:GetService("UserInputService")
