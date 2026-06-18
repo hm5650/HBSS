@@ -17,6 +17,7 @@ local VirtualUser = game:GetService('VirtualUser')
 local TweenService = game:GetService("TweenService")
 local VirtualInputManager = game:GetService("VirtualInputManager")
 local Teams = game:GetService("Teams")
+local HttpService = game:GetService("HttpService")
 local AntiAimTabWorkspace = game:GetService("Workspace")
 local SoundService = game:GetService("SoundService")
 local player = Players.LocalPlayer
@@ -54,15 +55,6 @@ end)()
 n({
     Title = "Gravel.cc",
     Content = "script made by hmmm5651\nyt: @gpsickle",
-    Audio = "rbxassetid://17208361335",
-    Length = 8,
-    Image = "rbxassetid://4483362458",
-    BarColor = Color3.fromRGB(0, 170, 255)
-})
-
-n({
-    Title = "Gravel.cc",
-    Content = "Press K To open menu",
     Audio = "rbxassetid://17208361335",
     Length = 8,
     Image = "rbxassetid://4483362458",
@@ -110,6 +102,7 @@ getgenv().ED_AntiKick = {
     CheckCaller = true
 }
 
+pcall(function()
 local OldNamecall; OldNamecall = hookmetamethod(game, "__namecall", newcclosure(function(...)
     local self, message = ...
     local method = getnamecallmethod()
@@ -135,7 +128,9 @@ local OldNamecall; OldNamecall = hookmetamethod(game, "__namecall", newcclosure(
 
     return OldNamecall(...)
 end))
+end)
 
+pcall(function()
 local OldFunction; OldFunction = hookfunction(LocalPlayer.Kick, function(...)
     local self, Message = ...
 
@@ -159,6 +154,7 @@ local OldFunction; OldFunction = hookfunction(LocalPlayer.Kick, function(...)
         end
     end
     return OldFunction(...)
+end)
 end)
 
 n({
@@ -186,6 +182,8 @@ local aimbot360LoopTask = nil
 local gui = {}
 local patcher = true
 local patcherwait = 0.5
+local lowpatcher = true
+local lowpatcherwait = 0.03
 local lastTargetUpdate = 0
 local currentAnimation = nil
 local animationTrack = nil
@@ -193,8 +191,13 @@ local humanoid = nil
 local character = nil
 local animationLoopConnection = nil
 local updateESPColors = function() end
+local sa2thing = 0
+local sa2stuff = 0.05
+local ViewConnection
+local Viewing = false
+local CameraDistance = 8
 
--- Colors for UI elements
+-- uicolor
 local lightGreen = Color3.fromRGB(144, 238, 144)
 local darkGray = Color3.fromRGB(40, 40, 40)
 local lightGray = Color3.fromRGB(200, 200, 200)
@@ -223,6 +226,7 @@ local config = {
     SA2_GetTarget = "Closest",
     SA2_currentTarget = nil,
     SA2_TArea = 35,
+    SA2_TargetRange = 1000,
     SA2_WallbangEnabled = false,
     currentTarget = nil,
     espc = Color3.fromRGB(255, 182, 193),
@@ -285,11 +289,6 @@ local config = {
     antiAimBehindDistance = 5,
     originalPosition = nil,
     isTeleported = false,
-    BotSpeed = 1,
-    BotMReach = 15,
-    BotAttackrange = 25,
-    Botin = false,
-    PrimaryAction = "tool:Activate()",
     currentAntiAimTarget = nil,
     antiAimOrbitEnabled = false,
     antiAimOrbitSpeed = 5,
@@ -358,6 +357,10 @@ local config = {
     SSConnection = nil,
     fastspawn = false,
     antiafk = false,
+    camYOffsetEnabled = false,
+    camYOffsetValue = 0,
+    camYOffsetOriginalCFrame = nil,
+    camYOffsetConnection = nil,
     reach = {
         enabled = false,
         type = "Sphere",
@@ -382,7 +385,7 @@ local config = {
         ["Metal"] = Enum.Material.Metal,
         ["DiamondPlate"] = Enum.Material.DiamondPlate
     },
-    LowRender = true,
+    LowRender = false,
     animations = false,
     anim_speed = 1,
     R15 = false,
@@ -699,6 +702,7 @@ local function GetClosestPlayer()
     local allTargets = {}
     local cameraCFrame = Camera.CFrame
     local cameraPos = cameraCFrame.Position
+    local maxTargetRange = config.SA2_TargetRange or 1000
     
     for _, Player in next, GetPlayers(plrs) do
         if Player == plr then continue end
@@ -708,6 +712,7 @@ local function GetClosestPlayer()
         if not Character then continue end
         local Humanoid = FindFirstChild(Character, "Humanoid")
         if not Humanoid or Humanoid.Health <= 0 then continue end
+
         if config.SA2_Wallcheck and not IsPlayerVisible(Player) then continue end
         
         local bodyPartsToCheck = {"HumanoidRootPart", "Head", "Torso", "UpperTorso"}
@@ -725,6 +730,7 @@ local function GetClosestPlayer()
         
         local targetPos = foundPart.Position
         local worldDist = (cameraPos - targetPos).Magnitude
+        if worldDist > maxTargetRange then continue end
         
         if config.SA2_ThreeSixtyMode then
             table.insert(allTargets, {
@@ -769,6 +775,20 @@ local function GetClosestPlayer()
         end
         return nil
     end
+    local aliveTargets = {}
+    for _, target in ipairs(allTargets) do
+        if target.humanoid and target.humanoid.Health > 0 then
+            table.insert(aliveTargets, target)
+        end
+    end
+    
+    if #aliveTargets == 0 then
+        if config.SA2_currentTarget then
+            config.SA2_currentTarget = nil
+            updateESPColors()
+        end
+        return nil
+    end
     
     local newClosestPlayer = nil
     local getTargetMethod = config.masterGetTarget or config.SA2_GetTarget or "Closest"
@@ -778,7 +798,7 @@ local function GetClosestPlayer()
             local bestTarget = nil
             local bestHealth = math.huge
             
-            for _, target in ipairs(allTargets) do
+            for _, target in ipairs(aliveTargets) do
                 if target.in360Mode and target.health < bestHealth then
                     bestHealth = target.health
                     bestTarget = target
@@ -792,7 +812,7 @@ local function GetClosestPlayer()
             end
         elseif getTargetMethod == "TargetSeen" then
             local sortedTargets = {}
-            for _, target in ipairs(allTargets) do
+            for _, target in ipairs(aliveTargets) do
                 if target.in360Mode then
                     table.insert(sortedTargets, target)
                 end
@@ -864,7 +884,7 @@ local function GetClosestPlayer()
             local bestTarget = nil
             local bestDist = math.huge
             
-            for _, target in ipairs(allTargets) do
+            for _, target in ipairs(aliveTargets) do
                 if target.in360Mode and target.worldDist < bestDist then
                     bestDist = target.worldDist
                     bestTarget = target
@@ -879,7 +899,7 @@ local function GetClosestPlayer()
         end
     else
         if getTargetMethod == "Lowest Health" then
-            for _, target in ipairs(allTargets) do
+            for _, target in ipairs(aliveTargets) do
                 if target.onScreen and target.health < LowestHealth then
                     LowestHealth = target.health
                     local actualTargetPart = GetActualTargetPart()
@@ -890,7 +910,7 @@ local function GetClosestPlayer()
         elseif getTargetMethod == "TargetSeen" then
             local targetsInFOV = {}
             
-            for _, target in ipairs(allTargets) do
+            for _, target in ipairs(aliveTargets) do
                 if target.onScreen and target.distanceToCenter <= config.SA2_FovRadius then
                     table.insert(targetsInFOV, target)
                 end
@@ -983,7 +1003,7 @@ local function GetClosestPlayer()
                 newClosestPlayer = nil
             end
         else
-            for _, target in ipairs(allTargets) do
+            for _, target in ipairs(aliveTargets) do
                 if target.onScreen and target.distanceToCenter <= config.SA2_FovRadius and target.distanceToCenter < ShortestDistance then
                     local actualTargetPart = GetActualTargetPart()
                     Closest = target.character[actualTargetPart] or target.part
@@ -1001,16 +1021,138 @@ local function GetClosestPlayer()
     
     return Closest
 end
+local ExpectedArguments = {
+    FindPartOnRayWithIgnoreList = {
+        ArgCountRequired = 3,
+        Args = {
+            "Instance", "Ray", "table", "boolean", "boolean"
+        }
+    },
+    FindPartOnRayWithWhitelist = {
+        ArgCountRequired = 3,
+        Args = {
+            "Instance", "Ray", "table", "boolean"
+        }
+    },
+    FindPartOnRay = {
+        ArgCountRequired = 2,
+        Args = {
+            "Instance", "Ray", "Instance", "boolean", "boolean"
+        }
+    },
+    Raycast = {
+        ArgCountRequired = 3,
+        Args = {
+            "Instance", "Vector3", "Vector3", "RaycastParams"
+        }
+    },
+    Cast = {
+        ArgCountRequired = 3,
+        Args = {
+            "Instance", "Vector3", "Vector3", "RaycastParams"
+        }
+    }
+}
+
+local function validate_args(Args, RayMethod)
+    if not RayMethod then return false end
+    if not Args then return false end
+    
+    local Matches = 0
+    if #Args < RayMethod.ArgCountRequired then
+        return false
+    end
+    for Pos, Argument in next, Args do
+        if typeof(Argument) == RayMethod.Args[Pos] then
+            Matches = Matches + 1
+        end
+    end
+    return Matches >= RayMethod.ArgCountRequired
+end
+
+if OldNamecall then
+    hookmetamethod(game, "__namecall", OldNamecall)
+    OldNamecall = nil
+end
+
+if OldIndex then
+    hookmetamethod(game, "__index", OldIndex)
+    OldIndex = nil
+end
+
+local function validate_args(Args, RayMethod)
+    local Matches = 0
+    if #Args < RayMethod.ArgCountRequired then
+        return false
+    end
+    for Pos, Argument in next, Args do
+        if typeof(Argument) == RayMethod.Args[Pos] then
+            Matches = Matches + 1
+        end
+    end
+    return Matches >= RayMethod.ArgCountRequired
+end
+
+local ExpectedArguments = {
+    FindPartOnRayWithIgnoreList = {
+        ArgCountRequired = 3,
+        Args = {
+            "Instance", "Ray", "table", "boolean", "boolean"
+        }
+    },
+    FindPartOnRayWithWhitelist = {
+        ArgCountRequired = 3,
+        Args = {
+            "Instance", "Ray", "table", "boolean"
+        }
+    },
+    FindPartOnRay = {
+        ArgCountRequired = 2,
+        Args = {
+            "Instance", "Ray", "Instance", "boolean", "boolean"
+        }
+    },
+    Raycast = {
+        ArgCountRequired = 3,
+        Args = {
+            "Instance", "Vector3", "Vector3", "RaycastParams"
+        }
+    }
+}
+
+RunService.RenderStepped:Connect(function()
+    local now = tick()
+    if now - sa2thing >= sa2stuff then
+        sa2thing = now
+        if config.SA2_Enabled then
+            cachedTarget = GetClosestPlayer()
+        end
+    end
+end)
+
+local function calc_chance(chance)
+    if chance == 100 then
+        return true
+    elseif chance <= 0 then
+        return false
+    else
+        return math.random(1, 100) <= chance
+    end
+end
+
+pcall(function()
 local OldNamecall
 OldNamecall = hookmetamethod(game, "__namecall", newcclosure(function(...)
     if respawnLock then
         return OldNamecall(...)
     end
-    
+    if not config.SA2_Enabled then
+        return OldNamecall(...)
+    end
     local Method = getnamecallmethod()
-    local Args = {...}
-    local self = Args[1]
-    local chance = func.HitChance(config.SA2_HitChance)
+    local Arguments = {...}
+    local self = Arguments[1]
+    local chance = calc_chance(config.SA2_HitChance)
     
     if config.SA2_Enabled and self == workspace and not checkcaller() then
         if not config.SA2_ThreeSixtyMode and not chance then
@@ -1018,98 +1160,130 @@ OldNamecall = hookmetamethod(game, "__namecall", newcclosure(function(...)
             return OldNamecall(...)
         end
         
-        local HitPart = GetClosestPlayer()
-        if HitPart then
-            config.SA2_FovIsTargeted = true
-            
-            if config.SA2_WallbangEnabled then
-                if Method == "FindPartOnRayWithIgnoreList" or Method == "FindPartOnRayWithWhitelist" then
-                    local A_Ray = Args[2]
-                    local Origin = A_Ray.Origin
-                    local Distance = A_Ray.Direction.Magnitude
-                    local hitPosition = HitPart.Position
-                    local normal = (hitPosition - Origin).Unit
-                    local material = HitPart.Material
-                elseif Method == "Raycast" then
-                    local hitPosition = HitPart.Position
-                    local normal = (hitPosition - Args[2]).Unit
-                    
-                    local fakeResult = {
-                        Instance = HitPart,
-                        Position = hitPosition,
-                        Normal = normal,
-                        Material = HitPart.Material
-                    }
-                    
-                    return fakeResult
-                end
-            end
-            
-            if config.SA2_Method == "All" then
-                if Method == "FindPartOnRayWithIgnoreList" or Method == "FindPartOnRayWithWhitelist" or 
-                   Method == "FindPartOnRay" or Method == "findPartOnRay" or Method == "Raycast" or
-                   Method == "Cast" then
-                    local A_Origin = Args[2].Origin or Args[2]
-                    local Direction = func.Direction(A_Origin, HitPart.Position)
-                    if Method == "Raycast" or Method == "Cast" then
-                        Args[3] = Direction
-                    else
-                        Args[2] = Ray.new(A_Origin, Direction)
-                    end
-                    return OldNamecall(unpack(Args))
-                end
-            elseif Method == "FindPartOnRayWithIgnoreList" and config.SA2_Method == "FindPartOnRayWithIgnoreList" then
-                local A_Ray = Args[2]
-                local Origin = A_Ray.Origin
-                local Direction = func.Direction(Origin, HitPart.Position)
-                Args[2] = Ray.new(Origin, Direction)
-                return OldNamecall(unpack(Args))
-            elseif Method == "FindPartOnRayWithWhitelist" and config.SA2_Method == "FindPartOnRayWithWhitelist" then
-                local A_Ray = Args[2]
-                local Origin = A_Ray.Origin
-                local Direction = func.Direction(Origin, HitPart.Position)
-                Args[2] = Ray.new(Origin, Direction)
-                return OldNamecall(unpack(Args))
-            elseif (Method == "FindPartOnRay" or Method == "findPartOnRay") and config.SA2_Method == "FindPartOnRay" then
-                local A_Ray = Args[2]
-                local Origin = A_Ray.Origin
-                local Direction = func.Direction(Origin, HitPart.Position)
-                Args[2] = Ray.new(Origin, Direction)
-                return OldNamecall(unpack(Args))
-            elseif Method == "Raycast" and config.SA2_Method == "Raycast" then
-                local A_Origin = Args[2]
-                Args[3] = func.Direction(A_Origin, HitPart.Position)
-                return OldNamecall(unpack(Args))
-            elseif Method == "Raycast" and config.SA2_Method == "Cast" then
-                local A_Origin = Args[2]
-                Args[3] = func.Direction(A_Origin, HitPart.Position)
-                return OldNamecall(unpack(Args))
-            end
-        else
+        local HitPart = cachedTarget
+        if not HitPart then
             config.SA2_FovIsTargeted = false
+            return OldNamecall(...)
+        end
+        
+        config.SA2_FovIsTargeted = true
+        
+        if config.SA2_WallbangEnabled then
+            if Method == "FindPartOnRayWithIgnoreList" or Method == "FindPartOnRayWithWhitelist" then
+                local A_Ray = Arguments[2]
+                local Origin = A_Ray.Origin
+                local Distance = A_Ray.Direction.Magnitude
+                local hitPosition = HitPart.Position
+                local normal = (hitPosition - Origin).Unit
+                local material = HitPart.Material
+            elseif Method == "Raycast" then
+                local hitPosition = HitPart.Position
+                local normal = (hitPosition - Arguments[2]).Unit
+                
+                local fakeResult = {
+                    Instance = HitPart,
+                    Position = hitPosition,
+                    Normal = normal,
+                    Material = HitPart.Material
+                }
+                
+                return fakeResult
+            end
+        end
+        
+        if config.SA2_Method == "All" then
+            if Method == "FindPartOnRayWithIgnoreList" or Method == "FindPartOnRayWithWhitelist" or 
+               Method == "FindPartOnRay" or Method == "findPartOnRay" or Method == "Raycast" then
+                local A_Origin = Arguments[2].Origin or Arguments[2]
+                local Direction = func.Direction(A_Origin, HitPart.Position)
+                if Method == "Raycast" then
+                    Arguments[3] = Direction
+                else
+                    Arguments[2] = Ray.new(A_Origin, Direction)
+                end
+                return OldNamecall(unpack(Arguments))
+            end
+        end
+        
+        if Method == "FindPartOnRayWithIgnoreList" and config.SA2_Method == "FindPartOnRayWithIgnoreList" then
+            if validate_args(Arguments, ExpectedArguments.FindPartOnRayWithIgnoreList) then
+                local A_Ray = Arguments[2]
+                local Origin = A_Ray.Origin
+                local Direction = func.Direction(Origin, HitPart.Position)
+                Arguments[2] = Ray.new(Origin, Direction)
+                return OldNamecall(unpack(Arguments))
+            end
+        elseif Method == "FindPartOnRayWithWhitelist" and config.SA2_Method == "FindPartOnRayWithWhitelist" then
+            if validate_args(Arguments, ExpectedArguments.FindPartOnRayWithWhitelist) then
+                local A_Ray = Arguments[2]
+                local Origin = A_Ray.Origin
+                local Direction = func.Direction(Origin, HitPart.Position)
+                Arguments[2] = Ray.new(Origin, Direction)
+                return OldNamecall(unpack(Arguments))
+            end
+        elseif (Method == "FindPartOnRay" or Method == "findPartOnRay") and config.SA2_Method == "FindPartOnRay" then
+            if validate_args(Arguments, ExpectedArguments.FindPartOnRay) then
+                local A_Ray = Arguments[2]
+                local Origin = A_Ray.Origin
+                local Direction = func.Direction(Origin, HitPart.Position)
+                Arguments[2] = Ray.new(Origin, Direction)
+                return OldNamecall(unpack(Arguments))
+            end
+        elseif Method == "Raycast" and config.SA2_Method == "Raycast" then
+            if validate_args(Arguments, ExpectedArguments.Raycast) then
+                local A_Origin = Arguments[2]
+                Arguments[3] = func.Direction(A_Origin, HitPart.Position)
+                return OldNamecall(unpack(Arguments))
+            end
         end
     end
+    
     return OldNamecall(...)
 end))
+end)
 
+pcall(function()
 local OldIndex
 OldIndex = hookmetamethod(game, "__index", newcclosure(function(Self, Index)
     if respawnLock then
         return OldIndex(Self, Index)
     end
     
-    if config.SA2_Enabled and config.SA2_Method == "Mouse.Hit" and not checkcaller() and Self == mouse and Index == "Hit" then
-        local HitPart = GetClosestPlayer()
-        if HitPart then
-            config.SA2_FovIsTargeted = true
-            return HitPart.CFrame
-        else
-            config.SA2_FovIsTargeted = false
+    if config.SA2_Enabled and config.SA2_Method == "Mouse.Hit" and not checkcaller() and Self == mouse then
+        if Index == "Target" or Index == "target" then
+            local HitPart = GetClosestPlayer()
+            if HitPart then
+                config.SA2_FovIsTargeted = true
+                return HitPart
+            else
+                config.SA2_FovIsTargeted = false
+            end
+        elseif Index == "Hit" or Index == "hit" then
+            local HitPart = GetClosestPlayer()
+            if HitPart then
+                config.SA2_FovIsTargeted = true
+                return HitPart.CFrame
+            else
+                config.SA2_FovIsTargeted = false
+            end
+        elseif Index == "X" or Index == "x" then
+            return mouse.X
+        elseif Index == "Y" or Index == "y" then
+            return mouse.Y
+        elseif Index == "UnitRay" then
+            local HitPart = GetClosestPlayer()
+            if HitPart then
+                config.SA2_FovIsTargeted = true
+                return Ray.new(mouse.Origin, (HitPart.Position - mouse.Origin).Unit)
+            else
+                config.SA2_FovIsTargeted = false
+            end
         end
     end
+    
     return OldIndex(Self, Index)
 end))
-
+end)
 local ScreenGui = Instance.new("ScreenGui")
 local CircleFrame = Instance.new("Frame")
 local UIStroke = Instance.new("UIStroke")
@@ -1125,6 +1299,7 @@ CircleFrame.AnchorPoint = Vector2.new(0.5, 0.5)
 CircleFrame.BackgroundColor3 = config.SA2_FovColor
 CircleFrame.BackgroundTransparency = 1
 CircleFrame.BorderSizePixel = 0
+CircleFrame.Visible = false
 
 UICorner.CornerRadius = UDim.new(1, 0)
 UICorner.Parent = CircleFrame
@@ -2003,6 +2178,13 @@ local function teleportAboveTarget(target)
     
     local targetPos = targetRoot.Position
     local abovePos = targetPos + Vector3.new(0, config.antiAimAboveHeight, 0)
+    if abovePos.Y > 500 then
+        abovePos = Vector3.new(abovePos.X, 100, abovePos.Z)
+    end
+    
+    if abovePos.Y < -100 then
+        abovePos = Vector3.new(abovePos.X, 0, abovePos.Z)
+    end
     
     if not config.originalPosition then
         config.originalPosition = localRoot.Position
@@ -2024,8 +2206,11 @@ local function teleportBehindTarget(target)
     if not targetRoot or not localRoot then return end
     
     local targetCFrame = targetRoot.CFrame
-    local behindOffset = -targetCFrame.LookVector * config.antiAimBehindDistance
+    local behindOffset = -targetCFrame.LookVector * math.min(config.antiAimBehindDistance, 15)
     local behindPos = targetRoot.Position + behindOffset
+    if behindPos.Y < -100 then
+        behindPos = Vector3.new(behindPos.X, 0, behindPos.Z)
+    end
     
     if not config.originalPosition then
         config.originalPosition = localRoot.Position
@@ -2173,6 +2358,22 @@ local function antiAimUpdate()
         end
         return
     end
+    
+    if not localPlayer.Character or not localPlayer.Character:FindFirstChild("HumanoidRootPart") then
+        if config.isTeleported then
+            returnToOriginalPosition()
+        end
+        return
+    end
+    
+    local humanoid = localPlayer.Character:FindFirstChildOfClass("Humanoid")
+    if not humanoid or humanoid.Health <= 0 then
+        if config.isTeleported then
+            returnToOriginalPosition()
+        end
+        return
+    end
+    
     if config.antiAimOrbitEnabled then
         local closestEnemy = findClosestEnemy()
         if closestEnemy and getTargetCharacter(closestEnemy) then
@@ -2192,6 +2393,9 @@ local function antiAimUpdate()
                 local height = config.antiAimOrbitHeight or 0
                 local offset = Vector3.new(math.cos(angle) * radius, height, math.sin(angle) * radius)
                 local newPos = tpos + offset
+                
+                newPos = Vector3.new(newPos.X, math.clamp(newPos.Y, -100, 100), newPos.Z)
+                
                 pcall(function()
                     local localRoot = localPlayer.Character and localPlayer.Character:FindFirstChild("HumanoidRootPart")
                     if localRoot then
@@ -2211,10 +2415,21 @@ local function antiAimUpdate()
         end
         return
     end
+    
     if config.antiAimAbovePlayer then
         local closestEnemy = findClosestEnemy()
         if closestEnemy then
-            teleportAboveTarget(closestEnemy)
+            local targetChar = getTargetCharacter(closestEnemy)
+            if targetChar and localPlayer.Character then
+                local targetRoot = targetChar:FindFirstChild("HumanoidRootPart")
+                local localRoot = localPlayer.Character:FindFirstChild("HumanoidRootPart")
+                if targetRoot and localRoot then
+                    local distance = (localRoot.Position - targetRoot.Position).Magnitude
+                    if distance < 200 then
+                        teleportAboveTarget(closestEnemy)
+                    end
+                end
+            end
         else
             if config.isTeleported then
                 returnToOriginalPosition()
@@ -2226,7 +2441,17 @@ local function antiAimUpdate()
     if config.antiAimBehindPlayer then
         local closestEnemy = findClosestEnemy()
         if closestEnemy then
-            teleportBehindTarget(closestEnemy)
+            local targetChar = getTargetCharacter(closestEnemy)
+            if targetChar and localPlayer.Character then
+                local targetRoot = targetChar:FindFirstChild("HumanoidRootPart")
+                local localRoot = localPlayer.Character:FindFirstChild("HumanoidRootPart")
+                if targetRoot and localRoot then
+                    local distance = (localRoot.Position - targetRoot.Position).Magnitude
+                    if distance < 200 then
+                        teleportBehindTarget(closestEnemy)
+                    end
+                end
+            end
         else
             if config.isTeleported then
                 returnToOriginalPosition()
@@ -2266,8 +2491,8 @@ local function antiAimUpdate()
                         if math.random(1, 2) == 1 then
                             teleportDirection = -teleportDirection
                         end
-                        
-                        teleportLocalPlayer(teleportDirection.Unit, config.antiAimTPDistance)
+                        local teleportDistance = math.min(config.antiAimTPDistance, 15)
+                        teleportLocalPlayer(teleportDirection.Unit, teleportDistance)
                         break
                     end
                 end
@@ -2279,7 +2504,6 @@ local function antiAimUpdate()
         end
     end
 end
-
 local function RFD(targetPlayer)
     local char = getTargetCharacter(targetPlayer)
     if not char then return end
@@ -4919,7 +5143,7 @@ local nd = function()
         "helloworld(''print'')",
         "hello whoever you are :D\ni don't have the capacity to see your usernames yet because I'm too lazy to script dat in",
         "me is want chat roblox",
-        "this script isn't full ban proof so if you get banned to blame on us when your using risky features :/",
+        "this script isn't full ban proof so if you get banned DON'T blame on us when your using risky features :/",
     }
     local mc = m[math.random(1, #m)]
     return WindUI:Popup({
@@ -4928,7 +5152,7 @@ local nd = function()
         Content = mc,
         Buttons = {
             {
-                Title = "yh",
+                Title = "no",
                 Icon = "hammer",
                 Variant = "Tertiary"
             }
@@ -5505,11 +5729,35 @@ local Optiz = loadstring(game:HttpGet('https://raw.githubusercontent.com/hm5650/
             patcher = v
         end
     })
+
+    MainTab:Slider({
+        Title = "Clean Cache Every",
+        Desc = "Cleans up cache every second",
+        IsTextbox = true,
+        Step = 0.01,
+        Value = {
+            Min = 0,
+            Max = 50,
+            Default = lowpatcherwait or 0.03
+        },
+        Callback = function(value)
+            lowpatcherwait = value
+        end
+    })
+    
+    MainTab:Toggle({
+        Title = "Cache Cleaners",
+        Desc = "Turning this off Might cause lag",
+        Value = patcher or true,
+        Callback = function(v)
+            lowpatcher = v
+        end
+    })
     
     MainTab:Toggle({
         Title = "Low Render",
         Desc = "Renders the game in lower visuals",
-        Value = config.LowRender or true,
+        Value = config.LowRender or false,
         Callback = function(v)
             config.LowRender = v
         end
@@ -6308,6 +6556,67 @@ local SilentAimTab = Window:Tab({
         end
     })
     
+SilentAimTab:Toggle({
+    Title = "WallOver",
+    Desc = "Enable/disable camera Y offset (allows you to shoot over walls technically wallbang ig)",
+    Value = config.camYOffsetEnabled or false,
+    Callback = function(v)
+        config.camYOffsetEnabled = v
+        if not v then
+            if config.camYOffsetConnection then
+                config.camYOffsetConnection:Disconnect()
+                config.camYOffsetConnection = nil
+            end
+            config.camYOffsetOriginalCFrame = nil
+            WindUI:Notify({
+                Title = "Cam-Y Offset",
+                Content = "Disabled",
+                Icon = "x",
+                Duration = 1
+            })
+        else
+            if not config.camYOffsetConnection then
+                config.camYOffsetConnection = game:GetService("RunService").RenderStepped:Connect(function()
+                    if config.camYOffsetEnabled then
+                        local cam = workspace.CurrentCamera
+                        if cam then
+                            if not config.camYOffsetOriginalCFrame then
+                                config.camYOffsetOriginalCFrame = cam.CFrame
+                            end
+                            local offset = Vector3.new(0, config.camYOffsetValue, 0)
+                            local newCFrame = CFrame.new(
+                                cam.CFrame.Position + offset,
+                                cam.CFrame.Position + offset + cam.CFrame.LookVector
+                            )
+                            cam.CFrame = newCFrame
+                        end
+                    end
+                end)
+            end
+            WindUI:Notify({
+                Title = "Cam Offset",
+                Content = "Enabled - Offset: " .. config.camYOffsetValue,
+                Icon = "check",
+                Duration = 1
+            })
+        end
+    end
+})
+
+SilentAimTab:Slider({
+    Title = "WallOver Offset Value",
+    Desc = "Vertical offset amount (0-500)",
+    IsTextbox = true,
+    Step = 1,
+    Value = {
+        Min = 0,
+        Max = 500,
+        Default = config.camYOffsetValue or 0
+    },
+    Callback = function(value)
+        config.camYOffsetValue = value
+    end
+})
     SilentAimTab:Dropdown({
         Title = "Target Part",
         Desc = "Part to target",
@@ -6377,14 +6686,14 @@ end
 -- SA2Tab
 local SilentAimTab2 = Window:Tab({
     Title = "SilentAim (HK)",
-    Desc = "Hook-based silent aim",
+    Desc = "Hook-based silent aim [Broken]",
     Icon = "target",
-    IconColor = lightGray
+    IconColor = Red
 }) do
     SilentAimTab2:Paragraph({
         Title = "Gravel",
-        Desc = "[ Hooked Based ]\n[ NPC & ignoreforcefield support doesn't work here :( ]\n[ Good Injectors are recommend ]\n[ This might not work on every game ]",
-        Color = darkGray
+        Desc = "[ Broken ]\n[ don't use :( ]",
+        Color = Red
     })
     
     SilentAimTab2:Paragraph({
@@ -6519,6 +6828,20 @@ local SilentAimTab2 = Window:Tab({
         },
         Callback = function(value)
             config.SA2_FovRadius = value
+        end
+    })
+    SilentAimTab2:Slider({
+        Title = "Target Range",
+        Desc = "How far a target should a targeted",
+        IsTextbox = true,
+        Step = 10,
+        Value = {
+            Min = 5,
+            Max = 999999,
+            Default = config.SA2_FovRadius or 1000
+        },
+        Callback = function(value)
+            config.SA2_TargetRange = value
         end
     })
 end
@@ -7417,91 +7740,6 @@ local ClientTab = Window:Tab({
         end
     })
 end
--- Bot Tab
-local BotTab = Window:Tab({
-    Title = "Bot",
-    Desc = "Automated bot features",
-    Icon = "monitor",
-    IconColor = lightGray
-}) do
-    BotTab:Paragraph({
-        Title = "Bot Master",
-        Desc = "Master control for bot features",
-        Color = lightGreen
-    })
-    
-    BotTab:Toggle({
-        Title = "Auto Attack",
-        Desc = "Enable/disable auto-attack",
-        Value = config.Botin or false,
-        Callback = function(v)
-            config.Botin = v
-            n({
-                Title = "Bot",
-                Content = "Bot " .. (v and "Enabled" or "Disabled"),
-                Audio = "rbxassetid://17208361335",
-                Length = 1,
-                Image = "rbxassetid://4483362458",
-                BarColor = v and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(255, 0, 0)
-            })
-        end
-    })
-    BotTab:Space()
-    BotTab:Paragraph({
-        Title = "Bot Settings",
-        Desc = "Configuration for bot behavior",
-        Color = lightGreen
-    })
-    
-    BotTab:Toggle({
-        Title = "Wall Check",
-        Desc = "Check for walls",
-        Value = config.botWallCheck or false,
-        Callback = function(v)
-            config.botWallCheck = v
-        end
-    })
-    
-    BotTab:Dropdown({
-        Title = "Primary Action",
-        Desc = "Choose attack method",
-        Values = {"tool:Activate()", "Leftclick"},
-        Value = config.PrimaryAction or "tool:Activate()",
-        Multi = false,
-        Callback = function(choice)
-            config.PrimaryAction = choice
-        end
-    })
-    
-    BotTab:Slider({
-        Title = "Rotation Speed",
-        Desc = "Speed of rotation towards target",
-        Step = 0.1,
-        Value = {
-            Min = 0,
-            Max = 10,
-            Default = config.BotSpeed or 1
-        },
-        Callback = function(value)
-            config.BotSpeed = value
-        end
-    })
-    
-    BotTab:Slider({
-        Title = "Attack Range",
-        Desc = "Maximum detection range",
-        IsTextbox = true,
-        Step = 50,
-        Value = {
-            Min = 0,
-            Max = 10000,
-            Default = config.BotAttackrange or 25
-        },
-        Callback = function(value)
-            config.BotAttackrange = value
-        end
-    })
-end
 
 -- Misc Tab
 local MiscTab = Window:Tab({
@@ -7622,6 +7860,217 @@ local MiscTab = Window:Tab({
             })
         end
     })
+MiscTab:Toggle({
+    Title = "Cframe View",
+    Desc = "view randos with cframe camera & kill em >:]",
+    Value = config.wallc or false,
+    Callback = function(v)
+        local Players = game:GetService("Players")
+        local RunService = game:GetService("RunService")
+        local Camera = workspace.CurrentCamera
+        local Teams = game:GetService("Teams")
+
+        Viewing = v
+
+        if ViewConnection then
+            ViewConnection:Disconnect()
+            ViewConnection = nil
+        end
+
+        if not v then
+            Camera.CameraType = Enum.CameraType.Custom
+            return
+        end
+        local function isEnemy(player)
+            if not player or player == Players.LocalPlayer then return false end
+            local localTeam = Players.LocalPlayer.Team
+            local targetTeam = player.Team
+            
+            if config.masterTeamTarget == "All" then
+                return true
+            elseif config.masterTeamTarget == "Enemies" then
+                if localTeam and targetTeam then
+                    return localTeam ~= targetTeam
+                end
+                return true
+            elseif config.masterTeamTarget == "Teams" then
+                if localTeam and targetTeam then
+                    return localTeam == targetTeam
+                end
+                return false
+            end
+            return true
+        end
+        local function isNPCEnemy(model)
+            if not model or not model:IsA("Model") then return false end
+            if Players:GetPlayerFromCharacter(model) then return false end
+            local humanoid = model:FindFirstChildOfClass("Humanoid")
+            if not humanoid or humanoid.Health <= 0 then return false end
+            if not (model:FindFirstChild("HumanoidRootPart") or model:FindFirstChild("Head")) then return false end
+            if config.masterTeamTarget == "All" then
+                return true
+            elseif config.masterTeamTarget == "Enemies" then
+                local npcTeam = model:FindFirstChild("Team")
+                if npcTeam then
+                    local localTeam = Players.LocalPlayer.Team
+                    if localTeam and npcTeam:IsA("ObjectValue") and npcTeam.Value then
+                        return localTeam ~= npcTeam.Value
+                    end
+                end
+                return true
+            elseif config.masterTeamTarget == "Teams" then
+                local npcTeam = model:FindFirstChild("Team")
+                if npcTeam and npcTeam:IsA("ObjectValue") and npcTeam.Value then
+                    local localTeam = Players.LocalPlayer.Team
+                    if localTeam then
+                        return localTeam == npcTeam.Value
+                    end
+                end
+                return false
+            end
+            return true
+        end
+
+        local function GetRandomTarget()
+            local Valid = {}
+            local masterTarget = config.masterTarget or "Players"
+            if masterTarget == "Players" or masterTarget == "Both" then
+                for _, plr in ipairs(Players:GetPlayers()) do
+                    if plr ~= Players.LocalPlayer
+                        and plr.Character
+                        and plr.Character:FindFirstChild("HumanoidRootPart")
+                        and isEnemy(plr)
+                    then
+                        local humanoid = plr.Character:FindFirstChildOfClass("Humanoid")
+                        if humanoid and humanoid.Health > 0 then
+                            if not config.ignoreForcefield or not hasForcefield(plr.Character) then
+                                table.insert(Valid, {
+                                    type = "player",
+                                    instance = plr,
+                                    character = plr.Character
+                                })
+                            end
+                        end
+                    end
+                end
+            end
+            if masterTarget == "NPCs" or masterTarget == "Both" then
+                for _, obj in ipairs(workspace:GetDescendants()) do
+                    if obj:IsA("Model") and isNPCEnemy(obj) then
+                        local rootPart = obj:FindFirstChild("HumanoidRootPart") or obj:FindFirstChild("Head")
+                        if rootPart then
+                            local humanoid = obj:FindFirstChildOfClass("Humanoid")
+                            if humanoid and humanoid.Health > 0 then
+                                if not config.ignoreForcefield or not hasForcefield(obj) then
+                                    table.insert(Valid, {
+                                        type = "npc",
+                                        instance = obj,
+                                        character = obj,
+                                        rootPart = rootPart
+                                    })
+                                end
+                            end
+                        end
+                    end
+                end
+            end
+
+            return #Valid > 0 and Valid[math.random(1, #Valid)] or nil
+        end
+
+        local Target = GetRandomTarget()
+        if not Target then
+            WindUI:Notify({
+                Title = "Cframe View",
+                Content = "No valid targets found!",
+                Icon = "x",
+                Duration = 2
+            })
+            return
+        end
+
+        Camera.CameraType = Enum.CameraType.Scriptable
+
+        ViewConnection = RunService.RenderStepped:Connect(function()
+            if not Viewing then
+                return
+            end
+            local isValid = false
+            if Target.type == "player" then
+                isValid = Target.instance 
+                    and Target.instance.Character 
+                    and Target.instance.Character:FindFirstChild("HumanoidRootPart")
+                    and isEnemy(Target.instance)
+                    and Target.instance.Character:FindFirstChildOfClass("Humanoid") 
+                    and Target.instance.Character:FindFirstChildOfClass("Humanoid").Health > 0
+            elseif Target.type == "npc" then
+                isValid = Target.instance 
+                    and Target.instance.Parent 
+                    and Target.instance:FindFirstChild("HumanoidRootPart")
+                    and isNPCEnemy(Target.instance)
+                    and Target.instance:FindFirstChildOfClass("Humanoid") 
+                    and Target.instance:FindFirstChildOfClass("Humanoid").Health > 0
+            end
+
+            if not isValid then
+                Target = GetRandomTarget()
+                if not Target then
+                    Viewing = false
+                    Camera.CameraType = Enum.CameraType.Custom
+                    WindUI:Notify({
+                        Title = "Cframe View",
+                        Content = "No more targets available",
+                        Icon = "x",
+                        Duration = 2
+                    })
+                    return
+                end
+                return
+            end
+
+            local HRP = nil
+            if Target.type == "player" then
+                HRP = Target.instance.Character.HumanoidRootPart
+            elseif Target.type == "npc" then
+                HRP = Target.instance.HumanoidRootPart
+            end
+            
+            if not HRP then
+                Target = GetRandomTarget()
+                if not Target then
+                    Viewing = false
+                    Camera.CameraType = Enum.CameraType.Custom
+                    return
+                end
+                return
+            end
+
+            local CameraPos = HRP.Position - HRP.CFrame.LookVector * CameraDistance + Vector3.new(0, 3, 0)
+            Camera.CFrame = CFrame.lookAt(CameraPos, HRP.Position + Vector3.new(0, 2, 0))
+        end)
+        
+        WindUI:Notify({
+            Title = "Cframe View",
+            Content = "Viewing " .. (Target.type == "player" and Target.instance.Name or "NPC"),
+            Icon = "eye",
+            Duration = 2
+        })
+    end
+})
+MiscTab:Slider({
+    Title = "Zoom",
+    Desc = "cframe view distance from target :7",
+    IsTextbox = true,
+    Step = 1,
+    Value = {
+        Min = 2,
+        Max = 50,
+        Default = 8
+    },
+    Callback = function(value)
+        CameraDistance = value
+    end
+})
 end
 
 -- Info Tab
@@ -7669,15 +8118,11 @@ local InfoTab = Window:Tab({
     
     InfoTab:Paragraph({
         Title = "SilentAimTab (HB)",
-        Desc = "Automatically resizes opponents hitbox and aligning it to your crosshair or the center of your screen",
+        Desc = "Automatically resizes opponents hitbox and aligning it to your crosshair or the center of your screen (the only working SilentAim)",
         Color = darkGray
     })
     
-    InfoTab:Paragraph({
-        Title = "SilentAimTab (HK)",
-        Desc = "Hooks on to weapons raycasts and redirects it to your opponents which is way more accurate",
-        Color = darkGray
-    })
+
     
     InfoTab:Paragraph({
         Title = "HitboxTab",
@@ -7696,11 +8141,17 @@ local InfoTab = Window:Tab({
         Desc = "Change your walkspeed or jump power or even fly around to dodge any attacks from your opponents",
         Color = darkGray
     })
-    
+
+    InfoTab:Paragraph({
+        Title = "SilentAimTab (HK) [Removed]",
+        Desc = "Won't work any more; Roblox released some sort of engine update which broke SilentAim (HK) or any hk type silentaims. [Not recommend for use]",
+        Color = Red
+    })
+
     InfoTab:Paragraph({
         Title = "BotTab",
-        Desc = "Automatic bot that would try to kill any opponents with in range",
-        Color = darkGray
+        Desc = "Deleted due to 200 variable limit & uselessness",
+        Color = Red
     })
     
     InfoTab:Paragraph({
@@ -7755,6 +8206,21 @@ local InfoTab = Window:Tab({
         Desc = "Changed: DummyUI to WindUI Rewritten UI Creation\nFixed: Keybind Systems are now more accurate and Rewritten\nFixed: SilentAimTab (HK) hooks now less laggy\nFixed: Loop Errors\nFixed: Notification Spam\nAdded: Colorpickers to the VisualsTab\nAdded: Random Messages to the OpenButton and Popup UI\nFixed: UI Causing errors, Callback errors\nFixed Bugs: 34+",
         Color = darkGray
     })
+    InfoTab:Paragraph({
+        Title = "Gravel (10/02/2026)",
+        Desc = "Added: Optimization and tweaks\nFixed: Optimized SilentAimTab (HK)\nAdded: Distance limitation to SilentAimTab (HK)\nAdded: Cache Optimization\nFixed Bugs: 5",
+        Color = darkGray
+    })
+    InfoTab:Paragraph({
+        Title = "Gravel (6/06/2026)",
+        Desc = "More optimizations!",
+        Color = darkGray
+    })
+    InfoTab:Paragraph({
+        Title = "Gravel (18/05/2026)",
+        Desc = "Removed: Bot Tab has been removed to avoid 200 variable limit\nInfo: SilentAim (HK) would no longer work at this time.\nAdded: Cam-Y or WallOver toggle to SilentAimTab (HB)\nAdded: Cframe View to MiscTab\nInfo: At this time Gravel.cc might be buggy for now.",
+        Color = darkGray
+    })
 end
 
 local fovScreenGui = Instance.new("ScreenGui")
@@ -7775,6 +8241,7 @@ ringHolder.AnchorPoint = Vector2.new(0.5, 0.5)
 ringHolder.Size = UDim2.new(0, config.fovsize * 2, 0, config.fovsize * 2)
 ringHolder.Position = UDim2.new(0.5, 0, 0.5, -28)
 ringHolder.BackgroundTransparency = 1
+ringHolder.Visible = false
 ringHolder.Parent = mainFrame
 
 local ringCorner = Instance.new("UICorner")
@@ -7861,45 +8328,6 @@ local function SetupRespawnHandler()
     end)
 end
 
-local function BgetClosestPlayer()
-    local closestPlayer = nil
-    local shortestDistance = config.BotAttackrange
-    local allTargets = getAllTargets()
-    local localChar = localPlayer.Character
-    if not localChar or not localChar:FindFirstChild("HumanoidRootPart") then 
-        return nil 
-    end
-    
-    local localPos = localChar.HumanoidRootPart.Position
-    
-    for _, target in ipairs(allTargets) do
-        if target ~= localPlayer then
-            local tgtChar = getTargetCharacter(target)
-            if tgtChar and tgtChar:FindFirstChild("Humanoid") and tgtChar.Humanoid.Health > 0 and tgtChar:FindFirstChild("HumanoidRootPart") then
-                if config.ignoreForcefield and hasForcefield(tgtChar) then
-                    continue
-                end
-                if config.botWallCheck then
-                    local targetPos = tgtChar.HumanoidRootPart.Position
-                    if not aimbotWallCheck(targetPos, localPos) then
-                        continue
-                    end
-                end
-                local magnitude = (tgtChar.HumanoidRootPart.Position - localPos).magnitude
-                if magnitude < shortestDistance then
-                    closestPlayer = target
-                    shortestDistance = magnitude
-                end
-            end
-        end
-    end
-    if config.masterGetTarget == "TargetSeen" then
-        return findClosestEnemy()
-    end
-    
-    return closestPlayer
-end
-
 LocalPlayer.CharacterAdded:Connect(function(character)
     local humanoid = character:WaitForChild("Humanoid")
     humanoid:SetStateEnabled(Enum.HumanoidStateType.FallingDown, false)
@@ -7913,116 +8341,6 @@ if LocalPlayer.Character then
         humanoid:SetStateEnabled(Enum.HumanoidStateType.Ragdoll, false)
     end
 end
-
-local function simulateLeftClick()
-    VirtualInputManager:SendMouseButtonEvent(0, 0, 0, true, game, 1)
-    task.wait(0.05)
-    VirtualInputManager:SendMouseButtonEvent(0, 0, 0, false, game, 1)
-    local tool = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Tool")
-    if tool then
-        for _, child in pairs(tool:GetDescendants()) do
-            if child:IsA("RemoteEvent") then
-                if child.Name:lower():find("mouse") or child.Name:lower():find("click") or child.Name:lower():find("attack") then
-                    child:FireServer()
-                end
-            end
-        end
-        for _, child in pairs(tool:GetDescendants()) do
-            if child:IsA("BindableEvent") then
-                if child.Name:lower():find("mouse") or child.Name:lower():find("click") or child.Name:lower():find("attack") then
-                    child:Fire()
-                end
-            end
-        end
-    end
-end
-
-local function performAttack()
-    if not config.Botin then return end
-    
-    local target = BgetClosestPlayer()
-    if not target then return end
-    
-    local tgtChar = getTargetCharacter(target)
-    if not tgtChar or not tgtChar:FindFirstChild("Humanoid") or tgtChar.Humanoid.Health <= 0 then
-        return
-    end
-    if typeof(target) == "Instance" and target:IsA("Player") then
-        local mode = config.masterTeamTarget or "Enemies"
-        
-        if mode == "Enemies" then
-            if isTeammate(target) then
-                return
-            end
-        elseif mode == "Teams" then
-            if not isTeammate(target) then
-                return
-            end
-        end
-    end
-    
-    local tool = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Tool")
-    if not tool then return end
-    
-    if config.PrimaryAction == "tool:Activate()" then
-        if tool:FindFirstChild("Handle") then
-            tool:Activate()
-            if LocalPlayer:DistanceFromCharacter(tgtChar.HumanoidRootPart.Position) <= config.BotMReach then
-                for _, part in pairs(tgtChar:GetChildren()) do
-                    if part:IsA("BasePart") then
-                        firetouchinterest(tool.Handle, part, 0)
-                        task.wait()
-                        firetouchinterest(tool.Handle, part, 1)
-                    end
-                end
-            end
-        else
-            tool:Activate()
-        end
-        
-    elseif config.PrimaryAction == "Leftclick" then
-        simulateLeftClick()
-        tool:Activate()
-    end
-end
-
-game:GetService("RunService").RenderStepped:Connect(function()
-    if config.Botin then
-        local currentTime = tick()
-        if currentTime - lastAttackTime >= attackCooldown then
-            spawn(performAttack)
-            lastAttackTime = currentTime
-        end
-    end
-end)
-
-game:GetService("RunService").Heartbeat:Connect(function()
-    if config.Botin and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-        local target = BgetClosestPlayer()
-        if target and getTargetCharacter(target) and getTargetCharacter(target):FindFirstChild("HumanoidRootPart") then
-            local humanoid = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
-            if humanoid then
-                humanoid.AutoRotate = false
-                local root = LocalPlayer.Character.HumanoidRootPart
-                local targetPos = getTargetCharacter(target).HumanoidRootPart.Position
-                root.CFrame = root.CFrame:Lerp(
-                    CFrame.new(root.Position, Vector3.new(targetPos.X, root.Position.Y, targetPos.Z)) * 
-                    CFrame.Angles(0, math.rad(25), 0), 
-                    config.BotSpeed
-                )
-                humanoid:MoveTo(getTargetCharacter(target).HumanoidRootPart.CFrame * CFrame.new(-3, 0, 0).p)
-                if getTargetCharacter(target).Humanoid:GetState() == Enum.HumanoidStateType.Freefall then
-                    humanoid.Jump = true
-                end
-            end
-        end
-    else
-        local humanoid = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
-        if humanoid then
-            humanoid.AutoRotate = true
-        end
-    end
-end)
 
 local function initKeybinds()
     local UserInputService = game:GetService("UserInputService")
@@ -8373,84 +8691,88 @@ function cleanup()
     config.currentAntiAimTarget = nil
     config.hitboxExpandedParts = {}
     config.hitboxOriginalSizes = {}
-    restoreClientValues()
-    setupAnimationOnSpawn()
-    LowRender()
 end
 
+local clearTargetCache = function()
+    pcall(function()
+        config.SA2_currentTarget = nil
+        config.currentTarget = nil
+        config.aimbotCurrentTarget = nil
+        config.SA2_FovIsTargeted = false
+        config.targetSeenTargets = {}
+        config.autoFarmTargets = {}
+        config.autoFarmCompleted = {}
+    end)
+end
 task.spawn(function()
+    while lowpatcher do
+        clearTargetCache()
+        task.wait(lowpatcherwait)
+    end
+end)
+
+task.spawn(function()
+    local lastRespawnTime = os.clock()
     while patcher do
-        UpdateQT()
-        d()
-        espRefresher()
-        applyhb()
-        aimbotfov()
-        updateAimbotFOVRing()
-        updateAnimation()
-        LowRender()
-        if config.nextGenRepDesiredState then
-            if config.antiAimEnabled then
-                if not config.nextGenRepEnabled then
-                    pcall(function()
-                        setfflag("NextGenReplicatorEnabledWrite4", "false")
-                        task.wait(0.1)
-                        setfflag("NextGenReplicatorEnabledWrite4", "true")
-                        config.nextGenRepEnabled = true
-                    end)
-                else
-                    pcall(function()
-                        setfflag("NextGenReplicatorEnabledWrite4", "true")
-                    end)
-                end
-            else
-                if config.nextGenRepEnabled then
-                    setfflag("NextGenReplicatorEnabledWrite4", "false")
-                    config.nextGenRepEnabled = false
+        local localPlayer = game.Players.LocalPlayer
+        local character = localPlayer.Character
+        local isRespawning = false
+        if character and character:FindFirstChild("Humanoid") then
+            local humanoid = character.Humanoid
+            if humanoid.Health > 0 then
+                local currentTime = os.clock()
+                if currentTime - lastRespawnTime >= 0.1 then
+                    lastRespawnTime = currentTime
+                    isRespawning = true
                 end
             end
-        else
-            if config.nextGenRepEnabled then
-                setfflag("NextGenReplicatorEnabledWrite4", "false")
-                config.nextGenRepEnabled = false
-            end
         end
-        
-        local toRemove = {}
-        for player, data in pairs(config.hitboxExpandedParts) do
-            if not player or not getTargetCharacter(player) or not plralive(player) then
-                table.insert(toRemove, player)
-            elseif not targethb(player) then
-                table.insert(toRemove, player)
-            end
-        end
-        
-        for _, player in ipairs(toRemove) do
-            restoreTorso(player)
-        end
-        
-        local lineToRemove = {}
-        for player, _ in pairs(config.lineESPData) do
-            local found = false
-            for _, target in ipairs(getAllTargets()) do
-                if target == player then
-                    found = true
-                    break
+        if isRespawning then
+            UpdateQT()
+            d()
+            espRefresher()
+            applyhb()
+            aimbotfov()
+            updateAimbotFOVRing()
+            updateAnimation()
+            LowRender()
+            
+            local toRemove = {}
+            for player, data in pairs(config.hitboxExpandedParts) do
+                if not player or not getTargetCharacter(player) or not plralive(player) then
+                    table.insert(toRemove, player)
+                elseif not targethb(player) then
+                    table.insert(toRemove, player)
                 end
             end
-            if not found then
-                table.insert(lineToRemove, player)
+            
+            for _, player in ipairs(toRemove) do
+                restoreTorso(player)
+            end
+            
+            local lineToRemove = {}
+            for player, _ in pairs(config.lineESPData) do
+                local found = false
+                for _, target in ipairs(getAllTargets()) do
+                    if target == player then
+                        found = true
+                        break
+                    end
+                end
+                if not found then
+                    table.insert(lineToRemove, player)
+                end
+            end
+            
+            for _, player in ipairs(lineToRemove) do
+                removeLineESP(player)
             end
         end
         
-        for _, player in ipairs(lineToRemove) do
-            removeLineESP(player)
-        end
         task.wait(patcherwait)
     end
 end)
 
-
 init()
-
 return config
 -- fin
