@@ -6555,7 +6555,7 @@ local SilentAimTab = Window:Tab({
     
 SilentAimTab:Toggle({
     Title = "Toggle Cam-Y Offset",
-    Desc = "Enable/disable camera Y offset (allows you to shoot through walls)",
+    Desc = "Enable/disable camera Y offset (allows you to shoot over walls technically wallbang ig)",
     Value = config.camYOffsetEnabled or false,
     Callback = function(v)
         config.camYOffsetEnabled = v
