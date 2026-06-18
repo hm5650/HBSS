@@ -6557,7 +6557,7 @@ local SilentAimTab = Window:Tab({
     })
     
 SilentAimTab:Toggle({
-    Title = "Toggle Cam-Y Offset",
+    Title = "WallOver",
     Desc = "Enable/disable camera Y offset (allows you to shoot over walls technically wallbang ig)",
     Value = config.camYOffsetEnabled or false,
     Callback = function(v)
@@ -6594,7 +6594,7 @@ SilentAimTab:Toggle({
                 end)
             end
             WindUI:Notify({
-                Title = "Cam-Y Offset",
+                Title = "Cam Offset",
                 Content = "Enabled - Offset: " .. config.camYOffsetValue,
                 Icon = "check",
                 Duration = 1
@@ -6604,7 +6604,7 @@ SilentAimTab:Toggle({
 })
 
 SilentAimTab:Slider({
-    Title = "Y Offset Value",
+    Title = "WallOver Offset Value",
     Desc = "Vertical offset amount (0-500)",
     IsTextbox = true,
     Step = 1,
@@ -8216,7 +8216,7 @@ local InfoTab = Window:Tab({
     })
     InfoTab:Paragraph({
         Title = "Gravel (18/05/2026)",
-        Desc = "Removed: Bot Tab has been removed to avoid 200 variable limit\nInfo: SilentAim (HK) would no longer work at this time.\nAdded: Cam-Y toggle to SilentAimTab (HB)\nAdded: Cframe View to MiscTab\nInfo: At this time Gravel.cc might be buggy for now.",
+        Desc = "Removed: Bot Tab has been removed to avoid 200 variable limit\nInfo: SilentAim (HK) would no longer work at this time.\nAdded: Cam-Y or WallOver toggle to SilentAimTab (HB)\nAdded: Cframe View to MiscTab\nInfo: At this time Gravel.cc might be buggy for now.",
         Color = darkGray
     })
 end
