@@ -102,6 +102,7 @@ getgenv().ED_AntiKick = {
     CheckCaller = true
 }
 
+pcall(function()
 local OldNamecall; OldNamecall = hookmetamethod(game, "__namecall", newcclosure(function(...)
     local self, message = ...
     local method = getnamecallmethod()
@@ -127,7 +128,9 @@ local OldNamecall; OldNamecall = hookmetamethod(game, "__namecall", newcclosure(
 
     return OldNamecall(...)
 end))
+end)
 
+pcall(function()
 local OldFunction; OldFunction = hookfunction(LocalPlayer.Kick, function(...)
     local self, Message = ...
 
@@ -151,6 +154,7 @@ local OldFunction; OldFunction = hookfunction(LocalPlayer.Kick, function(...)
         end
     end
     return OldFunction(...)
+end)
 end)
 
 n({
@@ -1133,6 +1137,7 @@ local function calc_chance(chance)
     end
 end
 
+pcall(function()
 local OldNamecall
 OldNamecall = hookmetamethod(game, "__namecall", newcclosure(function(...)
     if respawnLock then
@@ -1232,7 +1237,9 @@ OldNamecall = hookmetamethod(game, "__namecall", newcclosure(function(...)
     
     return OldNamecall(...)
 end))
+end)
 
+pcall(function()
 local OldIndex
 OldIndex = hookmetamethod(game, "__index", newcclosure(function(Self, Index)
     if respawnLock then
@@ -1273,6 +1280,7 @@ OldIndex = hookmetamethod(game, "__index", newcclosure(function(Self, Index)
     
     return OldIndex(Self, Index)
 end))
+end)
 local ScreenGui = Instance.new("ScreenGui")
 local CircleFrame = Instance.new("Frame")
 local UIStroke = Instance.new("UIStroke")
