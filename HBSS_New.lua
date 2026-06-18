@@ -210,24 +210,6 @@ local config = {
     fovsize = 120,
     predic = 1,
     hbtrans = 1,
-    SA2_Enabled = false,
-    SA2_Method = "Raycast",
-    SA2_TeamTarget = "Enemies",
-    SA2_Wallcheck = false,
-    SA2_TargetPart = "Head",
-    SA2_HitChance = 100,
-    SA2_FovRadius = 100,
-    SA2_FovVisible = true,
-    SA2_FovTransparency = 0.90,
-    SA2_FovColor = Color3.new(0, 0, 0),
-    SA2_FovColourTarget = Color3.new(1, 1, 0),
-    SA2_FovIsTargeted = false,
-    SA2_ThreeSixtyMode = false,
-    SA2_GetTarget = "Closest",
-    SA2_currentTarget = nil,
-    SA2_TArea = 35,
-    SA2_TargetRange = 1000,
-    SA2_WallbangEnabled = false,
     currentTarget = nil,
     espc = Color3.fromRGB(255, 182, 193),
     esptargetc = Color3.fromRGB(255, 255, 0),
@@ -418,8 +400,6 @@ local config = {
         client = "V",
         silentaimwallcheck = "B",
         aimbotwallcheck = "H",
-        silentaimhk = "R",
-        silentaimhkwallcheck = "T",
     },
 }
 
@@ -627,12 +607,6 @@ end
 local function GetRandomTargetPart()
     return ValidTargetParts[math.random(1, #ValidTargetParts)]
 end
-local function GetActualTargetPart()
-    if config.SA2_TargetPart == "Random" then
-        return GetRandomTargetPart()
-    end
-    return config.SA2_TargetPart
-end
 
 local function ArePlayersSameTeam(player1, player2)
     if not player1 or not player2 then return false end
@@ -647,11 +621,11 @@ end
 local function ShouldTargetPlayer(targetPlayer)
     if targetPlayer == plr then return false end
     
-    if config.SA2_TeamTarget == "All" then
+    if config.targetMode == "All" then
         return true
-    elseif config.SA2_TeamTarget == "Enemies" then
+    elseif config.targetMode == "Enemies" then
         return not ArePlayersSameTeam(plr, targetPlayer)
-    elseif config.SA2_TeamTarget == "Teams" then
+    elseif config.targetMode == "Teams" then
         return ArePlayersSameTeam(plr, targetPlayer)
     end
     
@@ -662,7 +636,7 @@ local IsPlayerVisible = function(Player)
     local PlayerCharacter = Player.Character
     local LocalPlayerCharacter = plr.Character
     if not (PlayerCharacter or LocalPlayerCharacter) then return end
-    local actualTargetPart = GetActualTargetPart()
+    local actualTargetPart = "Head"
     local PlayerRoot = FindFirstChild(PlayerCharacter, actualTargetPart) or FindFirstChild(PlayerCharacter, "HumanoidRootPart")
     if not PlayerRoot then return end
     local CastPoints, IgnoreList = {PlayerRoot.Position, LocalPlayerCharacter, PlayerCharacter}, {LocalPlayerCharacter, PlayerCharacter}
@@ -673,709 +647,17 @@ end
 
 local function syncSilentAimWithMaster()
     if config.masterTeamTarget == "All" then
-        config.SA2_TeamTarget = "All"
-    elseif config.SA2_TeamTarget ~= config.masterTeamTarget and 
+        config.targetMode = "All"
+    elseif config.targetMode ~= config.masterTeamTarget and 
            config.masterTeamTarget ~= nil then
-        if not config.SA2_TeamTarget then
-            config.SA2_TeamTarget = config.masterTeamTarget
+        if not config.targetMode then
+            config.targetMode = config.masterTeamTarget
         end
     end
     
     if config.masterGetTarget then
         config.silentGetTarget = config.masterGetTarget
-        config.SA2_GetTarget = config.masterGetTarget
     end
-end
-local function GetClosestPlayer()
-    if respawnLock or not plr.Character then
-        if config.SA2_currentTarget then
-            config.SA2_currentTarget = nil
-            updateESPColors()
-        end
-        return nil
-    end
-    
-    local Closest = nil
-    local ShortestDistance = math.huge
-    local LowestHealth = math.huge
-    local screenCenter = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
-    local allTargets = {}
-    local cameraCFrame = Camera.CFrame
-    local cameraPos = cameraCFrame.Position
-    local maxTargetRange = config.SA2_TargetRange or 1000
-    
-    for _, Player in next, GetPlayers(plrs) do
-        if Player == plr then continue end
-        if not ShouldTargetPlayer(Player) then continue end
-        
-        local Character = Player.Character
-        if not Character then continue end
-        local Humanoid = FindFirstChild(Character, "Humanoid")
-        if not Humanoid or Humanoid.Health <= 0 then continue end
-
-        if config.SA2_Wallcheck and not IsPlayerVisible(Player) then continue end
-        
-        local bodyPartsToCheck = {"HumanoidRootPart", "Head", "Torso", "UpperTorso"}
-        local foundPart = nil
-        
-        for _, partName in ipairs(bodyPartsToCheck) do
-            local bodyPart = FindFirstChild(Character, partName)
-            if bodyPart then
-                foundPart = bodyPart
-                break
-            end
-        end
-        
-        if not foundPart then continue end
-        
-        local targetPos = foundPart.Position
-        local worldDist = (cameraPos - targetPos).Magnitude
-        if worldDist > maxTargetRange then continue end
-        
-        if config.SA2_ThreeSixtyMode then
-            table.insert(allTargets, {
-                player = Player,
-                character = Character,
-                part = foundPart,
-                humanoid = Humanoid,
-                health = Humanoid.Health,
-                worldDist = worldDist,
-                in360Mode = true,
-                screenPos = nil,
-                onScreen = true,
-                distanceToCenter = 0
-            })
-        else
-            local screenPos, onScreen = func.GetScreenPosition(targetPos)
-            if not onScreen then continue end
-            screenPos = screenPos + Vector2.new(0, config.SA2_TArea)
-            
-            local distToFov = (screenCenter - screenPos).Magnitude
-            if distToFov > config.SA2_FovRadius then continue end
-            
-            table.insert(allTargets, {
-                player = Player,
-                character = Character,
-                part = foundPart,
-                humanoid = Humanoid,
-                health = Humanoid.Health,
-                screenPos = screenPos,
-                onScreen = onScreen,
-                distanceToCenter = distToFov,
-                worldDist = worldDist,
-                in360Mode = false
-            })
-        end
-    end
-    
-    if #allTargets == 0 then
-        if config.SA2_currentTarget then
-            config.SA2_currentTarget = nil
-            updateESPColors()
-        end
-        return nil
-    end
-    local aliveTargets = {}
-    for _, target in ipairs(allTargets) do
-        if target.humanoid and target.humanoid.Health > 0 then
-            table.insert(aliveTargets, target)
-        end
-    end
-    
-    if #aliveTargets == 0 then
-        if config.SA2_currentTarget then
-            config.SA2_currentTarget = nil
-            updateESPColors()
-        end
-        return nil
-    end
-    
-    local newClosestPlayer = nil
-    local getTargetMethod = config.masterGetTarget or config.SA2_GetTarget or "Closest"
-    
-    if config.SA2_ThreeSixtyMode then
-        if getTargetMethod == "Lowest Health" then
-            local bestTarget = nil
-            local bestHealth = math.huge
-            
-            for _, target in ipairs(aliveTargets) do
-                if target.in360Mode and target.health < bestHealth then
-                    bestHealth = target.health
-                    bestTarget = target
-                end
-            end
-            
-            if bestTarget then
-                local actualTargetPart = GetActualTargetPart()
-                Closest = bestTarget.character[actualTargetPart] or bestTarget.part
-                newClosestPlayer = bestTarget.player
-            end
-        elseif getTargetMethod == "TargetSeen" then
-            local sortedTargets = {}
-            for _, target in ipairs(aliveTargets) do
-                if target.in360Mode then
-                    table.insert(sortedTargets, target)
-                end
-            end
-            
-            table.sort(sortedTargets, function(a, b)
-                return a.worldDist < b.worldDist
-            end)
-            
-            if #sortedTargets > 0 then
-                if config.targetSeenMode == "Switch" then
-                    local currentTime = tick()
-                    if currentTime - config.lastTargetSwitchTime >= config.targetSeenSwitchRate then
-                        config.lastTargetSwitchTime = currentTime
-                        
-                        if not config.SA2_currentTarget then
-                            local closestTarget = sortedTargets[1]
-                            local actualTargetPart = GetActualTargetPart()
-                            Closest = closestTarget.character[actualTargetPart] or closestTarget.part
-                            config.SA2_currentTarget = closestTarget.player
-                            newClosestPlayer = closestTarget.player
-                        else
-                            local currentIndex = nil
-                            for i, target in ipairs(sortedTargets) do
-                                if target.player == config.SA2_currentTarget then
-                                    currentIndex = i
-                                    break
-                                end
-                            end
-                            
-                            if currentIndex then
-                                local nextIndex = (currentIndex % #sortedTargets) + 1
-                                local nextTarget = sortedTargets[nextIndex]
-                                local actualTargetPart = GetActualTargetPart()
-                                Closest = nextTarget.character[actualTargetPart] or nextTarget.part
-                                config.SA2_currentTarget = nextTarget.player
-                                newClosestPlayer = nextTarget.player
-                            else
-                                local closestTarget = sortedTargets[1]
-                                local actualTargetPart = GetActualTargetPart()
-                                Closest = closestTarget.character[actualTargetPart] or closestTarget.part
-                                config.SA2_currentTarget = closestTarget.player
-                                newClosestPlayer = closestTarget.player
-                            end
-                        end
-                    else
-                        if config.SA2_currentTarget then
-                            for _, target in ipairs(sortedTargets) do
-                                if target.player == config.SA2_currentTarget then
-                                    local actualTargetPart = GetActualTargetPart()
-                                    Closest = target.character[actualTargetPart] or target.part
-                                    newClosestPlayer = target.player
-                                    break
-                                end
-                            end
-                        end
-                    end
-                elseif config.targetSeenMode == "All" then
-                    local closestTarget = sortedTargets[1]
-                    if closestTarget then
-                        local actualTargetPart = GetActualTargetPart()
-                        Closest = closestTarget.character[actualTargetPart] or closestTarget.part
-                        config.SA2_currentTarget = closestTarget.player
-                        newClosestPlayer = closestTarget.player
-                    end
-                end
-            end
-        else
-            local bestTarget = nil
-            local bestDist = math.huge
-            
-            for _, target in ipairs(aliveTargets) do
-                if target.in360Mode and target.worldDist < bestDist then
-                    bestDist = target.worldDist
-                    bestTarget = target
-                end
-            end
-            
-            if bestTarget then
-                local actualTargetPart = GetActualTargetPart()
-                Closest = bestTarget.character[actualTargetPart] or bestTarget.part
-                newClosestPlayer = bestTarget.player
-            end
-        end
-    else
-        if getTargetMethod == "Lowest Health" then
-            for _, target in ipairs(aliveTargets) do
-                if target.onScreen and target.health < LowestHealth then
-                    LowestHealth = target.health
-                    local actualTargetPart = GetActualTargetPart()
-                    Closest = target.character[actualTargetPart] or target.part
-                    newClosestPlayer = target.player
-                end
-            end
-        elseif getTargetMethod == "TargetSeen" then
-            local targetsInFOV = {}
-            
-            for _, target in ipairs(aliveTargets) do
-                if target.onScreen and target.distanceToCenter <= config.SA2_FovRadius then
-                    table.insert(targetsInFOV, target)
-                end
-            end
-            
-            if #targetsInFOV > 0 then
-                if config.targetSeenMode == "Switch" then
-                    local currentTime = tick()
-                    if currentTime - config.lastTargetSwitchTime >= config.targetSeenSwitchRate then
-                        config.lastTargetSwitchTime = currentTime
-                        
-                        if not config.SA2_currentTarget then
-                            local closestInFOV = nil
-                            local closestDist = math.huge
-                            for _, target in ipairs(targetsInFOV) do
-                                if target.distanceToCenter < closestDist then
-                                    closestDist = target.distanceToCenter
-                                    closestInFOV = target
-                                end
-                            end
-                            if closestInFOV then
-                                local actualTargetPart = GetActualTargetPart()
-                                Closest = closestInFOV.character[actualTargetPart] or closestInFOV.part
-                                config.SA2_currentTarget = closestInFOV.player
-                                newClosestPlayer = closestInFOV.player
-                            end
-                        else
-                            local currentIndex = nil
-                            for i, target in ipairs(targetsInFOV) do
-                                if target.player == config.SA2_currentTarget then
-                                    currentIndex = i
-                                    break
-                                end
-                            end
-                            
-                            if currentIndex then
-                                local nextIndex = (currentIndex % #targetsInFOV) + 1
-                                local nextTarget = targetsInFOV[nextIndex]
-                                local actualTargetPart = GetActualTargetPart()
-                                Closest = nextTarget.character[actualTargetPart] or nextTarget.part
-                                config.SA2_currentTarget = nextTarget.player
-                                newClosestPlayer = nextTarget.player
-                            else
-                                local closestInFOV = nil
-                                local closestDist = math.huge
-                                for _, target in ipairs(targetsInFOV) do
-                                    if target.distanceToCenter < closestDist then
-                                        closestDist = target.distanceToCenter
-                                        closestInFOV = target
-                                    end
-                                end
-                                if closestInFOV then
-                                    local actualTargetPart = GetActualTargetPart()
-                                    Closest = closestInFOV.character[actualTargetPart] or closestInFOV.part
-                                    config.SA2_currentTarget = closestInFOV.player
-                                    newClosestPlayer = closestInFOV.player
-                                end
-                            end
-                        end
-                    else
-                        if config.SA2_currentTarget then
-                            for _, target in ipairs(targetsInFOV) do
-                                if target.player == config.SA2_currentTarget then
-                                    local actualTargetPart = GetActualTargetPart()
-                                    Closest = target.character[actualTargetPart] or target.part
-                                    newClosestPlayer = target.player
-                                    break
-                                end
-                            end
-                        end
-                    end
-                elseif config.targetSeenMode == "All" then
-                    local closestInFOV = nil
-                    local closestDist = math.huge
-                    for _, target in ipairs(targetsInFOV) do
-                        if target.distanceToCenter < closestDist then
-                            closestDist = target.distanceToCenter
-                            closestInFOV = target
-                        end
-                    end
-                    if closestInFOV then
-                        local actualTargetPart = GetActualTargetPart()
-                        Closest = closestInFOV.character[actualTargetPart] or closestInFOV.part
-                        config.SA2_currentTarget = closestInFOV.player
-                        newClosestPlayer = closestInFOV.player
-                    end
-                end
-            else
-                config.SA2_currentTarget = nil
-                newClosestPlayer = nil
-            end
-        else
-            for _, target in ipairs(aliveTargets) do
-                if target.onScreen and target.distanceToCenter <= config.SA2_FovRadius and target.distanceToCenter < ShortestDistance then
-                    local actualTargetPart = GetActualTargetPart()
-                    Closest = target.character[actualTargetPart] or target.part
-                    ShortestDistance = target.distanceToCenter
-                    newClosestPlayer = target.player
-                end
-            end
-        end
-    end
-    
-    if newClosestPlayer ~= config.SA2_currentTarget then
-        config.SA2_currentTarget = newClosestPlayer
-        updateESPColors()
-    end
-    
-    return Closest
-end
-local ExpectedArguments = {
-    FindPartOnRayWithIgnoreList = {
-        ArgCountRequired = 3,
-        Args = {
-            "Instance", "Ray", "table", "boolean", "boolean"
-        }
-    },
-    FindPartOnRayWithWhitelist = {
-        ArgCountRequired = 3,
-        Args = {
-            "Instance", "Ray", "table", "boolean"
-        }
-    },
-    FindPartOnRay = {
-        ArgCountRequired = 2,
-        Args = {
-            "Instance", "Ray", "Instance", "boolean", "boolean"
-        }
-    },
-    Raycast = {
-        ArgCountRequired = 3,
-        Args = {
-            "Instance", "Vector3", "Vector3", "RaycastParams"
-        }
-    },
-    Cast = {
-        ArgCountRequired = 3,
-        Args = {
-            "Instance", "Vector3", "Vector3", "RaycastParams"
-        }
-    }
-}
-
-local function validate_args(Args, RayMethod)
-    if not RayMethod then return false end
-    if not Args then return false end
-    
-    local Matches = 0
-    if #Args < RayMethod.ArgCountRequired then
-        return false
-    end
-    for Pos, Argument in next, Args do
-        if typeof(Argument) == RayMethod.Args[Pos] then
-            Matches = Matches + 1
-        end
-    end
-    return Matches >= RayMethod.ArgCountRequired
-end
-
-if OldNamecall then
-    hookmetamethod(game, "__namecall", OldNamecall)
-    OldNamecall = nil
-end
-
-if OldIndex then
-    hookmetamethod(game, "__index", OldIndex)
-    OldIndex = nil
-end
-
-local function validate_args(Args, RayMethod)
-    local Matches = 0
-    if #Args < RayMethod.ArgCountRequired then
-        return false
-    end
-    for Pos, Argument in next, Args do
-        if typeof(Argument) == RayMethod.Args[Pos] then
-            Matches = Matches + 1
-        end
-    end
-    return Matches >= RayMethod.ArgCountRequired
-end
-
-local ExpectedArguments = {
-    FindPartOnRayWithIgnoreList = {
-        ArgCountRequired = 3,
-        Args = {
-            "Instance", "Ray", "table", "boolean", "boolean"
-        }
-    },
-    FindPartOnRayWithWhitelist = {
-        ArgCountRequired = 3,
-        Args = {
-            "Instance", "Ray", "table", "boolean"
-        }
-    },
-    FindPartOnRay = {
-        ArgCountRequired = 2,
-        Args = {
-            "Instance", "Ray", "Instance", "boolean", "boolean"
-        }
-    },
-    Raycast = {
-        ArgCountRequired = 3,
-        Args = {
-            "Instance", "Vector3", "Vector3", "RaycastParams"
-        }
-    }
-}
-
-RunService.RenderStepped:Connect(function()
-    local now = tick()
-    if now - sa2thing >= sa2stuff then
-        sa2thing = now
-        if config.SA2_Enabled then
-            cachedTarget = GetClosestPlayer()
-        end
-    end
-end)
-
-local function calc_chance(chance)
-    if chance == 100 then
-        return true
-    elseif chance <= 0 then
-        return false
-    else
-        return math.random(1, 100) <= chance
-    end
-end
-
-pcall(function()
-local OldNamecall
-OldNamecall = hookmetamethod(game, "__namecall", newcclosure(function(...)
-    if respawnLock then
-        return OldNamecall(...)
-    end
-    if not config.SA2_Enabled then
-        return OldNamecall(...)
-    end
-    local Method = getnamecallmethod()
-    local Arguments = {...}
-    local self = Arguments[1]
-    local chance = calc_chance(config.SA2_HitChance)
-    
-    if config.SA2_Enabled and self == workspace and not checkcaller() then
-        if not config.SA2_ThreeSixtyMode and not chance then
-            config.SA2_FovIsTargeted = false
-            return OldNamecall(...)
-        end
-        
-        local HitPart = cachedTarget
-        if not HitPart then
-            config.SA2_FovIsTargeted = false
-            return OldNamecall(...)
-        end
-        
-        config.SA2_FovIsTargeted = true
-        
-        if config.SA2_WallbangEnabled then
-            if Method == "FindPartOnRayWithIgnoreList" or Method == "FindPartOnRayWithWhitelist" then
-                local A_Ray = Arguments[2]
-                local Origin = A_Ray.Origin
-                local Distance = A_Ray.Direction.Magnitude
-                local hitPosition = HitPart.Position
-                local normal = (hitPosition - Origin).Unit
-                local material = HitPart.Material
-            elseif Method == "Raycast" then
-                local hitPosition = HitPart.Position
-                local normal = (hitPosition - Arguments[2]).Unit
-                
-                local fakeResult = {
-                    Instance = HitPart,
-                    Position = hitPosition,
-                    Normal = normal,
-                    Material = HitPart.Material
-                }
-                
-                return fakeResult
-            end
-        end
-        
-        if config.SA2_Method == "All" then
-            if Method == "FindPartOnRayWithIgnoreList" or Method == "FindPartOnRayWithWhitelist" or 
-               Method == "FindPartOnRay" or Method == "findPartOnRay" or Method == "Raycast" then
-                local A_Origin = Arguments[2].Origin or Arguments[2]
-                local Direction = func.Direction(A_Origin, HitPart.Position)
-                if Method == "Raycast" then
-                    Arguments[3] = Direction
-                else
-                    Arguments[2] = Ray.new(A_Origin, Direction)
-                end
-                return OldNamecall(unpack(Arguments))
-            end
-        end
-        
-        if Method == "FindPartOnRayWithIgnoreList" and config.SA2_Method == "FindPartOnRayWithIgnoreList" then
-            if validate_args(Arguments, ExpectedArguments.FindPartOnRayWithIgnoreList) then
-                local A_Ray = Arguments[2]
-                local Origin = A_Ray.Origin
-                local Direction = func.Direction(Origin, HitPart.Position)
-                Arguments[2] = Ray.new(Origin, Direction)
-                return OldNamecall(unpack(Arguments))
-            end
-        elseif Method == "FindPartOnRayWithWhitelist" and config.SA2_Method == "FindPartOnRayWithWhitelist" then
-            if validate_args(Arguments, ExpectedArguments.FindPartOnRayWithWhitelist) then
-                local A_Ray = Arguments[2]
-                local Origin = A_Ray.Origin
-                local Direction = func.Direction(Origin, HitPart.Position)
-                Arguments[2] = Ray.new(Origin, Direction)
-                return OldNamecall(unpack(Arguments))
-            end
-        elseif (Method == "FindPartOnRay" or Method == "findPartOnRay") and config.SA2_Method == "FindPartOnRay" then
-            if validate_args(Arguments, ExpectedArguments.FindPartOnRay) then
-                local A_Ray = Arguments[2]
-                local Origin = A_Ray.Origin
-                local Direction = func.Direction(Origin, HitPart.Position)
-                Arguments[2] = Ray.new(Origin, Direction)
-                return OldNamecall(unpack(Arguments))
-            end
-        elseif Method == "Raycast" and config.SA2_Method == "Raycast" then
-            if validate_args(Arguments, ExpectedArguments.Raycast) then
-                local A_Origin = Arguments[2]
-                Arguments[3] = func.Direction(A_Origin, HitPart.Position)
-                return OldNamecall(unpack(Arguments))
-            end
-        end
-    end
-    
-    return OldNamecall(...)
-end))
-end)
-
-pcall(function()
-local OldIndex
-OldIndex = hookmetamethod(game, "__index", newcclosure(function(Self, Index)
-    if respawnLock then
-        return OldIndex(Self, Index)
-    end
-    
-    if config.SA2_Enabled and config.SA2_Method == "Mouse.Hit" and not checkcaller() and Self == mouse then
-        if Index == "Target" or Index == "target" then
-            local HitPart = GetClosestPlayer()
-            if HitPart then
-                config.SA2_FovIsTargeted = true
-                return HitPart
-            else
-                config.SA2_FovIsTargeted = false
-            end
-        elseif Index == "Hit" or Index == "hit" then
-            local HitPart = GetClosestPlayer()
-            if HitPart then
-                config.SA2_FovIsTargeted = true
-                return HitPart.CFrame
-            else
-                config.SA2_FovIsTargeted = false
-            end
-        elseif Index == "X" or Index == "x" then
-            return mouse.X
-        elseif Index == "Y" or Index == "y" then
-            return mouse.Y
-        elseif Index == "UnitRay" then
-            local HitPart = GetClosestPlayer()
-            if HitPart then
-                config.SA2_FovIsTargeted = true
-                return Ray.new(mouse.Origin, (HitPart.Position - mouse.Origin).Unit)
-            else
-                config.SA2_FovIsTargeted = false
-            end
-        end
-    end
-    
-    return OldIndex(Self, Index)
-end))
-end)
-local ScreenGui = Instance.new("ScreenGui")
-local CircleFrame = Instance.new("Frame")
-local UIStroke = Instance.new("UIStroke")
-local UICorner = Instance.new("UICorner")
-
-ScreenGui.Name = "FOVSys"
-ScreenGui.Parent = game:GetService("CoreGui")
-ScreenGui.IgnoreGuiInset = true
-
-CircleFrame.Name = "FOVCircle"
-CircleFrame.Parent = ScreenGui
-CircleFrame.AnchorPoint = Vector2.new(0.5, 0.5)
-CircleFrame.BackgroundColor3 = config.SA2_FovColor
-CircleFrame.BackgroundTransparency = 1
-CircleFrame.BorderSizePixel = 0
-CircleFrame.Visible = false
-
-UICorner.CornerRadius = UDim.new(1, 0)
-UICorner.Parent = CircleFrame
-
-UIStroke.Color = config.SA2_FovColor
-UIStroke.Thickness = 1
-UIStroke.Transparency = 1 - config.SA2_FovTransparency
-UIStroke.Parent = CircleFrame
-RunService.RenderStepped:Connect(function()
-    local viewportSize = Camera.ViewportSize
-    if viewportSize.X == 0 then return end
-    
-    local screenCenter = Vector2.new(viewportSize.X / 2, viewportSize.Y / 2)
-    
-    if respawnLock then
-        CircleFrame.Visible = false
-        return
-    end
-    if config.SA2_Enabled and config.SA2_FovVisible and not config.SA2_ThreeSixtyMode then
-        local currentTarget = GetClosestPlayer()
-        
-        CircleFrame.Visible = true
-        CircleFrame.Position = UDim2.new(0, screenCenter.X, 0, screenCenter.Y)
-        CircleFrame.Size = UDim2.new(0, config.SA2_FovRadius * 2, 0, config.SA2_FovRadius * 2)
-        
-        local targetColor = currentTarget and config.SA2_FovColourTarget or config.SA2_FovColor
-        UIStroke.Color = targetColor
-        UIStroke.Transparency = 1 - config.SA2_FovTransparency
-    else
-        CircleFrame.Visible = false
-    end
-end)
-
-local function isSilentAimTargetingPlayer(targetPlayer)
-    if not config.SA2_Enabled then
-        return false
-    end
-    
-    local currentTarget = GetClosestPlayer()
-    if not currentTarget then
-        return false
-    end
-    local targetChar = currentTarget.Parent
-    if not targetChar or not targetChar:IsA("Model") then
-        return false
-    end
-    local player = Players:GetPlayerFromCharacter(targetChar)
-    return player == targetPlayer
-end
-
-local function isPlayerBeingTargeted(targetPlayer)
-    if isSilentAimTargetingPlayer(targetPlayer) then
-        return true, "silentaim_hk"
-    end
-    if config.currentTarget == targetPlayer then
-        return true, "silentaim"
-    end
-    if config.aimbotCurrentTarget == targetPlayer then
-        return true, "aimbot"
-    end
-    
-    return false, nil
-end
-local function calculateDiameter(worldDist, screenRadius, cam)
-    if not cam then cam = workspace.CurrentCamera end
-    if not cam then return 0.1 end
-    
-    local viewportSize = cam.ViewportSize
-    local H = viewportSize.Y
-    local vFovDeg = cam.FieldOfView
-    local vFovRad = math.rad(vFovDeg)
-    local halfVFov = vFovRad / 2
-    local alpha = (screenRadius / (H / 2)) * halfVFov
-    local worldHalf = worldDist * math.tan(alpha)
-    local worldFull = worldHalf * 2
-    return math.max(0.01, worldFull)
 end
 
 local function setSpawnLocation(positionCFrame)
@@ -2843,10 +2125,9 @@ local function makeesp(targetPlayer)
     headDot.BorderSizePixel = 0
     headDot.Visible = false
     headDot.Parent = screenGui
-    local isTargetedBySA2 = config.SA2_Enabled and config.SA2_currentTarget == targetPlayer
     local isTargetedByRegular = config.currentTarget == targetPlayer
     local isTargetedByAimbot = config.aimbotCurrentTarget == targetPlayer
-    local isTargeted = isTargetedBySA2 or isTargetedByRegular or isTargetedByAimbot
+    local isTargeted = isTargetedByRegular or isTargetedByAimbot
     
     label.TextColor3 = isTargeted and config.esptargetc or config.espc
     boxOutline.Color = isTargeted and config.esptargetc or config.espc
@@ -2915,10 +2196,9 @@ local function makeesp(targetPlayer)
                 hpColor = healthColor(humanoid)
             end
 
-            local isTargetedBySA2 = config.SA2_Enabled and config.SA2_currentTarget == targetPlayer
             local isTargetedByRegular = config.currentTarget == targetPlayer
             local isTargetedByAimbot = config.aimbotCurrentTarget == targetPlayer
-            local isTargeted = isTargetedBySA2 or isTargetedByRegular or isTargetedByAimbot
+            local isTargeted = isTargetedByRegular or isTargetedByAimbot
 
             if config.espMasterEnabled and config.prefTextESP then
                 local text = string.format("%s [%d]", getTargetName(targetPlayer), humanoid and math.floor(humanoid.Health) or 0)
@@ -3030,10 +2310,9 @@ local function updateESPColors()
                 local tchar = getTargetCharacter(targetPlayer)
                 local humanoid = tchar and tchar:FindFirstChildOfClass("Humanoid")
                 local hpColor = (humanoid and config.prefColorByHealth) and healthColor(humanoid) or nil
-                local isTargetedBySA2 = config.SA2_Enabled and config.SA2_currentTarget == targetPlayer
                 local isTargetedByRegular = config.currentTarget == targetPlayer
                 local isTargetedByAimbot = config.aimbotCurrentTarget == targetPlayer
-                local isTargeted = isTargetedBySA2 or isTargetedByRegular or isTargetedByAimbot
+                local isTargeted = isTargetedByRegular or isTargetedByAimbot
                 
                 if data.label then
                     if config.espMasterEnabled and config.prefTextESP then
@@ -3092,10 +2371,9 @@ local function updateESPColors()
             if not addesp(targetPlayer) then
                 table.insert(toRemoveHighlights, targetPlayer)
             else
-                local isTargetedBySA2 = config.SA2_Enabled and config.SA2_currentTarget == targetPlayer
                 local isTargetedByRegular = config.currentTarget == targetPlayer
                 local isTargetedByAimbot = config.aimbotCurrentTarget == targetPlayer
-                local isTargeted = isTargetedBySA2 or isTargetedByRegular or isTargetedByAimbot
+                local isTargeted = isTargetedByRegular or isTargetedByAimbot
                 
                 if isTargeted then
                     highlight.FillColor = Color3.fromRGB(255, 255, 0)
@@ -4346,14 +3624,6 @@ local function CreateQT()
         function() return config.espMasterEnabled end,
         function(v) applyESPMaster(v) end)
 
-local silentAimHKX = startX + (toggleWidth + horizontalSpacing) * 1
-buttons.SilentAimHK = QuickToggle("SilentAim (HK)", silentAimHKX, bottomRowY,
-    function() return config.SA2_Enabled end,
-    function(v) 
-        config.SA2_Enabled = v 
-    end)
-
-
     gui.mobileGui = {
         ScreenGui = screenGui,
         Buttons = buttons
@@ -4404,8 +3674,7 @@ local function UpdateQT()
             AntiAim = config.antiAimEnabled,
             Hitbox = config.hitboxEnabled,
             ClientConfig = config.clientMasterEnabled,
-            ESP = config.espMasterEnabled,
-            SilentAimHK = config.SA2_Enabled
+            ESP = config.espMasterEnabled
         }
         
         for buttonName, isEnabled in pairs(buttonStates) do
@@ -5200,13 +4469,11 @@ local MainTab = Window:Tab({
                 config.targetMode = "All"
                 config.aimbotTeamTarget = "All"
                 config.hitboxTeamTarget = "All"
-                config.SA2_TeamTarget = "All"
                 config.antiAimTarget = "All"
             else
                 config.targetMode = Option
                 config.aimbotTeamTarget = Option
                 config.hitboxTeamTarget = Option
-                config.SA2_TeamTarget = Option
                 config.antiAimTarget = Option
             end
             
@@ -5237,7 +4504,6 @@ local MainTab = Window:Tab({
             config.aimbotGetTarget = Option
             config.silentGetTarget = Option
             config.antiAimGetTarget = Option
-            config.SA2_GetTarget = Option
             syncSilentAimWithMaster()
         end
     })
@@ -5315,15 +4581,6 @@ MainTab:Keybind({
 })
 
 MainTab:Keybind({
-    Title = "Silent Aim (HK)",
-    Desc = "Toggle Silent Aim (Hook-based)",
-    Value = config.Keybinds.silentaimhk or "R",
-    Callback = function(key)
-        config.Keybinds.silentaimhk = key
-    end
-})
-
-MainTab:Keybind({
     Title = "Aimbot",
     Desc = "Toggle Aimbot",
     Value = config.Keybinds.aimbot or "Q",
@@ -5392,15 +4649,6 @@ MainTab:Keybind({
     Value = config.Keybinds.aimbotwallcheck or "H",
     Callback = function(key)
         config.Keybinds.aimbotwallcheck = key
-    end
-})
-
-MainTab:Keybind({
-    Title = "Silent Aim HK Wall Check",
-    Desc = "Toggle wall check for Silent Aim (HK)",
-    Value = config.Keybinds.silentaimhkwallcheck or "T",
-    Callback = function(key)
-        config.Keybinds.silentaimhkwallcheck = key
     end
 })
 
@@ -6065,37 +5313,6 @@ VisualsTab:Colorpicker({
 
 VisualsTab:Space()
 VisualsTab:Paragraph({
-    Title = "Silent Aim (HK) Colors",
-    Desc = "Customize Silent Aim HK colors",
-    Color = lightGreen
-})
-
-VisualsTab:Colorpicker({
-    Title = "SA2 FOV Color",
-    Desc = "Color for Silent Aim HK FOV",
-    Default = config.SA2_FovColor or Color3.new(0, 0, 0),
-    Transparency = 0,
-    Locked = false,
-    LockedTitle = "Locked message",
-    Callback = function(color)
-        config.SA2_FovColor = color
-    end
-})
-
-VisualsTab:Colorpicker({
-    Title = "SA2 FOV Target Color",
-    Desc = "Color when target is in SA2 FOV",
-    Default = config.SA2_FovColourTarget or Color3.new(1, 1, 0),
-    Transparency = 0,
-    Locked = false,
-    LockedTitle = "Locked message",
-    Callback = function(color)
-        config.SA2_FovColourTarget = color
-    end
-})
-
-VisualsTab:Space()
-VisualsTab:Paragraph({
     Title = "Hitbox Colors",
     Desc = "Customize hitbox colors",
     Color = lightGreen
@@ -6422,7 +5639,7 @@ local AimbotTab = Window:Tab({
     })
     
     AimbotTab:Toggle({
-        Title = "WallCheck AB ('B')",
+        Title = "WallCheck AB ('H')",
         Desc = "Check for walls",
         Value = config.aimbotWallCheck or false,
         Callback = function(v)
@@ -6548,7 +5765,7 @@ local SilentAimTab = Window:Tab({
     })
     
     SilentAimTab:Toggle({
-        Title = "WallCheck SA (B)",
+        Title = "WallCheck SA ('B')",
         Desc = "Check for walls",
         Value = config.wallc or false,
         Callback = function(v)
@@ -6679,169 +5896,6 @@ SilentAimTab:Slider({
         },
         Callback = function(value)
             config.hbtrans = value
-        end
-    })
-end
-
--- SA2Tab
-local SilentAimTab2 = Window:Tab({
-    Title = "SilentAim (HK)",
-    Desc = "Hook-based silent aim [Broken]",
-    Icon = "target",
-    IconColor = Red
-}) do
-    SilentAimTab2:Paragraph({
-        Title = "Gravel",
-        Desc = "[ Broken ]\n[ don't use :( ]",
-        Color = Red
-    })
-    
-    SilentAimTab2:Paragraph({
-        Title = "SilentAim Master",
-        Desc = "Master control for hook-based silent aim",
-        Color = lightGreen
-    })
-    
-    SilentAimTab2:Toggle({
-        Title = "Toggle SilentAim (HK) ('R')",
-        Desc = "Enable/disable silent aim",
-        Value = config.SA2_Enabled or false,
-        Callback = function(v)
-            config.SA2_Enabled = v
-            n({
-                Title = "Silent Aim",
-                Content = "Silent Aim " .. (v and "Enabled" or "Disabled"),
-                Audio = "rbxassetid://17208361335",
-                Length = 1,
-                Image = "rbxassetid://4483362458",
-                BarColor = v and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(255, 0, 0)
-            })
-        end
-    })
-    SilentAimTab2:Space()
-    SilentAimTab2:Paragraph({
-        Title = "SilentAim Settings",
-        Desc = "Configuration for hook-based silent aim",
-        Color = lightGreen
-    })
-    
-    SilentAimTab2:Toggle({
-        Title = "WallCheck ('T')",
-        Desc = "Check for walls (Might lag)",
-        Value = config.SA2_Wallcheck or false,
-        Callback = function(v)
-            config.SA2_Wallcheck = v
-        end
-    })
-    
-    SilentAimTab2:Toggle({
-        Title = "Wallbang",
-        Desc = "Shoot through walls",
-        Value = config.SA2_WallbangEnabled or false,
-        Callback = function(v)
-            config.SA2_WallbangEnabled = v
-            if v then
-                n({
-                    Title = "Wallbang",
-                    Content = "Enabled - Will shoot through walls",
-                    Audio = "rbxassetid://17208361335",
-                    Length = 1,
-                    Image = "rbxassetid://4483362458",
-                    BarColor = Color3.fromRGB(0, 170, 255)
-                })
-            else
-                n({
-                    Title = "Wallbang",
-                    Content = "Disabled",
-                    Audio = "rbxassetid://17208361335",
-                    Length = 1,
-                    Image = "rbxassetid://4483362458",
-                    BarColor = Color3.fromRGB(255, 0, 0)
-                })
-            end
-        end
-    })
-    
-    SilentAimTab2:Toggle({
-        Title = "360 Mode",
-        Desc = "Enable silent aim in all directions",
-        Value = config.SA2_ThreeSixtyMode or false,
-        Callback = function(v)
-            config.SA2_ThreeSixtyMode = v
-        end
-    })
-    
-    SilentAimTab2:Dropdown({
-        Title = "Aim Method",
-        Desc = "Raycast method to hook",
-        Values = {"Raycast", "Cast", "FindPartOnRay", "FindPartOnRayWithWhitelist", "FindPartOnRayWithIgnoreList", "Mouse.Hit", "All"},
-        Value = config.SA2_Method or "Raycast",
-        Multi = false,
-        Callback = function(choice)
-            config.SA2_Method = choice
-        end
-    })
-    
-    SilentAimTab2:Dropdown({
-        Title = "Target Part",
-        Desc = "Part to target",
-        Values = {"Head", "HumanoidRootPart"},
-        Value = config.SA2_TargetPart or "Head",
-        Multi = false,
-        Callback = function(choice)
-            config.SA2_TargetPart = choice
-            n({
-                Title = "Target Part",
-                Content = "Targeting: " .. choice,
-                Audio = "rbxassetid://17208361335",
-                Length = 1,
-                Image = "rbxassetid://4483362458",
-                BarColor = Color3.fromRGB(0, 255, 0)
-            })
-        end
-    })
-    
-    SilentAimTab2:Slider({
-        Title = "Hit Chance",
-        Desc = "Accuracy percentage",
-        Step = 1,
-        Suffix = "%",
-        Value = {
-            Min = 0,
-            Max = 100,
-            Default = config.SA2_HitChance or 100
-        },
-        Callback = function(value)
-            config.SA2_HitChance = value
-        end
-    })
-    
-    SilentAimTab2:Slider({
-        Title = "FOV Radius",
-        Desc = "Field of View size",
-        IsTextbox = true,
-        Step = 10,
-        Value = {
-            Min = 0,
-            Max = 500,
-            Default = config.SA2_FovRadius or 100
-        },
-        Callback = function(value)
-            config.SA2_FovRadius = value
-        end
-    })
-    SilentAimTab2:Slider({
-        Title = "Target Range",
-        Desc = "How far a target should a targeted",
-        IsTextbox = true,
-        Step = 10,
-        Value = {
-            Min = 5,
-            Max = 999999,
-            Default = config.SA2_FovRadius or 1000
-        },
-        Callback = function(value)
-            config.SA2_TargetRange = value
         end
     })
 end
@@ -8144,12 +7198,6 @@ local InfoTab = Window:Tab({
     })
     
     InfoTab:Paragraph({
-        Title = "SilentAimTab (HK) [Removed]",
-        Desc = "Won't work any more; Roblox released some sort of engine update which broke SilentAim (HK) or any hk type silentaims. [Not recommend for use]",
-        Color = Red
-    })
-    
-    InfoTab:Paragraph({
         Title = "HitboxTab",
         Desc = "Resizes opponents hitbox to easily hit or shoot at opponents",
         Color = darkGray
@@ -8168,12 +7216,6 @@ local InfoTab = Window:Tab({
     })
     
     InfoTab:Paragraph({
-        Title = "BotTab [Removed]",
-        Desc = "Removed due to buggies, 200 variable limit n stuff",
-        Color = Red
-    })
-    
-    InfoTab:Paragraph({
         Title = "MiscTab",
         Desc = "Basically experiment any features that are or aren't related to combating",
         Color = darkGray
@@ -8183,6 +7225,17 @@ local InfoTab = Window:Tab({
         Title = "InfoTab",
         Desc = "InfoTab the tab that your in just shows informations or details",
         Color = darkGray
+    })
+    InfoTab:Paragraph({
+        Title = "SilentAimTab (HK) [Removed]",
+        Desc = "Won't work any more; Roblox released some sort of engine update which broke SilentAim (HK) or any hk type silentaims. [Not recommend for use]",
+        Color = Red
+    })
+
+    InfoTab:Paragraph({
+        Title = "BotTab",
+        Desc = "Deleted due to 200 variable limit & uselessness",
+        Color = Red
     })
     InfoTab:Space()
     InfoTab:Paragraph({
@@ -8242,7 +7295,7 @@ local InfoTab = Window:Tab({
     })
     InfoTab:Paragraph({
         Title = "Gravel (18/05/2026)",
-        Desc = "Removed: SilentAim (HK) is now removed :(",
+        Desc = "Removed: SilentAim (HK) is now removed due to an update :(",
         Color = darkGray
     })
 end
@@ -8293,7 +7346,7 @@ local function SetupRespawnHandler()
             local humanoid = character:WaitForChild("Humanoid", 5)
             if humanoid and humanoid.Health > 0 then
                 if wasEnabledBeforeDeath then
-                    config.SA2_Enabled = true
+                    config.startsa = true
                 end
                 
                 if wasESPEnabledBeforeDeath then
@@ -8308,7 +7361,7 @@ local function SetupRespawnHandler()
     end)
     
     plr.CharacterRemoving:Connect(function(character)
-        if config.SA2_Enabled then
+        if config.startsa then
             wasEnabledBeforeDeath = true
         end
         
@@ -8316,7 +7369,7 @@ local function SetupRespawnHandler()
             wasESPEnabledBeforeDeath = true
         end
         
-        config.SA2_Enabled = false
+        config.startsa = false
         config.espMasterEnabled = false
         respawnLock = true
     end)
@@ -8326,7 +7379,7 @@ local function SetupRespawnHandler()
             local humanoid = plr.Character:FindFirstChild("Humanoid")
             if humanoid then
                 humanoid.Died:Connect(function()
-                    if config.SA2_Enabled then
+                    if config.startsa then
                         wasEnabledBeforeDeath = true
                     end
                     
@@ -8334,7 +7387,7 @@ local function SetupRespawnHandler()
                         wasESPEnabledBeforeDeath = true
                     end
                     
-                    config.SA2_Enabled = false
+                    config.startsa = false
                     config.espMasterEnabled = false
                     respawnLock = true
                 end)
@@ -8364,6 +7417,17 @@ if LocalPlayer.Character then
         humanoid:SetStateEnabled(Enum.HumanoidStateType.FallingDown, false)
         humanoid:SetStateEnabled(Enum.HumanoidStateType.Ragdoll, false)
     end
+end
+
+local function isPlayerBeingTargeted(targetPlayer)
+    if config.currentTarget == targetPlayer then
+        return true, "silentaim"
+    end
+    if config.aimbotCurrentTarget == targetPlayer then
+        return true, "aimbot"
+    end
+    
+    return false, nil
 end
 
 local function initKeybinds()
@@ -8410,17 +7474,6 @@ local function initKeybinds()
                 elseif config.startsa and gui.RingHolder then
                     gui.RingHolder.Visible = true
                 end
-            end
-            
-        elseif input.KeyCode == Enum.KeyCode[config.Keybinds.silentaimhk] then
-            if shouldTriggerKeybind(config.Keybinds.silentaimhk) then
-                config.SA2_Enabled = not config.SA2_Enabled
-                WindUI:Notify({
-                    Title = "Silent Aim (HK)",
-                    Content = config.SA2_Enabled and "Enabled" or "Disabled",
-                    Icon = config.SA2_Enabled and "check" or "x",
-                    Duration = 1
-                })
             end
             
         elseif input.KeyCode == Enum.KeyCode[config.Keybinds.aimbot] then
@@ -8523,17 +7576,6 @@ local function initKeybinds()
                     Title = "Aimbot Wall Check",
                     Content = config.aimbotWallCheck and "Enabled" or "Disabled",
                     Icon = config.aimbotWallCheck and "check" or "x",
-                    Duration = 1
-                })
-            end
-            
-        elseif input.KeyCode == Enum.KeyCode[config.Keybinds.silentaimhkwallcheck] then
-            if shouldTriggerKeybind(config.Keybinds.silentaimhkwallcheck) then
-                config.SA2_Wallcheck = not config.SA2_Wallcheck
-                WindUI:Notify({
-                    Title = "Silent Aim HK Wall Check",
-                    Content = config.SA2_Wallcheck and "Enabled" or "Disabled",
-                    Icon = config.SA2_Wallcheck and "check" or "x",
                     Duration = 1
                 })
             end
@@ -8719,10 +7761,8 @@ end
 
 local clearTargetCache = function()
     pcall(function()
-        config.SA2_currentTarget = nil
         config.currentTarget = nil
         config.aimbotCurrentTarget = nil
-        config.SA2_FovIsTargeted = false
         config.targetSeenTargets = {}
         config.autoFarmTargets = {}
         config.autoFarmCompleted = {}
