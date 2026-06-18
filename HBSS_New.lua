@@ -193,6 +193,9 @@ local animationLoopConnection = nil
 local updateESPColors = function() end
 local sa2thing = 0
 local sa2stuff = 0.05
+local ViewConnection
+local Viewing = false
+local CameraDistance = 8
 
 -- uicolor
 local lightGreen = Color3.fromRGB(144, 238, 144)
@@ -7857,6 +7860,91 @@ local MiscTab = Window:Tab({
             })
         end
     })
+MiscTab:Toggle({
+    Title = "Cframe View",
+    Desc = "view randos with cframe camera & kill em >:]",
+    Value = config.wallc or false,
+    Callback = function(v)
+        local Players = game:GetService("Players")
+        local RunService = game:GetService("RunService")
+        local Camera = workspace.CurrentCamera
+
+        Viewing = v
+
+        if ViewConnection then
+            ViewConnection:Disconnect()
+            ViewConnection = nil
+        end
+
+        if not v then
+            Camera.CameraType = Enum.CameraType.Custom
+            return
+        end
+
+        local function GetRandomPlayer()
+            local Valid = {}
+
+            for _, plr in ipairs(Players:GetPlayers()) do
+                if plr ~= Players.LocalPlayer
+                    and plr.Character
+                    and plr.Character:FindFirstChild("HumanoidRootPart")
+                then
+                    table.insert(Valid, plr)
+                end
+            end
+
+            return #Valid > 0 and Valid[math.random(1, #Valid)] or nil
+        end
+
+        local Target = GetRandomPlayer()
+        if not Target then
+            return
+        end
+
+        Camera.CameraType = Enum.CameraType.Scriptable
+
+        ViewConnection = RunService.RenderStepped:Connect(function()
+            if not Viewing then
+                return
+            end
+
+            if not Target
+                or not Target.Character
+                or not Target.Character:FindFirstChild("HumanoidRootPart")
+            then
+                Target = GetRandomPlayer()
+                return
+            end
+
+            local HRP = Target.Character.HumanoidRootPart
+
+            local CameraPos =
+                HRP.Position
+                - HRP.CFrame.LookVector * CameraDistance
+                + Vector3.new(0, 3, 0)
+
+            Camera.CFrame = CFrame.lookAt(
+                CameraPos,
+                HRP.Position + Vector3.new(0, 2, 0)
+            )
+        end)
+    end
+})
+
+MiscTab:Slider({
+    Title = "Zoom",
+    Desc = "cframe view distance from target :7",
+    IsTextbox = true,
+    Step = 1,
+    Value = {
+        Min = 2,
+        Max = 50,
+        Default = 8
+    },
+    Callback = function(value)
+        CameraDistance = value
+    end
+})
 end
 
 -- Info Tab
