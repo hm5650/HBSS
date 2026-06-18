@@ -7868,6 +7868,7 @@ MiscTab:Toggle({
         local Players = game:GetService("Players")
         local RunService = game:GetService("RunService")
         local Camera = workspace.CurrentCamera
+        local Teams = game:GetService("Teams")
 
         Viewing = v
 
@@ -7880,24 +7881,111 @@ MiscTab:Toggle({
             Camera.CameraType = Enum.CameraType.Custom
             return
         end
+        local function isEnemy(player)
+            if not player or player == Players.LocalPlayer then return false end
+            local localTeam = Players.LocalPlayer.Team
+            local targetTeam = player.Team
+            
+            if config.masterTeamTarget == "All" then
+                return true
+            elseif config.masterTeamTarget == "Enemies" then
+                if localTeam and targetTeam then
+                    return localTeam ~= targetTeam
+                end
+                return true
+            elseif config.masterTeamTarget == "Teams" then
+                if localTeam and targetTeam then
+                    return localTeam == targetTeam
+                end
+                return false
+            end
+            return true
+        end
+        local function isNPCEnemy(model)
+            if not model or not model:IsA("Model") then return false end
+            if Players:GetPlayerFromCharacter(model) then return false end
+            local humanoid = model:FindFirstChildOfClass("Humanoid")
+            if not humanoid or humanoid.Health <= 0 then return false end
+            if not (model:FindFirstChild("HumanoidRootPart") or model:FindFirstChild("Head")) then return false end
+            if config.masterTeamTarget == "All" then
+                return true
+            elseif config.masterTeamTarget == "Enemies" then
+                local npcTeam = model:FindFirstChild("Team")
+                if npcTeam then
+                    local localTeam = Players.LocalPlayer.Team
+                    if localTeam and npcTeam:IsA("ObjectValue") and npcTeam.Value then
+                        return localTeam ~= npcTeam.Value
+                    end
+                end
+                return true
+            elseif config.masterTeamTarget == "Teams" then
+                local npcTeam = model:FindFirstChild("Team")
+                if npcTeam and npcTeam:IsA("ObjectValue") and npcTeam.Value then
+                    local localTeam = Players.LocalPlayer.Team
+                    if localTeam then
+                        return localTeam == npcTeam.Value
+                    end
+                end
+                return false
+            end
+            return true
+        end
 
-        local function GetRandomPlayer()
+        local function GetRandomTarget()
             local Valid = {}
-
-            for _, plr in ipairs(Players:GetPlayers()) do
-                if plr ~= Players.LocalPlayer
-                    and plr.Character
-                    and plr.Character:FindFirstChild("HumanoidRootPart")
-                then
-                    table.insert(Valid, plr)
+            local masterTarget = config.masterTarget or "Players"
+            if masterTarget == "Players" or masterTarget == "Both" then
+                for _, plr in ipairs(Players:GetPlayers()) do
+                    if plr ~= Players.LocalPlayer
+                        and plr.Character
+                        and plr.Character:FindFirstChild("HumanoidRootPart")
+                        and isEnemy(plr)
+                    then
+                        local humanoid = plr.Character:FindFirstChildOfClass("Humanoid")
+                        if humanoid and humanoid.Health > 0 then
+                            if not config.ignoreForcefield or not hasForcefield(plr.Character) then
+                                table.insert(Valid, {
+                                    type = "player",
+                                    instance = plr,
+                                    character = plr.Character
+                                })
+                            end
+                        end
+                    end
+                end
+            end
+            if masterTarget == "NPCs" or masterTarget == "Both" then
+                for _, obj in ipairs(workspace:GetDescendants()) do
+                    if obj:IsA("Model") and isNPCEnemy(obj) then
+                        local rootPart = obj:FindFirstChild("HumanoidRootPart") or obj:FindFirstChild("Head")
+                        if rootPart then
+                            local humanoid = obj:FindFirstChildOfClass("Humanoid")
+                            if humanoid and humanoid.Health > 0 then
+                                if not config.ignoreForcefield or not hasForcefield(obj) then
+                                    table.insert(Valid, {
+                                        type = "npc",
+                                        instance = obj,
+                                        character = obj,
+                                        rootPart = rootPart
+                                    })
+                                end
+                            end
+                        end
+                    end
                 end
             end
 
             return #Valid > 0 and Valid[math.random(1, #Valid)] or nil
         end
 
-        local Target = GetRandomPlayer()
+        local Target = GetRandomTarget()
         if not Target then
+            WindUI:Notify({
+                Title = "Cframe View",
+                Content = "No valid targets found!",
+                Icon = "x",
+                Duration = 2
+            })
             return
         end
 
@@ -7907,30 +7995,68 @@ MiscTab:Toggle({
             if not Viewing then
                 return
             end
+            local isValid = false
+            if Target.type == "player" then
+                isValid = Target.instance 
+                    and Target.instance.Character 
+                    and Target.instance.Character:FindFirstChild("HumanoidRootPart")
+                    and isEnemy(Target.instance)
+                    and Target.instance.Character:FindFirstChildOfClass("Humanoid") 
+                    and Target.instance.Character:FindFirstChildOfClass("Humanoid").Health > 0
+            elseif Target.type == "npc" then
+                isValid = Target.instance 
+                    and Target.instance.Parent 
+                    and Target.instance:FindFirstChild("HumanoidRootPart")
+                    and isNPCEnemy(Target.instance)
+                    and Target.instance:FindFirstChildOfClass("Humanoid") 
+                    and Target.instance:FindFirstChildOfClass("Humanoid").Health > 0
+            end
 
-            if not Target
-                or not Target.Character
-                or not Target.Character:FindFirstChild("HumanoidRootPart")
-            then
-                Target = GetRandomPlayer()
+            if not isValid then
+                Target = GetRandomTarget()
+                if not Target then
+                    Viewing = false
+                    Camera.CameraType = Enum.CameraType.Custom
+                    WindUI:Notify({
+                        Title = "Cframe View",
+                        Content = "No more targets available",
+                        Icon = "x",
+                        Duration = 2
+                    })
+                    return
+                end
                 return
             end
 
-            local HRP = Target.Character.HumanoidRootPart
+            local HRP = nil
+            if Target.type == "player" then
+                HRP = Target.instance.Character.HumanoidRootPart
+            elseif Target.type == "npc" then
+                HRP = Target.instance.HumanoidRootPart
+            end
+            
+            if not HRP then
+                Target = GetRandomTarget()
+                if not Target then
+                    Viewing = false
+                    Camera.CameraType = Enum.CameraType.Custom
+                    return
+                end
+                return
+            end
 
-            local CameraPos =
-                HRP.Position
-                - HRP.CFrame.LookVector * CameraDistance
-                + Vector3.new(0, 3, 0)
-
-            Camera.CFrame = CFrame.lookAt(
-                CameraPos,
-                HRP.Position + Vector3.new(0, 2, 0)
-            )
+            local CameraPos = HRP.Position - HRP.CFrame.LookVector * CameraDistance + Vector3.new(0, 3, 0)
+            Camera.CFrame = CFrame.lookAt(CameraPos, HRP.Position + Vector3.new(0, 2, 0))
         end)
+        
+        WindUI:Notify({
+            Title = "Cframe View",
+            Content = "Viewing " .. (Target.type == "player" and Target.instance.Name or "NPC"),
+            Icon = "eye",
+            Duration = 2
+        })
     end
 })
-
 MiscTab:Slider({
     Title = "Zoom",
     Desc = "cframe view distance from target :7",
