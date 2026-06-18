@@ -6681,7 +6681,7 @@ local SilentAimTab2 = Window:Tab({
 }) do
     SilentAimTab2:Paragraph({
         Title = "Gravel",
-        Desc = "[ Broken ]",
+        Desc = "[ Broken ]\n[ don't use :( ]",
         Color = Red
     })
     
