@@ -5975,6 +5975,176 @@ local AimbotTab = Window:Tab({
     })
 end
 
+-- SA2Tab [Broken]
+local SilentAimTab2 = Window:Tab({
+    Title = "SilentAim (HK)",
+    Desc = "Hook-based silent aim [Broken]",
+    Icon = "target",
+    IconColor = Red
+}) do
+    SilentAimTab2:Paragraph({
+        Title = "Gravel",
+        Desc = "[ Broken ]\n[ don't use :( ]\n [ Read the stuff in the InfoTab for more information about this ]",
+        Color = Red
+    })
+    
+    SilentAimTab2:Paragraph({
+        Title = "SilentAim Master",
+        Desc = "Master control for hook-based silent aim",
+        Color = Red
+    })
+    
+    SilentAimTab2:Toggle({
+        Title = "Toggle SilentAim (HK) ('R')",
+        Desc = "Enable/disable silent aim",
+        Value = config.SA2_Enabled or false,
+        Callback = function(v)
+            n({
+                Title = "Silent Aim",
+                Content = "[Broken]",
+                Audio = "rbxassetid://17208361335",
+                Length = 1,
+                Image = "rbxassetid://4483362458",
+                BarColor = Color3.fromRGB(255, 0, 0)
+            })
+        end
+    })
+    SilentAimTab2:Space()
+    SilentAimTab2:Paragraph({
+        Title = "SilentAim Settings",
+        Desc = "Configuration for hook-based silent aim",
+        Color = Red
+    })
+    
+    SilentAimTab2:Toggle({
+        Title = "WallCheck ('T')",
+        Desc = "Check for walls (Might lag)",
+        Value = config.SA2_Wallcheck or false,
+        Callback = function(v)
+            n({
+                Title = "Silent Aim",
+                Content = "[Broken]",
+                Audio = "rbxassetid://17208361335",
+                Length = 1,
+                Image = "rbxassetid://4483362458",
+                BarColor = Color3.fromRGB(255, 0, 0)
+            })
+        end
+    })
+    
+    SilentAimTab2:Toggle({
+        Title = "Wallbang",
+        Desc = "Shoot through walls",
+        Value = config.SA2_WallbangEnabled or false,
+        Callback = function(v)
+            n({
+                Title = "Silent Aim",
+                Content = "[Broken]",
+                Audio = "rbxassetid://17208361335",
+                Length = 1,
+                Image = "rbxassetid://4483362458",
+                BarColor = Color3.fromRGB(255, 0, 0)
+            })
+        end
+    })
+    
+    SilentAimTab2:Toggle({
+        Title = "360 Mode",
+        Desc = "Enable silent aim in all directions",
+        Value = config.SA2_ThreeSixtyMode or false,
+        Callback = function(v)
+            n({
+                Title = "Silent Aim",
+                Content = "[Broken]",
+                Audio = "rbxassetid://17208361335",
+                Length = 1,
+                Image = "rbxassetid://4483362458",
+                BarColor = Color3.fromRGB(255, 0, 0)
+            })
+        end
+    })
+    
+    SilentAimTab2:Dropdown({
+        Title = "Aim Method",
+        Desc = "Raycast method to hook",
+        Values = {"Raycast", "Cast", "FindPartOnRay", "FindPartOnRayWithWhitelist", "FindPartOnRayWithIgnoreList", "Mouse.Hit", "All"},
+        Value = config.SA2_Method or "Raycast",
+        Multi = false,
+        Callback = function(choice)
+            n({
+                Title = "Silent Aim",
+                Content = "[broken]",
+                Audio = "rbxassetid://17208361335",
+                Length = 1,
+                Image = "rbxassetid://4483362458",
+                BarColor = Color3.fromRGB(255, 0, 0)
+            })
+        end
+    })
+    
+    SilentAimTab2:Dropdown({
+        Title = "Target Part",
+        Desc = "Part to target",
+        Values = {"Head", "HumanoidRootPart"},
+        Value = config.SA2_TargetPart or "Head",
+        Multi = false,
+        Callback = function(choice)
+            n({
+                Title = "Silent Aim",
+                Content = "[Broken]",
+                Audio = "rbxassetid://17208361335",
+                Length = 1,
+                Image = "rbxassetid://4483362458",
+                BarColor = Color3.fromRGB(255, 0, 0)
+            })
+        end
+    })
+    
+    SilentAimTab2:Slider({
+        Title = "Hit Chance",
+        Desc = "Accuracy percentage",
+        Step = 1,
+        Suffix = "%",
+        Value = {
+            Min = 0,
+            Max = 100,
+            Default = config.SA2_HitChance or 100
+        },
+        Callback = function(value)
+            error(":/")
+        end
+    })
+    
+    SilentAimTab2:Slider({
+        Title = "FOV Radius",
+        Desc = "Field of View size",
+        IsTextbox = true,
+        Step = 10,
+        Value = {
+            Min = 0,
+            Max = 500,
+            Default = config.SA2_FovRadius or 100
+        },
+        Callback = function(value)
+            error(":/")
+        end
+    })
+    SilentAimTab2:Slider({
+        Title = "Target Range",
+        Desc = "How far a target should a targeted",
+        IsTextbox = true,
+        Step = 10,
+        Value = {
+            Min = 5,
+            Max = 999999,
+            Default = config.SA2_FovRadius or 1000
+        },
+        Callback = function(value)
+            error(":/")
+        end
+    })
+end
+
 -- SilentAim Tab (HB)
 local SilentAimTab = Window:Tab({
     Title = "SilentAim (HB)",
