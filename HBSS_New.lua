@@ -2855,54 +2855,6 @@ local function applySizeToPart(targetPlayer, targetDiameter, chosenPart)
     config.activeApplied[targetPlayer] = true
 end
 
-local function hb()
-    local targetsToRemove = {}
-    for playerObj, targetSize in pairs(config.targethbSizes) do
-        if playerObj and playerObj ~= localPlayer and getTargetCharacter(playerObj) and plralive(playerObj) then
-            local part = getTargetCharacter(playerObj):FindFirstChild(config.originalSizes[playerObj] and config.originalSizes[playerObj].partName) 
-                         or getTargetCharacter(playerObj):FindFirstChild(config.bodypart) 
-                         or getTargetCharacter(playerObj):FindFirstChild("Head")
-            if not part then
-                local p1 = getTargetCharacter(playerObj):FindFirstChild("HumanoidRootPart")
-                local p2 = getTargetCharacter(playerObj):FindFirstChild("Head")
-                part = p1 or p2
-            end
-
-            if part then
-                local currentSize = part.Size
-                local lerpAlpha = math.clamp(tonumber(config.predic) or 1, 0, 1)
-                local newSize = Vector3.new(
-                    currentSize.X + (targetSize.X - currentSize.X) * lerpAlpha,
-                    currentSize.Y + (targetSize.Y - currentSize.Y) * lerpAlpha,
-                    currentSize.Z + (targetSize.Z - currentSize.Z) * lerpAlpha
-                )
-                
-                newSize = Vector3.new(
-                    math.max(0.3, newSize.X),
-                    math.max(0.3, newSize.Y),
-                    math.max(0.3, newSize.Z)
-                )
-
-                pcall(function()
-                    part.Size = newSize
-                    part.Transparency = config.hbtrans
-                    part.CanCollide = false
-                    part.Massless = (part.Name ~= "HumanoidRootPart")
-                end)
-            end
-        else
-            if playerObj ~= localPlayer then
-                table.insert(targetsToRemove, playerObj)
-            end
-        end
-    end
-    
-    for _, playerObj in ipairs(targetsToRemove) do
-        restorePartForPlayer(playerObj)
-    end
-    
-    updateHitboxes()
-end
 
 local function calculateDiameter(worldDist, screenRadius, cam)
     local viewportSize = cam.ViewportSize
@@ -3192,6 +3144,55 @@ local function applyhb()
             restoreTorso(target)
         end
     end
+end
+
+local function hb()
+    local targetsToRemove = {}
+    for playerObj, targetSize in pairs(config.targethbSizes) do
+        if playerObj and playerObj ~= localPlayer and getTargetCharacter(playerObj) and plralive(playerObj) then
+            local part = getTargetCharacter(playerObj):FindFirstChild(config.originalSizes[playerObj] and config.originalSizes[playerObj].partName) 
+                         or getTargetCharacter(playerObj):FindFirstChild(config.bodypart) 
+                         or getTargetCharacter(playerObj):FindFirstChild("Head")
+            if not part then
+                local p1 = getTargetCharacter(playerObj):FindFirstChild("HumanoidRootPart")
+                local p2 = getTargetCharacter(playerObj):FindFirstChild("Head")
+                part = p1 or p2
+            end
+
+            if part then
+                local currentSize = part.Size
+                local lerpAlpha = math.clamp(tonumber(config.predic) or 1, 0, 1)
+                local newSize = Vector3.new(
+                    currentSize.X + (targetSize.X - currentSize.X) * lerpAlpha,
+                    currentSize.Y + (targetSize.Y - currentSize.Y) * lerpAlpha,
+                    currentSize.Z + (targetSize.Z - currentSize.Z) * lerpAlpha
+                )
+                
+                newSize = Vector3.new(
+                    math.max(0.3, newSize.X),
+                    math.max(0.3, newSize.Y),
+                    math.max(0.3, newSize.Z)
+                )
+
+                pcall(function()
+                    part.Size = newSize
+                    part.Transparency = config.hbtrans
+                    part.CanCollide = false
+                    part.Massless = (part.Name ~= "HumanoidRootPart")
+                end)
+            end
+        else
+            if playerObj ~= localPlayer then
+                table.insert(targetsToRemove, playerObj)
+            end
+        end
+    end
+    
+    for _, playerObj in ipairs(targetsToRemove) do
+        restorePartForPlayer(playerObj)
+    end
+    
+    updateHitboxes()
 end
 
 local function handleHitboxForRespawnedPlayer(player)
