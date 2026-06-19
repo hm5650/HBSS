@@ -191,8 +191,6 @@ local humanoid = nil
 local character = nil
 local animationLoopConnection = nil
 local updateESPColors = function() end
-local sa2thing = 0
-local sa2stuff = 0.05
 local ViewConnection
 local Viewing = false
 local CameraDistance = 8
@@ -610,6 +608,16 @@ local function hasForcefield(character)
     end
     
     return false
+end
+
+local function isPlayerBeingTargeted(targetPlayer)
+    if config.currentTarget == targetPlayer then
+        return true, "silentaim"
+    end
+    if config.aimbotCurrentTarget == targetPlayer then
+        return true, "aimbot"
+    end
+    return false, nil
 end
 
 local function GetRandomTargetPart()
@@ -2000,6 +2008,7 @@ local function updateLineESP()
             removeLineESP(target)
         end
     end
+    
     local toRemove = {}
     for targetPlayer, _ in pairs(config.lineESPData) do
         local found = false
@@ -2018,7 +2027,6 @@ local function updateLineESP()
         removeLineESP(targetPlayer)
     end
 end
-
 
 local function removeHighlightESP(targetPlayer)
     if not targetPlayer then return end
@@ -3943,7 +3951,7 @@ local function UpdateQT()
             AntiAim = config.antiAimEnabled,
             Hitbox = config.hitboxEnabled,
             ClientConfig = config.clientMasterEnabled,
-            ESP = config.espMasterEnabled
+            ESP = config.espMasterEnabled,
         }
         
         for buttonName, isEnabled in pairs(buttonStates) do
@@ -7560,6 +7568,11 @@ local InfoTab = Window:Tab({
         Desc = "Improved: SilentAim (HB) Accuracy",
         Color = darkGray
     })
+    InfoTab:Paragraph({
+        Title = "Gravel (19/06/2026)",
+        Desc = "Fixed: Targeting Systems\nFixed Bugs: 10",
+        Color = darkGray
+    })
 end
 
 local fovScreenGui = Instance.new("ScreenGui")
@@ -7679,17 +7692,6 @@ if LocalPlayer.Character then
         humanoid:SetStateEnabled(Enum.HumanoidStateType.FallingDown, false)
         humanoid:SetStateEnabled(Enum.HumanoidStateType.Ragdoll, false)
     end
-end
-
-local function isPlayerBeingTargeted(targetPlayer)
-    if config.currentTarget == targetPlayer then
-        return true, "silentaim"
-    end
-    if config.aimbotCurrentTarget == targetPlayer then
-        return true, "aimbot"
-    end
-    
-    return false, nil
 end
 
 local function initKeybinds()
