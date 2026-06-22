@@ -1,4 +1,3 @@
-
 -- Gravel.cc
 repeat wait() until game:IsLoaded()
 
@@ -624,6 +623,19 @@ local function hasForcefield(character)
     return false
 end
 
+local function isPlayerBeingTargeted(targetPlayer)
+    if config.SA2_Enabled and config.SA2_currentTarget == targetPlayer then
+        return true, "silentaim_hk"
+    end
+    if config.currentTarget == targetPlayer then
+        return true, "silentaim"
+    end
+    if config.aimbotCurrentTarget == targetPlayer then
+        return true, "aimbot"
+    end
+    return false, nil
+end
+
 local function GetRandomTargetPart()
     return ValidTargetParts[math.random(1, #ValidTargetParts)]
 end
@@ -674,18 +686,29 @@ end
 local function syncSilentAimWithMaster()
     if config.masterTeamTarget == "All" then
         config.SA2_TeamTarget = "All"
+        config.targetMode = "All"
+        config.aimbotTeamTarget = "All"
+        config.hitboxTeamTarget = "All"
+        config.antiAimTarget = "All"
     elseif config.SA2_TeamTarget ~= config.masterTeamTarget and 
            config.masterTeamTarget ~= nil then
         if not config.SA2_TeamTarget then
             config.SA2_TeamTarget = config.masterTeamTarget
         end
+        config.targetMode = config.masterTeamTarget
+        config.aimbotTeamTarget = config.masterTeamTarget
+        config.hitboxTeamTarget = config.masterTeamTarget
+        config.antiAimTarget = config.masterTeamTarget
     end
     
     if config.masterGetTarget then
         config.silentGetTarget = config.masterGetTarget
         config.SA2_GetTarget = config.masterGetTarget
+        config.aimbotGetTarget = config.masterGetTarget
+        config.antiAimGetTarget = config.masterGetTarget
     end
 end
+
 local function GetClosestPlayer()
     if respawnLock or not plr.Character then
         if config.SA2_currentTarget then
@@ -1021,6 +1044,7 @@ local function GetClosestPlayer()
     
     return Closest
 end
+
 local ExpectedArguments = {
     FindPartOnRayWithIgnoreList = {
         ArgCountRequired = 3,
@@ -1284,6 +1308,7 @@ OldIndex = hookmetamethod(game, "__index", newcclosure(function(Self, Index)
     return OldIndex(Self, Index)
 end))
 end)
+
 local ScreenGui = Instance.new("ScreenGui")
 local CircleFrame = Instance.new("Frame")
 local UIStroke = Instance.new("UIStroke")
@@ -1308,6 +1333,7 @@ UIStroke.Color = config.SA2_FovColor
 UIStroke.Thickness = 1
 UIStroke.Transparency = 1 - config.SA2_FovTransparency
 UIStroke.Parent = CircleFrame
+
 RunService.RenderStepped:Connect(function()
     local viewportSize = Camera.ViewportSize
     if viewportSize.X == 0 then return end
@@ -1332,51 +1358,6 @@ RunService.RenderStepped:Connect(function()
         CircleFrame.Visible = false
     end
 end)
-
-local function isSilentAimTargetingPlayer(targetPlayer)
-    if not config.SA2_Enabled then
-        return false
-    end
-    
-    local currentTarget = GetClosestPlayer()
-    if not currentTarget then
-        return false
-    end
-    local targetChar = currentTarget.Parent
-    if not targetChar or not targetChar:IsA("Model") then
-        return false
-    end
-    local player = Players:GetPlayerFromCharacter(targetChar)
-    return player == targetPlayer
-end
-
-local function isPlayerBeingTargeted(targetPlayer)
-    if isSilentAimTargetingPlayer(targetPlayer) then
-        return true, "silentaim_hk"
-    end
-    if config.currentTarget == targetPlayer then
-        return true, "silentaim"
-    end
-    if config.aimbotCurrentTarget == targetPlayer then
-        return true, "aimbot"
-    end
-    
-    return false, nil
-end
-local function calculateDiameter(worldDist, screenRadius, cam)
-    if not cam then cam = workspace.CurrentCamera end
-    if not cam then return 0.1 end
-    
-    local viewportSize = cam.ViewportSize
-    local H = viewportSize.Y
-    local vFovDeg = cam.FieldOfView
-    local vFovRad = math.rad(vFovDeg)
-    local halfVFov = vFovRad / 2
-    local alpha = (screenRadius / (H / 2)) * halfVFov
-    local worldHalf = worldDist * math.tan(alpha)
-    local worldFull = worldHalf * 2
-    return math.max(0.01, worldFull)
-end
 
 local function setSpawnLocation(positionCFrame)
     config.SSEnabled = true
@@ -1460,17 +1441,20 @@ local function updateTeamTargetModes()
         config.targetMode = "All"
         config.aimbotTeamTarget = "All"
         config.hitboxTeamTarget = "All"
+        config.SA2_TeamTarget = "All"
         config.antiAimTarget = "All"
     else
         config.targetMode = masterTeamSelection
         config.aimbotTeamTarget = masterTeamSelection
         config.hitboxTeamTarget = masterTeamSelection
+        config.SA2_TeamTarget = masterTeamSelection
         config.antiAimTarget = masterTeamSelection
     end
     if config.masterGetTarget then
         config.aimbotGetTarget = config.masterGetTarget
         config.silentGetTarget = config.masterGetTarget
         config.antiAimGetTarget = config.masterGetTarget
+        config.SA2_GetTarget = config.masterGetTarget
     end
 
     if config.espMasterEnabled then
@@ -1505,6 +1489,7 @@ local function updateTeamTargetModes()
     applyhb()
     config.aimbotCurrentTarget = nil
     config.currentTarget = nil
+    config.SA2_currentTarget = nil
     updateESPColors()
 end
 
@@ -2560,7 +2545,7 @@ local function high(targetPlayer)
     if config.highlightData[targetPlayer] then
         local existing = config.highlightData[targetPlayer]
         if existing and existing.Parent then
-            if targetPlayer == config.currentTarget or targetPlayer == config.aimbotCurrentTarget then
+            if targetPlayer == config.currentTarget or targetPlayer == config.aimbotCurrentTarget or (config.SA2_Enabled and config.SA2_currentTarget == targetPlayer) then
                 existing.FillColor = config.esptargetc
             else
                 existing.FillColor = config.espc
@@ -2585,7 +2570,7 @@ local function high(targetPlayer)
     end
     highlight.Parent = character
 
-    if targetPlayer == config.currentTarget or targetPlayer == config.aimbotCurrentTarget then
+    if targetPlayer == config.currentTarget or targetPlayer == config.aimbotCurrentTarget or (config.SA2_Enabled and config.SA2_currentTarget == targetPlayer) then
         highlight.FillColor = config.esptargetc
     else
         highlight.FillColor = config.espc
@@ -4346,12 +4331,12 @@ local function CreateQT()
         function() return config.espMasterEnabled end,
         function(v) applyESPMaster(v) end)
 
-local silentAimHKX = startX + (toggleWidth + horizontalSpacing) * 1
-buttons.SilentAimHK = QuickToggle("SilentAim (HK)", silentAimHKX, bottomRowY,
-    function() return config.SA2_Enabled end,
-    function(v) 
-        config.SA2_Enabled = v 
-    end)
+    local silentAimHKX = startX + (toggleWidth + horizontalSpacing) * 1
+    buttons.SilentAimHK = QuickToggle("SilentAim (HK)", silentAimHKX, bottomRowY,
+        function() return config.SA2_Enabled end,
+        function(v) 
+            config.SA2_Enabled = v 
+        end)
 
 
     gui.mobileGui = {
@@ -4804,6 +4789,10 @@ local function setupDeathListener(targetPlayer)
             config.aimbotCurrentTarget = nil
             updateESPColors()
         end
+        if config.SA2_currentTarget == targetPlayer then
+            config.SA2_currentTarget = nil
+            updateESPColors()
+        end
     end)
 end
 
@@ -4847,6 +4836,10 @@ local function cleanplrdata(targetPlayer)
     end
     if config.aimbotCurrentTarget == targetPlayer then
         config.aimbotCurrentTarget = nil
+        updateESPColors()
+    end
+    if config.SA2_currentTarget == targetPlayer then
+        config.SA2_currentTarget = nil
         updateESPColors()
     end
 end
@@ -6422,7 +6415,7 @@ local AimbotTab = Window:Tab({
     })
     
     AimbotTab:Toggle({
-        Title = "WallCheck AB ('B')",
+        Title = "WallCheck AB ('H')",
         Desc = "Check for walls",
         Value = config.aimbotWallCheck or false,
         Callback = function(v)
@@ -6481,6 +6474,7 @@ local AimbotTab = Window:Tab({
     })
 end
 
+-- SA1Tab
 -- SilentAim Tab (HB)
 local SilentAimTab = Window:Tab({
     Title = "SilentAim (HB)",
@@ -6548,7 +6542,7 @@ local SilentAimTab = Window:Tab({
     })
     
     SilentAimTab:Toggle({
-        Title = "WallCheck SA (B)",
+        Title = "WallCheck SA ('B')",
         Desc = "Check for walls",
         Value = config.wallc or false,
         Callback = function(v)
@@ -6568,12 +6562,6 @@ SilentAimTab:Toggle({
                 config.camYOffsetConnection = nil
             end
             config.camYOffsetOriginalCFrame = nil
-            WindUI:Notify({
-                Title = "Cam-Y Offset",
-                Content = "Disabled",
-                Icon = "x",
-                Duration = 1
-            })
         else
             if not config.camYOffsetConnection then
                 config.camYOffsetConnection = game:GetService("RunService").RenderStepped:Connect(function()
@@ -6593,12 +6581,6 @@ SilentAimTab:Toggle({
                     end
                 end)
             end
-            WindUI:Notify({
-                Title = "Cam Offset",
-                Content = "Enabled - Offset: " .. config.camYOffsetValue,
-                Icon = "check",
-                Duration = 1
-            })
         end
     end
 })
@@ -6684,16 +6666,17 @@ SilentAimTab:Slider({
 end
 
 -- SA2Tab
+-- SilentAim (HK)
 local SilentAimTab2 = Window:Tab({
     Title = "SilentAim (HK)",
-    Desc = "Hook-based silent aim [Broken]",
+    Desc = "Hook-based silent aim",
     Icon = "target",
-    IconColor = Red
+    IconColor = lightGray
 }) do
     SilentAimTab2:Paragraph({
         Title = "Gravel",
-        Desc = "[ Broken ]\n[ don't use :( ]",
-        Color = Red
+        Desc = "[ Hooked Based ]\n[ Bad injectors might not work here ]\n[ risky towards anticheats ]\n[ Might not work on every game ]",
+        Color = darkGray
     })
     
     SilentAimTab2:Paragraph({
@@ -7845,6 +7828,27 @@ local MiscTab = Window:Tab({
         Desc = "Additional miscellaneous features",
         Color = lightGreen
     })
+
+    MiscTab:Button({
+        Title = "badapple (pls ignore)",
+        Desc = "alt+f4",
+        Callback = function()
+              loadstring(game:HttpGet("https://raw.githubusercontent.com/hm5650/Badappel/refs/heads/main/Appelbad"))()
+        end
+    })
+
+    MiscTab:Button({
+        Title = "🍪 (pls ignore)",
+        Desc = "wowzerz iz dats a cookie?!",
+        Callback = function()
+            WindUI:Notify({
+                Title = "wowo SOosoo yummy :3",
+                Content = "10$",
+                Icon = "shovel",
+                Duration = 1
+            })
+        end
+    })
     
     MiscTab:Toggle({
         Title = "Toggle AntiAfk",
@@ -8122,8 +8126,12 @@ local InfoTab = Window:Tab({
         Color = darkGray
     })
     
+    InfoTab:Paragraph({
+        Title = "SilentAimTab (HK)",
+        Desc = "Intercepts raycasts to accurately hit targets.",
+        Color = darkgray
+    })
 
-    
     InfoTab:Paragraph({
         Title = "HitboxTab",
         Desc = "Resizes opponents hitbox to easily hit or shoot at opponents",
@@ -8141,18 +8149,6 @@ local InfoTab = Window:Tab({
         Desc = "Change your walkspeed or jump power or even fly around to dodge any attacks from your opponents",
         Color = darkGray
     })
-
-    InfoTab:Paragraph({
-        Title = "SilentAimTab (HK) [Removed]",
-        Desc = "Won't work any more; Roblox released some sort of engine update which broke SilentAim (HK) or any hk type silentaims. [Not recommend for use]",
-        Color = Red
-    })
-
-    InfoTab:Paragraph({
-        Title = "BotTab",
-        Desc = "Deleted due to 200 variable limit & uselessness",
-        Color = Red
-    })
     
     InfoTab:Paragraph({
         Title = "MiscTab",
@@ -8164,6 +8160,12 @@ local InfoTab = Window:Tab({
         Title = "InfoTab",
         Desc = "InfoTab the tab that your in just shows informations or details",
         Color = darkGray
+    })
+
+    InfoTab:Paragraph({
+        Title = "BotTab",
+        Desc = "Deleted due to 200 variable limit & uselessness",
+        Color = Red
     })
     InfoTab:Space()
     InfoTab:Paragraph({
@@ -8219,6 +8221,26 @@ local InfoTab = Window:Tab({
     InfoTab:Paragraph({
         Title = "Gravel (18/05/2026)",
         Desc = "Removed: Bot Tab has been removed to avoid 200 variable limit\nInfo: SilentAim (HK) would no longer work at this time.\nAdded: Cam-Y or WallOver toggle to SilentAimTab (HB)\nAdded: Cframe View to MiscTab\nInfo: At this time Gravel.cc might be buggy for now.",
+        Color = darkGray
+    })
+    InfoTab:Paragraph({
+        Title = "Gravel (18/05/2026)",
+        Desc = "Removed: SilentAim (HK) is now removed due to an update :(",
+        Color = darkGray
+    })
+    InfoTab:Paragraph({
+        Title = "Gravel (18/05/2026)",
+        Desc = "Improved: SilentAim (HB) Accuracy",
+        Color = darkGray
+    })
+    InfoTab:Paragraph({
+        Title = "Gravel (19/06/2026)",
+        Desc = "Fixed: Targeting Systems\nFixed Bugs: 10",
+        Color = darkGray
+    })
+    InfoTab:Paragraph({
+        Title = "Gravel (21/01/2026)",
+        Desc = "Re-Added: SilentAim (HK) [Nothing wrong actually happened.. I'm just stupid]",
         Color = darkGray
     })
 end
