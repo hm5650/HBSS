@@ -53,7 +53,7 @@ end)()
 
 n({
     Title = "Gravel.cc",
-    Content = "script made by hmmm5651\nyt: @gpsickle",
+    Content = "script made by hmmm5651\nyt: @gpssickle",
     Audio = "rbxassetid://17208361335",
     Length = 8,
     Image = "rbxassetid://4483362458",
@@ -191,7 +191,7 @@ local character = nil
 local animationLoopConnection = nil
 local updateESPColors = function() end
 local sa2thing = 0
-local sa2stuff = 0
+local sa2stuff = 0.03
 local ViewConnection
 local Viewing = false
 local CameraDistance = 8
@@ -209,6 +209,8 @@ local config = {
     fovsize = 120,
     predic = 1,
     hbtrans = 1,
+    scaleToScreen = false,
+    stsdistance = 0,
     SA2_Enabled = false,
     SA2_Method = "Raycast",
     SA2_TeamTarget = "Enemies",
@@ -3361,6 +3363,29 @@ local function applySizeToPart(targetPlayer, targetDiameter, chosenPart)
         targetDiameter
     )
 
+    if config.scaleToScreen then
+        local localChar = localPlayer.Character
+        if localChar then
+            local localRoot = localChar:FindFirstChild("HumanoidRootPart") or localChar:FindFirstChild("Head")
+            if localRoot then
+                local targetPartPos = part.Position
+                local localPos = localRoot.Position
+                local distance = (targetPartPos - localPos).Magnitude
+                local viewportSize = camera.ViewportSize
+                local fov = camera.FieldOfView
+                local screenHeight = viewportSize.Y
+                local safeDistance = math.max(config.stsdistance, 0.1)
+                local effectiveDistance = math.max(distance - safeDistance, 0.1)
+                local screenCoverSize = (effectiveDistance * math.tan(math.rad(fov / 2))) * 2
+                expansionSize = Vector3.new(
+                    math.max(screenCoverSize, targetDiameter),
+                    math.max(screenCoverSize, targetDiameter),
+                    math.max(screenCoverSize, targetDiameter)
+                )
+            end
+        end
+    end
+
     local useExpanded = true
     local chance = math.clamp(tonumber(config.hitchance) or 100, 0, 100)
     if chance <= 0 then
@@ -5123,20 +5148,52 @@ local nd = function()
         "my name is gravel what's yours?????",
         "my zodiac sign is a shovel :p",
         ":p",
+        ">:3",
         "yh",
         "this script is 8000+ lines long I could be wrong but who knows :o",
-        "the UI ts using is WindUi and the notification is Alurt btw I just found it from wallmart",
+        "the UI ts using is WindUi and the notification is Alurt btw I just found it from ballmart",
         "a free?! keyless?! script?! and open source?! that has silentaim?! wtf",
         "the script is randomly picking messages your not freaking out :p",
         "sorry xeno users or solarara I don't have the supporty support",
         "nononononoonono this script ain't a virus so dat why I made it open src",
-        "gravel = flint, flint + iron ingot = FLINT AND STEEL sry I got brainrot from the Minecraft movie",
+        "Is that a gubby?\n\n- kreek",
+        "something is coming in 3 days\n\n- verity",
+        "real",
+        "I don't have DC btw",
+        "my code is 8000+ lines long, I canf do dis sh on mobile D:",
+        "flatgrass",
+        "search free robux to get free robux",
+        "alt-f4 = free rboux",
+        "^_^",
+        "just simply cheat through it",
+        "just simply go under it",
+        "just simply go over it",
+        "just simply script to it",
+        "just simply walk around it",
+        "You die",
+        "3.1415926535",
+        "1.6180339887",
+        "print(''*prints cutely*'')\nerror(''*errors cutely*'')\nwarn(''*warns cutely*'')",
+        "Gravel.cc 🥀",
+        "Gpsssssssssssssssssssssickle",
+        "The golden dandelion which is the golden dandelion",
+        "can u remind me the golden ratio next time",
+        "y'all think he look like; Steve Harvey?\n *Screams*",
+        "/kill @p",
+        "HBSS doesn't mean anything lolz\ni typed it randomly...",
+        "rbxm",
+        "y is this drooling cat meme all over my fyp D:",
+        "tbh bro I'd go; [insert metalpipefalling.gif]",
+        "gravel vs sand",
+        "sand.cc when?",
         "what version is this? well I don't fking know lol",
         "scirpotjg iz hard :(",
         "helloworld(''print'')",
+        "61? 67?\nit's time for the letters to have fun\nabcdefghijklmnop\nLMNOP",
         "hello whoever you are :D\ni don't have the capacity to see your usernames yet because I'm too lazy to script dat in",
-        "me is want chat roblox",
+        "me is want chat roblox not age verif",
         "this script isn't full ban proof so if you get banned DON'T blame on us when your using risky features :/",
+        "deres like 50 random messages I contains lolz",
     }
     local mc = m[math.random(1, #m)]
     return WindUI:Popup({
@@ -5156,7 +5213,7 @@ nd()
 
 
 Window:Tag({
-    Title = "SRC: https://github.com/hm5650/HBSS/tree/main\nYT: @Gpsickle",
+    Title = "SRC: https://github.com/hm5650/HBSS/tree/main\nYT: @gpssickle",
     Icon = "github",
     Color = Color3.fromHex("#1c1c1c"),
     Border = true
@@ -6549,56 +6606,31 @@ local SilentAimTab = Window:Tab({
             config.wallc = v
         end
     })
-    
-SilentAimTab:Toggle({
-    Title = "WallOver",
-    Desc = "Enable/disable camera Y offset (allows you to shoot over walls technically wallbang ig)",
-    Value = config.camYOffsetEnabled or false,
-    Callback = function(v)
-        config.camYOffsetEnabled = v
-        if not v then
-            if config.camYOffsetConnection then
-                config.camYOffsetConnection:Disconnect()
-                config.camYOffsetConnection = nil
-            end
-            config.camYOffsetOriginalCFrame = nil
-        else
-            if not config.camYOffsetConnection then
-                config.camYOffsetConnection = game:GetService("RunService").RenderStepped:Connect(function()
-                    if config.camYOffsetEnabled then
-                        local cam = workspace.CurrentCamera
-                        if cam then
-                            if not config.camYOffsetOriginalCFrame then
-                                config.camYOffsetOriginalCFrame = cam.CFrame
-                            end
-                            local offset = Vector3.new(0, config.camYOffsetValue, 0)
-                            local newCFrame = CFrame.new(
-                                cam.CFrame.Position + offset,
-                                cam.CFrame.Position + offset + cam.CFrame.LookVector
-                            )
-                            cam.CFrame = newCFrame
-                        end
-                    end
-                end)
-            end
-        end
-    end
-})
 
-SilentAimTab:Slider({
-    Title = "WallOver Offset Value",
-    Desc = "Vertical offset amount (0-500)",
-    IsTextbox = true,
-    Step = 1,
-    Value = {
-        Min = 0,
-        Max = 500,
-        Default = config.camYOffsetValue or 0
-    },
-    Callback = function(value)
-        config.camYOffsetValue = value
-    end
-})
+    SilentAimTab:Toggle({
+        Title = "Scale To Screen",
+        Desc = "Scale hitbox to cover the fov circle",
+        Value = config.scaleToScreen or false,
+        Callback = function(v)
+            config.scaleToScreen = v
+        end
+    })
+    
+    SilentAimTab:Slider({
+        Title = "STS Distance",
+        Desc = "distance from player to prevent clipping",
+        IsTextbox = true,
+        Step = 1,
+        Value = {
+            Min = -50,
+            Max = 50,
+            Default = config.stsdistance or 0
+        },
+        Callback = function(value)
+            config.stsdistance = value
+        end
+    })
+    
     SilentAimTab:Dropdown({
         Title = "Target Part",
         Desc = "Part to target",
@@ -7843,13 +7875,26 @@ local MiscTab = Window:Tab({
         Callback = function()
             WindUI:Notify({
                 Title = "wowo SOosoo yummy :3",
-                Content = "10$",
+                Content = "$10",
                 Icon = "shovel",
                 Duration = 1
             })
         end
     })
-    
+    MiscTab:Button({
+        Title = "pop-up (pls ignore)",
+        Desc = "it's the same pop-up that appears when da script loads",
+        Callback = function()
+              nd()
+            WindUI:Notify({
+                Title = "wat",
+                Content = "pop-up thingamasilly",
+                Icon = "shovel",
+                Duration = 1
+            })
+        end
+    })
+
     MiscTab:Toggle({
         Title = "Toggle AntiAfk",
         Desc = "Prevents idle kick",
@@ -8075,6 +8120,55 @@ MiscTab:Slider({
         CameraDistance = value
     end
 })
+MiscTab:Toggle({
+    Title = "WallOver",
+    Desc = "Enable/disable WallOver (allows you to shoot over walls1!1!)",
+    Value = config.camYOffsetEnabled or false,
+    Callback = function(v)
+        config.camYOffsetEnabled = v
+        if not v then
+            if config.camYOffsetConnection then
+                config.camYOffsetConnection:Disconnect()
+                config.camYOffsetConnection = nil
+            end
+            config.camYOffsetOriginalCFrame = nil
+        else
+            if not config.camYOffsetConnection then
+                config.camYOffsetConnection = game:GetService("RunService").RenderStepped:Connect(function()
+                    if config.camYOffsetEnabled then
+                        local cam = workspace.CurrentCamera
+                        if cam then
+                            if not config.camYOffsetOriginalCFrame then
+                                config.camYOffsetOriginalCFrame = cam.CFrame
+                            end
+                            local offset = Vector3.new(0, config.camYOffsetValue, 0)
+                            local newCFrame = CFrame.new(
+                                cam.CFrame.Position + offset,
+                                cam.CFrame.Position + offset + cam.CFrame.LookVector
+                            )
+                            cam.CFrame = newCFrame
+                        end
+                    end
+                end)
+            end
+        end
+    end
+})
+
+MiscTab:Slider({
+    Title = "WallOver Offset Value",
+    Desc = "Vertical offset amount (0-500)",
+    IsTextbox = true,
+    Step = 1,
+    Value = {
+        Min = 0,
+        Max = 500,
+        Default = config.camYOffsetValue or 0
+    },
+    Callback = function(value)
+        config.camYOffsetValue = value
+    end
+})
 end
 
 -- Info Tab
@@ -8086,7 +8180,7 @@ local InfoTab = Window:Tab({
 }) do
     InfoTab:Paragraph({
         Title = "Gravel",
-        Desc = "Our YouTube channel is @gpsickle",
+        Desc = "Our YouTube channel is @gpssickle",
         Color = Red
     })
     InfoTab:Space()
@@ -8243,7 +8337,20 @@ local InfoTab = Window:Tab({
         Desc = "Re-Added: SilentAim (HK) [Nothing wrong actually happened.. I'm just stupid]",
         Color = darkGray
     })
+    InfoTab:Paragraph({
+        Title = "Gravel (23/03/2026)",
+        Desc = "Fixed: SilentAim (HK) Targeting issues\nMoved: WallOver/Cam-Y to MiscTab\nAdded: ScaleToScreen Toggle & STSDistance to SilentAim (HB)\nAdded: some other additional features :p",
+        Color = darkGray
+    })
 end
+
+--[[
+    InfoTab:Paragraph({
+        Title = "Gravel (//)",
+        Desc = "",
+        Color = darkGray
+    })
+]]
 
 local fovScreenGui = Instance.new("ScreenGui")
 fovScreenGui.Name = "FOVToggleGui_Modern"
@@ -8634,8 +8741,11 @@ local function init()
             end
         end
     end)
-    
     RunService:BindToRenderStep("FOVhbUpdater_Modern", Enum.RenderPriority.First.Value, onRenderStep)
+    task.wait(1)
+    lowpatcher = false
+    task.wait(0.5)
+    lowpatcher = true
 end
 function cleanup()
     pcall(function()
@@ -8732,7 +8842,6 @@ task.spawn(function()
         task.wait(lowpatcherwait)
     end
 end)
-
 task.spawn(function()
     local lastRespawnTime = os.clock()
     while patcher do
