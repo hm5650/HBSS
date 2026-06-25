@@ -6407,6 +6407,26 @@ VisualsTab:Colorpicker({
 
 VisualsTab:Space()
 VisualsTab:Paragraph({
+    Title = "TriggerBot Colors",
+    Desc = "Customize TriggerBot colors",
+    Color = lightGreen
+})
+
+VisualsTab:Colorpicker({
+    Title = "TriggerBot FOV Color",
+    Desc = "Color for trigger bot FOV ring",
+    Default = config.tbot.fovColor or Color3.fromRGB(255, 0, 0),
+    Transparency = 0,
+    Locked = false,
+    LockedTitle = "Locked message",
+    Callback = function(color)
+        config.tbot.fovColor = color
+        updateTriggerBotFOV()
+    end
+})
+
+VisualsTab:Space()
+VisualsTab:Paragraph({
     Title = "Hitbox Colors",
     Desc = "Customize hitbox colors",
     Color = lightGreen
@@ -8123,8 +8143,8 @@ MiscTab:Paragraph({
 })
 
 MiscTab:Toggle({
-    Title = "Enable Trigger Bot",
-    Desc = "Toggle trigger bot on/off",
+    Title = "Enable TriggerBot",
+    Desc = "Toggle triggerbot on/off",
     Value = config.tbot.enabled or false,
     Callback = function(v)
         toggleTriggerBot(v)
@@ -8231,19 +8251,6 @@ MiscTab:Toggle({
     Value = config.tbot.fovVisible or true,
     Callback = function(v)
         config.tbot.fovVisible = v
-        updateTriggerBotFOV()
-    end
-})
-
-MiscTab:Colorpicker({
-    Title = "FOV Color",
-    Desc = "Color for trigger bot FOV ring",
-    Default = config.tbot.fovColor or Color3.fromRGB(255, 0, 0),
-    Transparency = 0,
-    Locked = false,
-    LockedTitle = "Locked message",
-    Callback = function(color)
-        config.tbot.fovColor = color
         updateTriggerBotFOV()
     end
 })
