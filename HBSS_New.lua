@@ -165,36 +165,23 @@ n({
     BarColor = Color3.fromRGB(0, 170, 255)
 })
 end)
+
+-- other wallmart variables
+local gui = {}
 local ValidTargetParts = {"Head", "HumanoidRootPart", "Torso", "UpperTorso", "LowerTorso", "RightUpperArm", "LeftUpperArm", "RightLowerArm", "LeftLowerArm", "RightHand", "LeftHand", "RightUpperLeg", "LeftUpperLeg", "RightLowerLeg", "LeftLowerLeg", "RightFoot", "LeftFoot"}
 local mouse = plr:GetMouse()
 local Camera = workspace.CurrentCamera
 local FindFirstChild = game.FindFirstChild
 local GetPlayers = plrs.GetPlayers
 local GetPartsObscuringTarget = Camera.GetPartsObscuringTarget
-local wasEnabledBeforeDeath = false
-local wasESPEnabledBeforeDeath = false
-local respawnLock = false
 local lastCharacter = nil
 local camera = workspace.CurrentCamera
-local aimbot360LoopRunning = false
-local aimbot360LoopTask = nil
-local gui = {}
-local patcher = true
-local patcherwait = 0.5
-local lowpatcher = true
-local lowpatcherwait = 0.03
-local lastTargetUpdate = 0
-local currentAnimation = nil
 local animationTrack = nil
+local currentAnimation = nil
+local animationLoopConnection = nil
 local humanoid = nil
 local character = nil
-local animationLoopConnection = nil
 local updateESPColors = function() end
-local sa2thing = 0
-local sa2stuff = 0.03
-local ViewConnection
-local Viewing = false
-local CameraDistance = 8
 
 -- uicolor
 local lightGreen = Color3.fromRGB(144, 238, 144)
@@ -314,6 +301,7 @@ local config = {
     aimbot360Enabled = false,
     aimbot360OriginalFOV = 100,
     gp = 200,
+    gp2 = 1,
     targetSeenMode = "Switch",
     targetSeenSwitchRate = 0.2,
     lastTargetSwitchTime = 0,
@@ -358,10 +346,15 @@ local config = {
     SSConnection = nil,
     fastspawn = false,
     antiafk = false,
+    Viewing = false,
     camYOffsetEnabled = false,
     camYOffsetValue = 0,
     camYOffsetOriginalCFrame = nil,
     camYOffsetConnection = nil,
+    spinbot = {
+        enabled = false,
+        speed = 50,
+    },
     reach = {
         enabled = false,
         type = "Sphere",
@@ -406,6 +399,19 @@ local config = {
         "2733837253",
         "10714089137",
     },
+    tbot = {
+        enabled = false,
+        delay = 0.1,
+        fovRadius = 150,
+        fovVisible = true,
+        fovColor = Color3.fromRGB(255, 0, 0),
+        fovTransparency = 0.7,
+        targetPart = "Head",
+        wallCheck = false,
+        hitChance = 100,
+        holdToShoot = false,
+        holdKey = "MouseButton1"
+    },
     KeybindsEnabled = true,
     HoldKeysEnabled = false,
     Keybinds = {
@@ -421,31 +427,27 @@ local config = {
         aimbotwallcheck = "H",
         silentaimhk = "R",
         silentaimhkwallcheck = "T",
+        triggerbot = "X",
+    },
+    varibz = {
+        wasEnabledBeforeDeath = false,
+        wasESPEnabledBeforeDeath = false,
+        respawnLock = false,
+        aimbot360LoopRunning = false,
+        aimbot360LoopTask = nil,
+        lastTargetUpdate = 0,
+        triggerBotConnection = nil,
+        sa2thing = 0,
+        sa2stuff = 0.03,
+        spinbotConnection = nil,
+        ViewConnection = nil,
+        CameraDistance = 8,
+        lowpatcherwait = 0.03,
+        lowpatcher = true,
+        patcherwait = 0.5,
+        patcher = true,
     },
 }
-
-local LowRender = function()
-    if config and config.LowRender then
-        pcall(function()
-            settings().Physics.AllowSleep = true
-            settings().Rendering.QualityLevel = 1
-            settings().Rendering.EagerBulkExecution = true
-            settings().Rendering.EnableFRM = true
-            settings().Rendering.MeshPartDetailLevel = 1
-            game:GetService("Lighting").GlobalShadows = false
-            game:GetService("Lighting").Technology = Enum.Technology.Legacy
-            for _, v in pairs(game:GetService("Workspace"):GetDescendants()) do
-                if v:IsA("ParticleEmitter") or v:IsA("Trail") or v:IsA("Beam") then
-                    v.Enabled = false
-                end
-            end
-        end)
-    else
-        pcall(function()
-           
-        end)
-    end
-end
 
 function respawn(plr)
     if not config or not config.fastspawn then 
@@ -712,7 +714,7 @@ local function syncSilentAimWithMaster()
 end
 
 local function GetClosestPlayer()
-    if respawnLock or not plr.Character then
+    if config.varibz.respawnLock or not plr.Character then
         if config.SA2_currentTarget then
             config.SA2_currentTarget = nil
             updateESPColors()
@@ -1148,8 +1150,8 @@ local ExpectedArguments = {
 
 RunService.RenderStepped:Connect(function()
     local now = tick()
-    if now - sa2thing >= sa2stuff then
-        sa2thing = now
+    if now - config.varibz.sa2thing >= config.varibz.sa2stuff then
+        config.varibz.sa2thing = now
         if config.SA2_Enabled then
             cachedTarget = GetClosestPlayer()
         end
@@ -1169,7 +1171,7 @@ end
 pcall(function()
 local OldNamecall
 OldNamecall = hookmetamethod(game, "__namecall", newcclosure(function(...)
-    if respawnLock then
+    if config.varibz.respawnLock then
         return OldNamecall(...)
     end
     if not config.SA2_Enabled then
@@ -1271,7 +1273,7 @@ end)
 pcall(function()
 local OldIndex
 OldIndex = hookmetamethod(game, "__index", newcclosure(function(Self, Index)
-    if respawnLock then
+    if config.varibz.respawnLock then
         return OldIndex(Self, Index)
     end
     
@@ -1342,7 +1344,7 @@ RunService.RenderStepped:Connect(function()
     
     local screenCenter = Vector2.new(viewportSize.X / 2, viewportSize.Y / 2)
     
-    if respawnLock then
+    if config.varibz.respawnLock then
         CircleFrame.Visible = false
         return
     end
@@ -1547,8 +1549,8 @@ end
 
 RunService.RenderStepped:Connect(function()
     local currentTime = tick()
-    if currentTime - lastTargetUpdate > 0.6 then
-        lastTargetUpdate = currentTime
+    if currentTime - config.varibz.lastTargetUpdate > 0.6 then
+        config.varibz.lastTargetUpdate = currentTime
         updateESPColors()
     end
 end)
@@ -1561,6 +1563,20 @@ local function pc()
                 plr.ReplicationFocus = workspace
                 plr.MaximumSimulationRadius = math.huge
                 plr.SimulationRadius = config.gp
+            end)
+            task.wait(0.1)
+        end
+    end)
+end
+
+local function pc2()
+    local plr = game.Players.LocalPlayer
+    task.spawn(function()
+        while true do
+            pcall(function()
+                plr.ReplicationFocus = workspace
+                plr.MaximumSimulationRadius = math.huge
+                plr.SimulationRadius = config.gp2
             end)
             task.wait(0.1)
         end
@@ -3965,7 +3981,7 @@ local function updateAimbotFOVRing()
     end
 end
 local function aimbot360UpdateLoop()
-    if aimbot360LoopRunning then
+    if config.varibz.aimbot360LoopRunning then
         return
     end
 
@@ -3973,15 +3989,15 @@ local function aimbot360UpdateLoop()
         return
     end
 
-    aimbot360LoopRunning = true
-    aimbot360LoopTask = task.spawn(function()
-        while aimbot360LoopRunning and config.aimbotEnabled and config.aimbot360Enabled do
+    config.varibz.aimbot360LoopRunning = true
+    config.varibz.aimbot360LoopTask = task.spawn(function()
+        while config.varibz.aimbot360LoopRunning and config.aimbotEnabled and config.aimbot360Enabled do
             aimbotUpdate()
             task.wait(0.1)
         end
 
-        aimbot360LoopRunning = false
-        aimbot360LoopTask = nil
+        config.varibz.aimbot360LoopRunning = false
+        config.varibz.aimbot360LoopTask = nil
     end)
 end
 local function toggle360Aimbot(state)
@@ -4008,9 +4024,9 @@ local function toggle360Aimbot(state)
         
         config.aimbot360Enabled = false
         updateAimbotFOVRing()
-        aimbot360LoopRunning = false
-        if aimbot360LoopTask then
-            aimbot360LoopTask = nil
+        config.varibz.aimbot360LoopRunning = false
+        if config.varibz.aimbot360LoopTask then
+            config.varibz.aimbot360LoopTask = nil
         end
     end
 end
@@ -4030,9 +4046,9 @@ local function handleAimbotToggle(state)
         aimbotfov()
     else
         if config.aimbot360Enabled then
-            aimbot360LoopRunning = false
-            if aimbot360LoopTask then
-                aimbot360LoopTask = nil
+            config.varibz.aimbot360LoopRunning = false
+            if config.varibz.aimbot360LoopTask then
+                config.varibz.aimbot360LoopTask = nil
             end
         end
     end
@@ -4042,7 +4058,7 @@ end
 
 
 local function aimbot360UpdateLoop()
-    if aimbot360LoopRunning then
+    if config.varibz.aimbot360LoopRunning then
         return
     end
 
@@ -4054,24 +4070,243 @@ local function aimbot360UpdateLoop()
         config.aimbot360Enabled = true
     end
 
-    aimbot360LoopRunning = true
+    config.varibz.aimbot360LoopRunning = true
 
-    aimbot360LoopTask = task.spawn(function()
-        while aimbot360LoopRunning do
+    config.varibz.aimbot360LoopTask = task.spawn(function()
+        while config.varibz.aimbot360LoopRunning do
             if config.aimbotEnabled and config.aimbot360Enabled then
                 aimbotUpdate()
             else
-                aimbot360LoopRunning = false
+                config.varibz.aimbot360LoopRunning = false
                 break
             end
 
             task.wait(0.1)
         end
 
-        aimbot360LoopRunning = false
-        aimbot360LoopTask = nil
+        config.varibz.aimbot360LoopRunning = false
+        config.varibz.aimbot360LoopTask = nil
     end)
 end
+
+local function triggerBotUpdate()
+    if not config.tbot.enabled then return end
+    
+    local camera = workspace.CurrentCamera
+    if not camera then return end
+    
+    local viewportSize = camera.ViewportSize
+    local center = Vector2.new(viewportSize.X / 2, viewportSize.Y / 2)
+    local fovRadius = config.tbot.fovRadius
+    if config.tbot.holdToShoot then
+        local uis = game:GetService("UserInputService")
+        local key = Enum.KeyCode[config.tbot.holdKey] or Enum.KeyCode.MouseButton1
+        if not uis:IsKeyDown(key) then
+            return
+        end
+    end
+    
+    local targets = getAllTargets()
+    local bestTarget = nil
+    local bestDist = math.huge
+    
+    for _, target in ipairs(targets) do
+        if target ~= localPlayer then
+            local shouldTarget = false
+            local char = getTargetCharacter(target)
+            
+            if not char then continue end
+            if typeof(target) == "Instance" and target:IsA("Player") then
+                local mode = config.masterTeamTarget or "Enemies"
+                if mode == "Enemies" then
+                    shouldTarget = not isTeammate(target)
+                elseif mode == "Teams" then
+                    shouldTarget = isTeammate(target)
+                elseif mode == "All" then
+                    shouldTarget = true
+                end
+            elseif typeof(target) == "Instance" and target:IsA("Model") then
+                shouldTarget = true
+            end
+            
+            if not shouldTarget then continue end
+            local humanoid = char:FindFirstChildOfClass("Humanoid")
+            if not humanoid or humanoid.Health <= 0 then continue end
+            if config.ignoreForcefield and hasForcefield(char) then continue end
+            local targetPart = nil
+            if config.tbot.targetPart == "Head" then
+                targetPart = char:FindFirstChild("Head")
+            elseif config.tbot.targetPart == "HumanoidRootPart" then
+                targetPart = char:FindFirstChild("HumanoidRootPart")
+            else
+                targetPart = char:FindFirstChild("Head") or char:FindFirstChild("HumanoidRootPart")
+            end
+            
+            if not targetPart then continue end
+            local screenPos, onScreen = camera:WorldToViewportPoint(targetPart.Position)
+            if not onScreen or screenPos.Z <= 0 then continue end
+            
+            local screenVec = Vector2.new(screenPos.X, screenPos.Y)
+            local distPx = (screenVec - center).Magnitude
+            
+            if distPx <= fovRadius then
+                if config.tbot.wallCheck then
+                    local ray = Ray.new(camera.CFrame.Position, (targetPart.Position - camera.CFrame.Position).Unit * (targetPart.Position - camera.CFrame.Position).Magnitude)
+                    local ignoreList = {localPlayer.Character}
+                    for _, p in ipairs(Players:GetPlayers()) do
+                        if p.Character then
+                            table.insert(ignoreList, p.Character)
+                        end
+                    end
+                    local hit, pos = workspace:FindPartOnRayWithIgnoreList(ray, ignoreList)
+                    if hit and hit.Parent ~= char and hit.Parent.Parent ~= char then
+                        continue
+                    end
+                end
+                local chance = math.random(1, 100)
+                if chance <= config.tbot.hitChance then
+                    if distPx < bestDist then
+                        bestDist = distPx
+                        bestTarget = target
+                    end
+                end
+            end
+        end
+    end
+    if bestTarget then
+        local char = getTargetCharacter(bestTarget)
+        if char then
+            local targetPart = nil
+            if config.tbot.targetPart == "Head" then
+                targetPart = char:FindFirstChild("Head")
+            elseif config.tbot.targetPart == "HumanoidRootPart" then
+                targetPart = char:FindFirstChild("HumanoidRootPart")
+            else
+                targetPart = char:FindFirstChild("Head") or char:FindFirstChild("HumanoidRootPart")
+            end
+            
+            if targetPart then
+                local tool = localPlayer.Character and localPlayer.Character:FindFirstChildOfClass("Tool")
+                if tool then
+                    pcall(function()
+                        tool:Activate()
+                    end)
+                else
+                    local uis = game:GetService("UserInputService")
+                    local VirtualInputManager = game:GetService("VirtualInputManager")
+                    pcall(function()
+                        VirtualInputManager:SendMouseButtonEvent(0, 0, 0, true, game, 0)
+                        task.wait(config.tbot.delay or 0.1)
+                        VirtualInputManager:SendMouseButtonEvent(0, 0, 0, false, game, 0)
+                    end)
+                end
+            end
+        end
+    end
+end
+
+local function createTriggerBotFOV()
+    if config.tbot.fovCircle and config.tbot.fovCircle.ScreenGui and config.tbot.fovCircle.ScreenGui.Parent then
+        config.tbot.fovCircle.ScreenGui:Destroy()
+    end
+    
+    local screenGui = Instance.new("ScreenGui")
+    screenGui.Name = "TriggerBotFOV"
+    screenGui.ResetOnSpawn = false
+    screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+    screenGui.Parent = localPlayer:WaitForChild("PlayerGui")
+    
+    local ringFrame = Instance.new("Frame")
+    ringFrame.Name = "TriggerFOVRing"
+    ringFrame.AnchorPoint = Vector2.new(0.5, 0.5)
+    ringFrame.Size = UDim2.new(0, config.tbot.fovRadius * 2, 0, config.tbot.fovRadius * 2)
+    ringFrame.Position = UDim2.new(0.5, 0, 0.5, -28)
+    ringFrame.BackgroundTransparency = 1
+    ringFrame.Visible = config.tbot.enabled and config.tbot.fovVisible
+    ringFrame.Parent = screenGui
+    
+    local ringCorner = Instance.new("UICorner")
+    ringCorner.CornerRadius = UDim.new(1, 0)
+    ringCorner.Parent = ringFrame
+    
+    local ringStroke = Instance.new("UIStroke")
+    ringStroke.Thickness = 1.5
+    ringStroke.LineJoinMode = Enum.LineJoinMode.Round
+    ringStroke.Color = config.tbot.fovColor
+    ringStroke.Transparency = 1 - config.tbot.fovTransparency
+    ringStroke.Parent = ringFrame
+    
+    config.tbot.fovCircle = {
+        ScreenGui = screenGui,
+        RingFrame = ringFrame,
+        RingStroke = ringStroke
+    }
+    
+    return config.tbot.fovCircle
+end
+
+local function updateTriggerBotFOV()
+    if config.tbot.fovCircle and config.tbot.fovCircle.RingFrame then
+        config.tbot.fovCircle.RingFrame.Size = UDim2.new(0, config.tbot.fovRadius * 2, 0, config.tbot.fovRadius * 2)
+        config.tbot.fovCircle.RingFrame.Visible = config.tbot.enabled and config.tbot.fovVisible
+        config.tbot.fovCircle.RingStroke.Color = config.tbot.fovColor
+        config.tbot.fovCircle.RingStroke.Transparency = 1 - config.tbot.fovTransparency
+    end
+end
+
+local function toggleTriggerBot(state)
+    config.tbot.enabled = state
+    
+    if state then
+        createTriggerBotFOV()
+        if not config.varibz.triggerBotConnection then
+            config.varibz.triggerBotConnection = RunService.RenderStepped:Connect(triggerBotUpdate)
+        end
+    else
+        if config.tbot.fovCircle and config.tbot.fovCircle.ScreenGui then
+            config.tbot.fovCircle.ScreenGui:Destroy()
+            config.tbot.fovCircle = nil
+        end
+        if config.varibz.triggerBotConnection then
+            config.varibz.triggerBotConnection:Disconnect()
+            config.varibz.triggerBotConnection = nil
+        end
+    end
+end
+
+local function spinbotUpdate()
+    if not config.spinbot.enabled then
+        if config.varibz.spinbotConnection then
+            config.varibz.spinbotConnection:Disconnect()
+            config.varibz.spinbotConnection = nil
+        end
+        return
+    end
+    
+    if not localPlayer.Character then return end
+    
+    local character = localPlayer.Character
+    local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
+    if not humanoidRootPart then return end
+    if not config.varibz.spinbotConnection then
+        config.varibz.spinbotConnection = RunService.RenderStepped:Connect(function()
+            if not config.varibz.config.spinbot.enabled or not localPlayer.Character then
+                return
+            end
+            
+            local rootPart = localPlayer.Character:FindFirstChild("HumanoidRootPart")
+            if not rootPart then return end
+            
+            local currentCFrame = rootPart.CFrame
+            local speed = config.spinbot.speed or 50
+            local angle = (speed / 100) * 10
+            local rotation = CFrame.Angles(0, angle * (1/60), 0)
+            local newCFrame = currentCFrame * rotation
+            rootPart.CFrame = newCFrame
+        end)
+    end
+end
+
 
 RunService.Heartbeat:Connect(hb)
 RunService.RenderStepped:Connect(aimbotUpdate)
@@ -5401,6 +5636,15 @@ MainTab:Keybind({
 })
 
 MainTab:Keybind({
+    Title = "Trigger Bot",
+    Desc = "Toggle Trigger Bot",
+    Value = config.Keybinds.triggerbot or "X",
+    Callback = function(key)
+        config.Keybinds.triggerbot = key
+    end
+})
+
+MainTab:Keybind({
     Title = "Hitbox",
     Desc = "Toggle Hitbox Expansion",
     Value = config.Keybinds.hitbox or "G",
@@ -5539,12 +5783,28 @@ MainTab:Keybind({
     
     MainTab:Button({
         Title = "Partclaim",
-        Desc = "Use if NPC mode isn't working well",
+        Desc = "Use if NPC mode isn't working well (May Lag)",
         Callback = function()
             pc()
             n({
                 Title = "PartClaim",
                 Content = "Refreshed",
+                Audio = "rbxassetid://17208361335",
+                Length = 1,
+                Image = "rbxassetid://4483362458",
+                BarColor = Color3.fromRGB(0, 255, 0)
+            })
+        end
+    })
+
+    MainTab:Button({
+        Title = "Clear Partclaim",
+        Desc = "Reduce Lag",
+        Callback = function()
+            pc2()
+            n({
+                Title = "PartClaim",
+                Content = "Cleared",
                 Audio = "rbxassetid://17208361335",
                 Length = 1,
                 Image = "rbxassetid://4483362458",
@@ -5764,19 +6024,19 @@ local Optiz = loadstring(game:HttpGet('https://raw.githubusercontent.com/hm5650/
         Value = {
             Min = 0,
             Max = 50,
-            Default = patcherwait or 0.5
+            Default = config.varibz.patcherwait or 0.5
         },
         Callback = function(value)
-            patcherwait = value
+            config.varibz.patcherwait = value
         end
     })
     
     MainTab:Toggle({
         Title = "Updaters",
         Desc = "Stops other Updaters when disabled Increases performance. Might cause features to not work",
-        Value = patcher or true,
+        Value = config.varibz.patcher or true,
         Callback = function(v)
-            patcher = v
+            config.varibz.patcher = v
         end
     })
 
@@ -5788,19 +6048,19 @@ local Optiz = loadstring(game:HttpGet('https://raw.githubusercontent.com/hm5650/
         Value = {
             Min = 0,
             Max = 50,
-            Default = lowpatcherwait or 0.03
+            Default = config.varibz.lowpatcherwait or 0.03
         },
         Callback = function(value)
-            lowpatcherwait = value
+            config.varibz.lowpatcherwait = value
         end
     })
     
     MainTab:Toggle({
         Title = "Cache Cleaners",
         Desc = "Turning this off Might cause lag",
-        Value = patcher or true,
+        Value = config.varibz.patcher or true,
         Callback = function(v)
-            lowpatcher = v
+            config.varibz.lowpatcher = v
         end
     })
     
@@ -7854,6 +8114,237 @@ local MiscTab = Window:Tab({
             })
         end
     })
+
+MiscTab:Paragraph({
+    Title = "Trigger Bot",
+    Desc = "Automatically shoot when crosshair is on target\nNot mobile friendly!",
+    Color = lightGreen
+})
+
+MiscTab:Toggle({
+    Title = "Enable Trigger Bot",
+    Desc = "Toggle trigger bot on/off",
+    Value = config.tbot.enabled or false,
+    Callback = function(v)
+        toggleTriggerBot(v)
+        WindUI:Notify({
+            Title = "Trigger Bot",
+            Content = v and "Enabled" or "Disabled",
+            Icon = v and "check" or "x",
+            Duration = 2
+        })
+    end
+})
+
+MiscTab:Dropdown({
+    Title = "Target Part",
+    Desc = "Part to aim for",
+    Values = {"Head", "HumanoidRootPart", "Random"},
+    Value = config.tbot.targetPart or "Head",
+    Multi = false,
+    Callback = function(Option)
+        config.tbot.targetPart = Option
+    end
+})
+
+MiscTab:Slider({
+    Title = "FOV Radius",
+    Desc = "Trigger bot field of view",
+    IsTextbox = true,
+    Step = 5,
+    Value = {
+        Min = 10,
+        Max = 500,
+        Default = config.tbot.fovRadius or 150
+    },
+    Callback = function(value)
+        config.tbot.fovRadius = value
+        updateTriggerBotFOV()
+    end
+})
+
+MiscTab:Slider({
+    Title = "Hit Chance",
+    Desc = "Chance to shoot when target is in FOV",
+    Step = 1,
+    Suffix = "%",
+    Value = {
+        Min = 1,
+        Max = 100,
+        Default = config.tbot.hitChance or 100
+    },
+    Callback = function(value)
+        config.tbot.hitChance = value
+    end
+})
+
+MiscTab:Slider({
+    Title = "Shot Delay",
+    Desc = "Delay between shots (seconds)",
+    Step = 0.01,
+    Suffix = "s",
+    Value = {
+        Min = 0.01,
+        Max = 1,
+        Default = config.tbot.delay or 0.1
+    },
+    Callback = function(value)
+        config.tbot.delay = value
+    end
+})
+
+MiscTab:Toggle({
+    Title = "Wall Check",
+    Desc = "Check for walls before shooting",
+    Value = config.tbot.wallCheck or false,
+    Callback = function(v)
+        config.tbot.wallCheck = v
+    end
+})
+
+MiscTab:Toggle({
+    Title = "Hold to Shoot",
+    Desc = "Only shoot when holding a key",
+    Value = config.tbot.holdToShoot or false,
+    Callback = function(v)
+        config.tbot.holdToShoot = v
+    end
+})
+
+MiscTab:Input({
+    Title = "Hold Key",
+    Desc = "Key to hold for shooting",
+    Placeholder = "MouseButton1",
+    Value = config.tbot.holdKey or "MouseButton1",
+    ClearTextOnFocus = true,
+    Callback = function(text)
+        if text and text ~= "" then
+            config.tbot.holdKey = text
+        end
+    end
+})
+
+MiscTab:Toggle({
+    Title = "Show FOV Circle",
+    Desc = "Display trigger bot FOV ring",
+    Value = config.tbot.fovVisible or true,
+    Callback = function(v)
+        config.tbot.fovVisible = v
+        updateTriggerBotFOV()
+    end
+})
+
+MiscTab:Colorpicker({
+    Title = "FOV Color",
+    Desc = "Color for trigger bot FOV ring",
+    Default = config.tbot.fovColor or Color3.fromRGB(255, 0, 0),
+    Transparency = 0,
+    Locked = false,
+    LockedTitle = "Locked message",
+    Callback = function(color)
+        config.tbot.fovColor = color
+        updateTriggerBotFOV()
+    end
+})
+
+MiscTab:Slider({
+    Title = "FOV Transparency",
+    Desc = "Transparency of FOV ring",
+    Step = 0.05,
+    Value = {
+        Min = 0,
+        Max = 1,
+        Default = config.tbot.fovTransparency or 0.7
+    },
+    Callback = function(value)
+        config.tbot.fovTransparency = value
+        updateTriggerBotFOV()
+    end
+})
+
+MiscTab:Paragraph({
+    Title = "SpinBot",
+    Desc = "Automatically spin your character",
+    Color = lightGreen
+})
+
+MiscTab:Toggle({
+    Title = "Enable SpinBot",
+    Desc = "Toggle spinning on/off",
+    Value = config.spinbot.enabled or false,
+    Callback = function(v)
+        config.spinbot.enabled = v
+        if v then
+            spinbotUpdate()
+            n({
+                Title = "SpinBot",
+                Content = "Enabled",
+                Audio = "rbxassetid://17208361335",
+                Length = 1,
+                Image = "rbxassetid://4483362458",
+                BarColor = Color3.fromRGB(0, 255, 0)
+            })
+        else
+            if config.varibz.spinbotConnection then
+                config.varibz.spinbotConnection:Disconnect()
+                config.varibz.spinbotConnection = nil
+            end
+            if localPlayer.Character then
+                local rootPart = localPlayer.Character:FindFirstChild("HumanoidRootPart")
+                if rootPart then
+                    local pos = rootPart.Position
+                    rootPart.CFrame = CFrame.new(pos)
+                end
+            end
+            n({
+                Title = "SpinBot",
+                Content = "Disabled",
+                Audio = "rbxassetid://17208361335",
+                Length = 1,
+                Image = "rbxassetid://4483362458",
+                BarColor = Color3.fromRGB(255, 0, 0)
+            })
+        end
+    end
+})
+
+MiscTab:Slider({
+    Title = "Spin Speed",
+    Desc = "Rotation speed",
+    IsTextbox = true,
+    Step = 1,
+    Value = {
+        Min = -3000,
+        Max = 3000,
+        Default = config.spinbot.speed or 50
+    },
+    Callback = function(value)
+        config.spinbot.speed = value
+    end
+})
+
+MiscTab:Button({
+    Title = "Reset Rotation",
+    Desc = "Reset character rotation to normal",
+    Callback = function()
+        if localPlayer.Character then
+            local rootPart = localPlayer.Character:FindFirstChild("HumanoidRootPart")
+            if rootPart then
+                local pos = rootPart.Position
+                rootPart.CFrame = CFrame.new(pos)
+                n({
+                    Title = "SpinBot",
+                    Content = "Rotation reset",
+                    Audio = "rbxassetid://17208361335",
+                    Length = 1,
+                    Image = "rbxassetid://4483362458",
+                    BarColor = Color3.fromRGB(0, 170, 255)
+                })
+            end
+        end
+    end
+})
+
     
     MiscTab:Paragraph({
         Title = "Other",
@@ -7919,11 +8410,11 @@ MiscTab:Toggle({
         local Camera = workspace.CurrentCamera
         local Teams = game:GetService("Teams")
 
-        Viewing = v
+        config.Viewing = v
 
-        if ViewConnection then
-            ViewConnection:Disconnect()
-            ViewConnection = nil
+        if config.varibz.ViewConnection then
+            config.varibz.ViewConnection:Disconnect()
+            config.varibz.ViewConnection = nil
         end
 
         if not v then
@@ -8040,8 +8531,8 @@ MiscTab:Toggle({
 
         Camera.CameraType = Enum.CameraType.Scriptable
 
-        ViewConnection = RunService.RenderStepped:Connect(function()
-            if not Viewing then
+        config.varibz.ViewConnection = RunService.RenderStepped:Connect(function()
+            if not config.Viewing then
                 return
             end
             local isValid = false
@@ -8064,7 +8555,7 @@ MiscTab:Toggle({
             if not isValid then
                 Target = GetRandomTarget()
                 if not Target then
-                    Viewing = false
+                    config.Viewing = false
                     Camera.CameraType = Enum.CameraType.Custom
                     WindUI:Notify({
                         Title = "Cframe View",
@@ -8087,14 +8578,14 @@ MiscTab:Toggle({
             if not HRP then
                 Target = GetRandomTarget()
                 if not Target then
-                    Viewing = false
+                    config.Viewing = false
                     Camera.CameraType = Enum.CameraType.Custom
                     return
                 end
                 return
             end
 
-            local CameraPos = HRP.Position - HRP.CFrame.LookVector * CameraDistance + Vector3.new(0, 3, 0)
+            local CameraPos = HRP.Position - HRP.CFrame.LookVector * config.varibz.CameraDistance + Vector3.new(0, 3, 0)
             Camera.CFrame = CFrame.lookAt(CameraPos, HRP.Position + Vector3.new(0, 2, 0))
         end)
         
@@ -8117,7 +8608,7 @@ MiscTab:Slider({
         Default = 8
     },
     Callback = function(value)
-        CameraDistance = value
+        config.varibz.CameraDistance = value
     end
 })
 MiscTab:Toggle({
@@ -8180,10 +8671,9 @@ local InfoTab = Window:Tab({
 }) do
     InfoTab:Paragraph({
         Title = "Gravel",
-        Desc = "Our YouTube channel is @gpssickle",
+        Desc = "Our YouTube channel is @gpssickle\nim stupid & lazy :T",
         Color = Red
     })
-    InfoTab:Space()
     InfoTab:Paragraph({
         Title = "Tabs",
         Desc = "Information about each tab",
@@ -8276,10 +8766,10 @@ local InfoTab = Window:Tab({
     InfoTab:Space()
     InfoTab:Paragraph({
         Title = "Updatelog",
-        Desc = "Update history and changes",
+        Desc = "Update history and changes\n\nGravel (DD/MM/YYYY)",
         Color = lightGreen
     })
-    
+
     InfoTab:Paragraph({
         Title = "Gravel (14/01/2026)",
         Desc = "Added: Legacy\nAdded: Reachtab\nAdded: Wallbang in Silentaim HK\nFixed Bugs: 0",
@@ -8298,7 +8788,7 @@ local InfoTab = Window:Tab({
         Color = darkGray
     })
     InfoTab:Paragraph({
-        Title = "Gravel (2/02/2026)",
+        Title = "Gravel (02/02/2026)",
         Desc = "Changed: DummyUI to WindUI Rewritten UI Creation\nFixed: Keybind Systems are now more accurate and Rewritten\nFixed: SilentAimTab (HK) hooks now less laggy\nFixed: Loop Errors\nFixed: Notification Spam\nAdded: Colorpickers to the VisualsTab\nAdded: Random Messages to the OpenButton and Popup UI\nFixed: UI Causing errors, Callback errors\nFixed Bugs: 34+",
         Color = darkGray
     })
@@ -8308,7 +8798,7 @@ local InfoTab = Window:Tab({
         Color = darkGray
     })
     InfoTab:Paragraph({
-        Title = "Gravel (6/06/2026)",
+        Title = "Gravel (06/05/2026)",
         Desc = "More optimizations!",
         Color = darkGray
     })
@@ -8333,20 +8823,25 @@ local InfoTab = Window:Tab({
         Color = darkGray
     })
     InfoTab:Paragraph({
-        Title = "Gravel (21/01/2026)",
+        Title = "Gravel (21/06/2026)",
         Desc = "Re-Added: SilentAim (HK) [Nothing wrong actually happened.. I'm just stupid]",
         Color = darkGray
     })
     InfoTab:Paragraph({
-        Title = "Gravel (23/03/2026)",
+        Title = "Gravel (23/06/2026)",
         Desc = "Fixed: SilentAim (HK) Targeting issues\nMoved: WallOver/Cam-Y to MiscTab\nAdded: ScaleToScreen Toggle & STSDistance to SilentAim (HB)\nAdded: some other additional features :p",
+        Color = darkGray
+    })
+    InfoTab:Paragraph({
+        Title = "Gravel (25/06/2026)",
+        Desc = "Added: Triggerbot & Spinbot in the MiscTab\nAdded: Additional stuff & optimization \nFixed Bugs: 7",
         Color = darkGray
     })
 end
 
 --[[
     InfoTab:Paragraph({
-        Title = "Gravel (//)",
+        Title = "Gravel (DD/MM/YYYY)",
         Desc = "",
         Color = darkGray
     })
@@ -8392,38 +8887,38 @@ aimbotfov()
 
 local function SetupRespawnHandler()
     plr.CharacterAdded:Connect(function(character)
-        if respawnLock then
+        if config.varibz.respawnLock then
             wait(1.5)
             
             local humanoid = character:WaitForChild("Humanoid", 5)
             if humanoid and humanoid.Health > 0 then
-                if wasEnabledBeforeDeath then
+                if config.varibz.wasEnabledBeforeDeath then
                     config.SA2_Enabled = true
                 end
                 
-                if wasESPEnabledBeforeDeath then
+                if config.varibz.wasESPEnabledBeforeDeath then
                     config.espMasterEnabled = true
                 end
                 
-                respawnLock = false
-                wasEnabledBeforeDeath = false
-                wasESPEnabledBeforeDeath = false
+                config.varibz.respawnLock = false
+                config.varibz.wasEnabledBeforeDeath = false
+                config.varibz.wasESPEnabledBeforeDeath = false
             end
         end
     end)
     
     plr.CharacterRemoving:Connect(function(character)
         if config.SA2_Enabled then
-            wasEnabledBeforeDeath = true
+            config.varibz.wasEnabledBeforeDeath = true
         end
         
         if config.espMasterEnabled then
-            wasESPEnabledBeforeDeath = true
+            config.varibz.wasESPEnabledBeforeDeath = true
         end
         
         config.SA2_Enabled = false
         config.espMasterEnabled = false
-        respawnLock = true
+        config.varibz.respawnLock = true
     end)
     
     local function trackHumanoidDeath()
@@ -8432,16 +8927,16 @@ local function SetupRespawnHandler()
             if humanoid then
                 humanoid.Died:Connect(function()
                     if config.SA2_Enabled then
-                        wasEnabledBeforeDeath = true
+                        config.varibz.wasEnabledBeforeDeath = true
                     end
                     
                     if config.espMasterEnabled then
-                        wasESPEnabledBeforeDeath = true
+                        config.varibz.wasESPEnabledBeforeDeath = true
                     end
                     
                     config.SA2_Enabled = false
                     config.espMasterEnabled = false
-                    respawnLock = true
+                    config.varibz.respawnLock = true
                 end)
             end
         end
@@ -8569,6 +9064,17 @@ local function initKeybinds()
                 })
             end
             
+        elseif input.KeyCode == Enum.KeyCode[config.Keybinds.triggerbot] then
+            if shouldTriggerKeybind(config.Keybinds.triggerbot) then
+                toggleTriggerBot(not config.tbot.enabled)
+                WindUI:Notify({
+                    Title = "Trigger Bot",
+                    Content = config.tbot.enabled and "Enabled" or "Disabled",
+                    Icon = config.tbot.enabled and "check" or "x",
+                    Duration = 1
+                })
+            end
+            
         elseif input.KeyCode == Enum.KeyCode[config.Keybinds.hitbox] then
             if shouldTriggerKeybind(config.Keybinds.hitbox) then
                 config.hitboxEnabled = not config.hitboxEnabled
@@ -8654,7 +9160,6 @@ local function initKeybinds()
 end
 
 local function init()
-    pc()
     SetupRespawnHandler()
     syncSilentAimWithMaster()
     initKeybinds()
@@ -8743,9 +9248,9 @@ local function init()
     end)
     RunService:BindToRenderStep("FOVhbUpdater_Modern", Enum.RenderPriority.First.Value, onRenderStep)
     task.wait(1)
-    lowpatcher = false
+    config.varibz.lowpatcher = false
     task.wait(0.5)
-    lowpatcher = true
+    config.varibz.lowpatcher = true
 end
 function cleanup()
     pcall(function()
@@ -8760,9 +9265,9 @@ function cleanup()
     
     stopAutoFarm()
     KillQT()
-    aimbot360LoopRunning = false
-    if aimbot360LoopTask then
-        aimbot360LoopTask = nil
+    config.varibz.aimbot360LoopRunning = false
+    if config.varibz.aimbot360LoopTask then
+        config.varibz.aimbot360LoopTask = nil
     end
     if config.aimbot360Enabled then
         toggle360Aimbot(false)
@@ -8837,14 +9342,39 @@ local clearTargetCache = function()
     end)
 end
 task.spawn(function()
-    while lowpatcher do
+    while config.varibz.lowpatcher do
         clearTargetCache()
-        task.wait(lowpatcherwait)
+        task.wait(config.varibz.lowpatcherwait)
     end
 end)
+
+local LowRender = function()
+    if config and config.LowRender then
+        pcall(function()
+            pc2()
+            settings().Physics.AllowSleep = true
+            settings().Rendering.QualityLevel = 1
+            settings().Rendering.EagerBulkExecution = true
+            settings().Rendering.EnableFRM = true
+            settings().Rendering.MeshPartDetailLevel = 1
+            game:GetService("Lighting").GlobalShadows = false
+            game:GetService("Lighting").Technology = Enum.Technology.Legacy
+            for _, v in pairs(game:GetService("Workspace"):GetDescendants()) do
+                if v:IsA("ParticleEmitter") or v:IsA("Trail") or v:IsA("Beam") then
+                    v.Enabled = false
+                end
+            end
+        end)
+    else
+        pcall(function()
+           
+        end)
+    end
+end
+
 task.spawn(function()
     local lastRespawnTime = os.clock()
-    while patcher do
+    while config.varibz.patcher do
         local localPlayer = game.Players.LocalPlayer
         local character = localPlayer.Character
         local isRespawning = false
@@ -8900,7 +9430,7 @@ task.spawn(function()
             end
         end
         
-        task.wait(patcherwait)
+        task.wait(config.varibz.patcherwait)
     end
 end)
 
