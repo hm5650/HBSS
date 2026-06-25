@@ -6796,7 +6796,7 @@ local AimbotTab = Window:Tab({
     })
     
     AimbotTab:Slider({
-        Title = "FOV Size",
+        Title = "FOV Radius",
         Desc = "Aimbot field of view",
         IsTextbox = true,
         Step = 10,
@@ -6946,7 +6946,7 @@ local SilentAimTab = Window:Tab({
     })
     
     SilentAimTab:Slider({
-        Title = "FovSize",
+        Title = "Fov Radius",
         Desc = "Silent aim field of view",
         IsTextbox = true,
         Step = 10,
@@ -8242,31 +8242,6 @@ MiscTab:Input({
         if text and text ~= "" then
             config.tbot.holdKey = text
         end
-    end
-})
-
-MiscTab:Toggle({
-    Title = "Show FOV Circle",
-    Desc = "Display trigger bot FOV ring",
-    Value = config.tbot.fovVisible or true,
-    Callback = function(v)
-        config.tbot.fovVisible = v
-        updateTriggerBotFOV()
-    end
-})
-
-MiscTab:Slider({
-    Title = "FOV Transparency",
-    Desc = "Transparency of FOV ring",
-    Step = 0.05,
-    Value = {
-        Min = 0,
-        Max = 1,
-        Default = config.tbot.fovTransparency or 0.7
-    },
-    Callback = function(value)
-        config.tbot.fovTransparency = value
-        updateTriggerBotFOV()
     end
 })
 
