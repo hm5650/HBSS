@@ -182,6 +182,7 @@ local animationLoopConnection = nil
 local humanoid = nil
 local character = nil
 local updateESPColors = function() end
+local bhopConnection = nil
 
 -- uicolor
 local lightGreen = Color3.fromRGB(144, 238, 144)
@@ -331,6 +332,7 @@ local config = {
     autoFarmLastRefresh = 0,
     ignoreForcefield = true,
     QuickToggles = false,
+    QTDrag = true,
     trussEnabled = false,
     trussPart = nil,
     trussConnection = nil,
@@ -354,6 +356,12 @@ local config = {
     spinbot = {
         enabled = false,
         speed = 50,
+    },
+    bhop = {
+        enabled = false,
+        jumpDelay = 0.05,
+        quickToggleEnabled = false,
+        quickToggleDraggable = true
     },
     reach = {
         enabled = false,
@@ -422,12 +430,14 @@ local config = {
         antiaim = "L",
         hitbox = "G",
         esp = "Z",
-        client = "V",
+        client = "N",
         silentaimwallcheck = "B",
         aimbotwallcheck = "H",
         silentaimhk = "R",
         silentaimhkwallcheck = "T",
         triggerbot = "X",
+        bhop = "V",
+        tbotwallcheck = "Y",
     },
     varibz = {
         wasEnabledBeforeDeath = false,
@@ -446,6 +456,8 @@ local config = {
         lowpatcher = true,
         patcherwait = 0.5,
         patcher = true,
+        bhopQuickToggleUI = nil,
+        lastJumpTime = 0,
     },
 }
 
@@ -3648,7 +3660,7 @@ local function hb()
                     part.Size = newSize
                     part.Transparency = config.hbtrans
                     part.CanCollide = false
-                    part.Massless = (part.Name ~= "HumanoidRootPart")
+                    part.Massless = true
                 end)
             end
         else
@@ -4307,7 +4319,217 @@ local function spinbotUpdate()
     end
 end
 
+local function bhopUpdate()
+    if not config.bhop.enabled then return end
+    
+    local character = localPlayer.Character
+    if not character then return end
+    
+    local humanoid = character:FindFirstChildOfClass("Humanoid")
+    if not humanoid or humanoid.Health <= 0 then return end
+    local isOnGround = humanoid:GetState() == Enum.HumanoidStateType.Landed or 
+                       humanoid:GetState() == Enum.HumanoidStateType.Running or
+                       humanoid:GetState() == Enum.HumanoidStateType.Walking
+    local rootPart = character:FindFirstChild("HumanoidRootPart")
+    if rootPart then
+        local velocity = rootPart.Velocity
+        local isFalling = velocity.Y < -1
+        local isMoving = math.abs(velocity.X) > 0.5 or math.abs(velocity.Z) > 0.5
+        if isOnGround and isMoving then
+            local currentTime = tick()
+            if currentTime - config.varibz.lastJumpTime >= config.bhop.jumpDelay then
+                humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+                config.varibz.lastJumpTime = currentTime
+            end
+        end
+    end
+end
 
+local function toggleBHop(state)
+    config.bhop.enabled = state
+    
+    if state then
+        if config.varibz.bhopConnection then
+            config.varibz.bhopConnection:Disconnect()
+            config.varibz.bhopConnection = nil
+        end
+        config.varibz.bhopConnection = RunService.Heartbeat:Connect(bhopUpdate)
+    else
+        if config.varibz.bhopConnection then
+            config.varibz.bhopConnection:Disconnect()
+            config.varibz.bhopConnection = nil
+        end
+    end
+end
+
+local function createBHopQuickToggle()
+    if config.varibz.bhopQuickToggleUI and config.varibz.bhopQuickToggleUI.ScreenGui then
+        config.varibz.bhopQuickToggleUI.ScreenGui:Destroy()
+        config.varibz.bhopQuickToggleUI = nil
+    end
+    
+    if not config.bhop.quickToggleEnabled then return end
+    
+    local screenGui = Instance.new("ScreenGui")
+    screenGui.Name = "BHopQuickToggle"
+    screenGui.ResetOnSpawn = false
+    screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+    screenGui.Parent = localPlayer:WaitForChild("PlayerGui")
+    
+    local main = Instance.new("Frame")
+    main.Size = UDim2.new(0, 110, 0, 36)
+    main.Position = UDim2.new(0, 10, 0, 110)
+    main.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+    main.BorderSizePixel = 0
+    main.AnchorPoint = Vector2.new(0, 0)
+    main.Active = true
+    main.Draggable = config.bhop.quickToggleDraggable
+    main.Parent = screenGui
+    
+    local mainCorner = Instance.new("UICorner")
+    mainCorner.CornerRadius = UDim.new(0, 6)
+    mainCorner.Parent = main
+    
+    local label = Instance.new("TextLabel")
+    label.Size = UDim2.new(1, -44, 1, 0)
+    label.Position = UDim2.new(0, 8, 0, 0)
+    label.BackgroundTransparency = 1
+    label.Text = config.bhop.enabled and "BHop<" or "BHop"
+    label.TextColor3 = Color3.fromRGB(200, 200, 200)
+    label.Font = Enum.Font.GothamSemibold
+    label.TextSize = 13
+    label.TextXAlignment = Enum.TextXAlignment.Left
+    label.TextYAlignment = Enum.TextYAlignment.Center
+    label.Parent = main
+    
+    local toggleBg = Instance.new("Frame")
+    toggleBg.Size = UDim2.new(0, 34, 0, 16)
+    toggleBg.Position = UDim2.new(1, -38, 0.5, -8)
+    toggleBg.BackgroundColor3 = config.bhop.enabled and Color3.fromRGB(0, 100, 0) or Color3.fromRGB(15, 15, 15)
+    toggleBg.BorderSizePixel = 0
+    toggleBg.BackgroundTransparency = 0
+    toggleBg.ClipsDescendants = false
+    toggleBg.Parent = main
+    
+    local toggleCorner = Instance.new("UICorner")
+    toggleCorner.CornerRadius = UDim.new(0, 8)
+    toggleCorner.Parent = toggleBg
+    
+    local circle = Instance.new("Frame")
+    circle.Size = UDim2.new(0, 14, 0, 14)
+    circle.Position = config.bhop.enabled and UDim2.new(1, -16, 0, 1) or UDim2.new(0, 1, 0, 1)
+    circle.BackgroundColor3 = config.bhop.enabled and Color3.fromRGB(0, 170, 0) or Color3.fromRGB(60, 60, 60)
+    circle.BorderSizePixel = 0
+    circle.Parent = toggleBg
+    
+    local circleCorner = Instance.new("UICorner")
+    circleCorner.CornerRadius = UDim.new(1, 0)
+    circleCorner.Parent = circle
+    
+    local tweenInfo = TweenInfo.new(0.2, Enum.EasingStyle.Quart, Enum.EasingDirection.Out)
+    
+    local function toggleBHopUI()
+        local newState = not config.bhop.enabled
+        toggleBHop(newState)
+        
+        label.Text = newState and "BHop<" or "BHop"
+        
+        if newState then
+            local onTween = TweenService:Create(circle, tweenInfo, {
+                Position = UDim2.new(1, -16, 0, 1),
+                BackgroundColor3 = Color3.fromRGB(0, 170, 0)
+            })
+            local bgOnTween = TweenService:Create(toggleBg, tweenInfo, {
+                BackgroundColor3 = Color3.fromRGB(0, 100, 0)
+            })
+            onTween:Play()
+            bgOnTween:Play()
+        else
+            local offTween = TweenService:Create(circle, tweenInfo, {
+                Position = UDim2.new(0, 1, 0, 1),
+                BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+            })
+            local bgOffTween = TweenService:Create(toggleBg, tweenInfo, {
+                BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+            })
+            offTween:Play()
+            bgOffTween:Play()
+        end
+    end
+    
+    local isPressing = false
+    local wasPressedHere = false
+    local inputStartTime = 0
+    local inputStartPosition = nil
+    local minPressTime = 0.05
+    
+    local function onInputBegan(input, gameProcessedEvent)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            if not gameProcessedEvent then
+                isPressing = true
+                wasPressedHere = true
+                inputStartTime = tick()
+                inputStartPosition = input.Position
+            end
+        end
+    end
+    
+    local function onInputEnded(input, gameProcessedEvent)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            if isPressing and wasPressedHere and not gameProcessedEvent then
+                local pressDuration = tick() - inputStartTime
+                local endPosition = input.Position
+                local distanceMoved = inputStartPosition and (endPosition - inputStartPosition).Magnitude or 0
+                
+                if pressDuration >= minPressTime and distanceMoved < 10 then
+                    toggleBHopUI()
+                end
+            end
+            isPressing = false
+            wasPressedHere = false
+            inputStartPosition = nil
+        end
+    end
+    
+    local function onInputChanged(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+            if isPressing and inputStartPosition then
+                local distanceMoved = (input.Position - inputStartPosition).Magnitude
+                if distanceMoved > 20 then
+                    wasPressedHere = false
+                end
+            end
+        end
+    end
+    
+    toggleBg.InputBegan:Connect(onInputBegan)
+    toggleBg.InputChanged:Connect(onInputChanged)
+    toggleBg.InputEnded:Connect(onInputEnded)
+    circle.InputBegan:Connect(onInputBegan)
+    circle.InputChanged:Connect(onInputChanged)
+    circle.InputEnded:Connect(onInputEnded)
+    config.varibz.bhopQuickToggleUI = {
+        ScreenGui = screenGui,
+        Main = main,
+        Label = label,
+        ToggleBg = toggleBg,
+        Circle = circle
+    }
+end
+
+
+local function updateBHopQuickToggle()
+    if config.bhop.quickToggleEnabled then
+        createBHopQuickToggle()
+    else
+        if config.varibz.bhopQuickToggleUI and config.varibz.bhopQuickToggleUI.ScreenGui then
+            config.varibz.bhopQuickToggleUI.ScreenGui:Destroy()
+            config.varibz.bhopQuickToggleUI = nil
+        end
+    end
+end
+
+-- bk
 RunService.Heartbeat:Connect(hb)
 RunService.RenderStepped:Connect(aimbotUpdate)
 RunService.Heartbeat:Connect(antiAimUpdate)
@@ -4315,6 +4537,7 @@ RunService.RenderStepped:Connect(function()
     aimbotUpdate()
     updateLineESP()
     hb()
+    UpdateQT()
 end)
 
 local function isMobileDevice()
@@ -4345,7 +4568,7 @@ local function CreateQT()
         main.BorderSizePixel = 0
         main.AnchorPoint = Vector2.new(0, 0)
         main.Active = true
-        main.Draggable = true
+        main.Draggable = config.QTDrag
         main.Parent = screenGui
 
         local mainCorner = Instance.new("UICorner")
@@ -4640,7 +4863,13 @@ local function UpdateQT()
     end
     
     gui.mobileGui.ScreenGui.Enabled = true
-    
+    if gui.mobileGui.Buttons then
+        for _, buttonData in pairs(gui.mobileGui.Buttons) do
+            if buttonData and buttonData.main then
+                buttonData.main.Draggable = config.QTDrag
+            end
+        end
+    end
     if gui.mobileGui.Buttons then
         local buttonStates = {
             SilentAim = config.startsa,
@@ -5646,6 +5875,24 @@ MainTab:Keybind({
 })
 
 MainTab:Keybind({
+    Title = "TriggerBot Wall Check",
+    Desc = "Toggle wall check for TriggerBot",
+    Value = config.Keybinds.tbotwallcheck or "Y",
+    Callback = function(key)
+        config.Keybinds.tbotwallcheck = key
+    end
+})
+
+MainTab:Keybind({
+    Title = "BHop",
+    Desc = "Toggle Bunny Hop",
+    Value = config.Keybinds.bhop or "V",
+    Callback = function(key)
+        config.Keybinds.bhop = key
+    end
+})
+
+MainTab:Keybind({
     Title = "Hitbox",
     Desc = "Toggle Hitbox Expansion",
     Value = config.Keybinds.hitbox or "G",
@@ -5666,7 +5913,7 @@ MainTab:Keybind({
 MainTab:Keybind({
     Title = "Client",
     Desc = "Toggle Client Features",
-    Value = config.Keybinds.client or "V",
+    Value = config.Keybinds.client or "N",
     Callback = function(key)
         config.Keybinds.client = key
     end
@@ -5772,7 +6019,7 @@ MainTab:Keybind({
     
     MainTab:Toggle({
         Title = "QuickToggles",
-        Desc = "Show/hide QuickToggles GUI",
+        Desc = "Show/hide QuickToggles/QT GUI",
         Value = config.QuickToggles or false,
         Callback = function(v)
             config.QuickToggles = v
@@ -5781,6 +6028,22 @@ MainTab:Keybind({
             end
         end
     })
+
+MainTab:Toggle({
+    Title = "QuickToggles Draggable",
+    Desc = "Allow dragging quick toggles",
+    Value = config.QTDrag or true,
+    Callback = function(v)
+        config.QTDrag = v
+        if gui.mobileGui and gui.mobileGui.Buttons then
+            for _, buttonData in pairs(gui.mobileGui.Buttons) do
+                if buttonData and buttonData.main then
+                    buttonData.main.Draggable = v
+                end
+            end
+        end
+    end
+})
     
     MainTab:Button({
         Title = "Partclaim",
@@ -6697,6 +6960,89 @@ local AntiAimTab = Window:Tab({
             config.antiAimOrbitHeight = value
         end
     })
+
+AntiAimTab:Paragraph({
+    Title = "Other",
+    Desc = "other stuff",
+    Color = lightGreen
+})
+
+AntiAimTab:Toggle({
+    Title = "Enable SpinBot",
+    Desc = "Toggle spinning on/off",
+    Value = config.spinbot.enabled or false,
+    Callback = function(v)
+        config.spinbot.enabled = v
+        if v then
+            spinbotUpdate()
+            n({
+                Title = "SpinBot",
+                Content = "Enabled",
+                Audio = "rbxassetid://17208361335",
+                Length = 1,
+                Image = "rbxassetid://4483362458",
+                BarColor = Color3.fromRGB(0, 255, 0)
+            })
+        else
+            if config.varibz.spinbotConnection then
+                config.varibz.spinbotConnection:Disconnect()
+                config.varibz.spinbotConnection = nil
+            end
+            if localPlayer.Character then
+                local rootPart = localPlayer.Character:FindFirstChild("HumanoidRootPart")
+                if rootPart then
+                    local pos = rootPart.Position
+                    rootPart.CFrame = CFrame.new(pos)
+                end
+            end
+            n({
+                Title = "SpinBot",
+                Content = "Disabled",
+                Audio = "rbxassetid://17208361335",
+                Length = 1,
+                Image = "rbxassetid://4483362458",
+                BarColor = Color3.fromRGB(255, 0, 0)
+            })
+        end
+    end
+})
+
+AntiAimTab:Slider({
+    Title = "Spin Speed",
+    Desc = "Rotation speed",
+    IsTextbox = true,
+    Step = 1,
+    Value = {
+        Min = -3000,
+        Max = 3000,
+        Default = config.spinbot.speed or 50
+    },
+    Callback = function(value)
+        config.spinbot.speed = value
+    end
+})
+
+AntiAimTab:Button({
+    Title = "Reset Rotation",
+    Desc = "Reset character rotation to normal",
+    Callback = function()
+        if localPlayer.Character then
+            local rootPart = localPlayer.Character:FindFirstChild("HumanoidRootPart")
+            if rootPart then
+                local pos = rootPart.Position
+                rootPart.CFrame = CFrame.new(pos)
+                n({
+                    Title = "SpinBot",
+                    Content = "Rotation reset",
+                    Audio = "rbxassetid://17208361335",
+                    Length = 1,
+                    Image = "rbxassetid://4483362458",
+                    BarColor = Color3.fromRGB(0, 170, 255)
+                })
+            end
+        end
+    end
+})
 end
 
 -- Aimbot Tab
@@ -7606,7 +7952,7 @@ local ClientTab = Window:Tab({
     })
     
     ClientTab:Toggle({
-        Title = "Enable Client Values ('V')",
+        Title = "Enable Client Values ('N')",
         Desc = "Enable/disable all client features",
         Value = config.clientMasterEnabled or false,
         Callback = function(v)
@@ -7732,7 +8078,7 @@ local ClientTab = Window:Tab({
         Title = "CFrame Walk Speed",
         Desc = "CFrame movement speed",
         IsTextbox = true,
-        Step = 5,
+        Step = 0,
         Value = {
             Min = 0,
             Max = 500,
@@ -8158,7 +8504,7 @@ MiscTab:Toggle({
 })
 
 MiscTab:Dropdown({
-    Title = "Target Part",
+    Title = "Tbot Target Part",
     Desc = "Part to aim for",
     Values = {"Head", "HumanoidRootPart", "Random"},
     Value = config.tbot.targetPart or "Head",
@@ -8169,7 +8515,7 @@ MiscTab:Dropdown({
 })
 
 MiscTab:Slider({
-    Title = "FOV Radius",
+    Title = "Tbot FOV Radius",
     Desc = "Trigger bot field of view",
     IsTextbox = true,
     Step = 5,
@@ -8185,7 +8531,7 @@ MiscTab:Slider({
 })
 
 MiscTab:Slider({
-    Title = "Hit Chance",
+    Title = "Tbot Hit Chance",
     Desc = "Chance to shoot when target is in FOV",
     Step = 1,
     Suffix = "%",
@@ -8200,7 +8546,7 @@ MiscTab:Slider({
 })
 
 MiscTab:Slider({
-    Title = "Shot Delay",
+    Title = "Tbot Shot Delay",
     Desc = "Delay between shots (seconds)",
     Step = 0.01,
     Suffix = "s",
@@ -8215,7 +8561,7 @@ MiscTab:Slider({
 })
 
 MiscTab:Toggle({
-    Title = "Wall Check",
+    Title = "Tbot Wall Check ('Y')",
     Desc = "Check for walls before shooting",
     Value = config.tbot.wallCheck or false,
     Callback = function(v)
@@ -8224,7 +8570,7 @@ MiscTab:Toggle({
 })
 
 MiscTab:Toggle({
-    Title = "Hold to Shoot",
+    Title = "Tbot Hold to Shoot",
     Desc = "Only shoot when holding a key",
     Value = config.tbot.holdToShoot or false,
     Callback = function(v)
@@ -8233,7 +8579,7 @@ MiscTab:Toggle({
 })
 
 MiscTab:Input({
-    Title = "Hold Key",
+    Title = "Tbot Hold Key",
     Desc = "Key to hold for shooting",
     Placeholder = "MouseButton1",
     Value = config.tbot.holdKey or "MouseButton1",
@@ -8244,90 +8590,6 @@ MiscTab:Input({
         end
     end
 })
-
-MiscTab:Paragraph({
-    Title = "SpinBot",
-    Desc = "Automatically spin your character",
-    Color = lightGreen
-})
-
-MiscTab:Toggle({
-    Title = "Enable SpinBot",
-    Desc = "Toggle spinning on/off",
-    Value = config.spinbot.enabled or false,
-    Callback = function(v)
-        config.spinbot.enabled = v
-        if v then
-            spinbotUpdate()
-            n({
-                Title = "SpinBot",
-                Content = "Enabled",
-                Audio = "rbxassetid://17208361335",
-                Length = 1,
-                Image = "rbxassetid://4483362458",
-                BarColor = Color3.fromRGB(0, 255, 0)
-            })
-        else
-            if config.varibz.spinbotConnection then
-                config.varibz.spinbotConnection:Disconnect()
-                config.varibz.spinbotConnection = nil
-            end
-            if localPlayer.Character then
-                local rootPart = localPlayer.Character:FindFirstChild("HumanoidRootPart")
-                if rootPart then
-                    local pos = rootPart.Position
-                    rootPart.CFrame = CFrame.new(pos)
-                end
-            end
-            n({
-                Title = "SpinBot",
-                Content = "Disabled",
-                Audio = "rbxassetid://17208361335",
-                Length = 1,
-                Image = "rbxassetid://4483362458",
-                BarColor = Color3.fromRGB(255, 0, 0)
-            })
-        end
-    end
-})
-
-MiscTab:Slider({
-    Title = "Spin Speed",
-    Desc = "Rotation speed",
-    IsTextbox = true,
-    Step = 1,
-    Value = {
-        Min = -3000,
-        Max = 3000,
-        Default = config.spinbot.speed or 50
-    },
-    Callback = function(value)
-        config.spinbot.speed = value
-    end
-})
-
-MiscTab:Button({
-    Title = "Reset Rotation",
-    Desc = "Reset character rotation to normal",
-    Callback = function()
-        if localPlayer.Character then
-            local rootPart = localPlayer.Character:FindFirstChild("HumanoidRootPart")
-            if rootPart then
-                local pos = rootPart.Position
-                rootPart.CFrame = CFrame.new(pos)
-                n({
-                    Title = "SpinBot",
-                    Content = "Rotation reset",
-                    Audio = "rbxassetid://17208361335",
-                    Length = 1,
-                    Image = "rbxassetid://4483362458",
-                    BarColor = Color3.fromRGB(0, 170, 255)
-                })
-            end
-        end
-    end
-})
-
     
     MiscTab:Paragraph({
         Title = "Other",
@@ -8369,6 +8631,51 @@ MiscTab:Button({
         end
     })
 
+MiscTab:Toggle({
+    Title = "Enable BHop",
+    Desc = "Toggle bunny hop on/off",
+    Value = config.bhop.enabled or false,
+    Callback = function(v)
+        toggleBHop(v)
+    end
+})
+
+MiscTab:Slider({
+    Title = "Bhop Jump Delay",
+    Desc = "Delay between jumps (seconds)",
+    Step = 0.01,
+    Suffix = "s",
+    Value = {
+        Min = 0.01,
+        Max = 0.5,
+        Default = config.bhop.jumpDelay or 0.05
+    },
+    Callback = function(value)
+        config.bhop.jumpDelay = value
+    end
+})
+
+MiscTab:Toggle({
+    Title = "Bhop QT",
+    Desc = "Show BHop's custom quick toggle on screen",
+    Value = config.bhop.quickToggleEnabled or false,
+    Callback = function(v)
+        config.bhop.quickToggleEnabled = v
+        updateBHopQuickToggle()
+    end
+})
+
+MiscTab:Toggle({
+    Title = "Bhop QT Draggable",
+    Desc = "Allow dragging the BHop quick toggle",
+    Value = config.bhop.quickToggleDraggable or true,
+    Callback = function(v)
+        config.bhop.quickToggleDraggable = v
+        if config.varibz.bhopQuickToggleUI and config.varibz.bhopQuickToggleUI.Main then
+            config.varibz.bhopQuickToggleUI.Main.Draggable = v
+        end
+    end
+})
     MiscTab:Toggle({
         Title = "Toggle AntiAfk",
         Desc = "Prevents idle kick",
@@ -8820,11 +9127,17 @@ local InfoTab = Window:Tab({
         Desc = "Added: Triggerbot & Spinbot in the MiscTab\nAdded: Additional stuff & optimization \nFixed Bugs: 7",
         Color = darkGray
     })
+    InfoTab:Paragraph({
+        Title = "Gravel (27/06/2026)",
+        Desc = "Added: Bhop in the MiscTab\nAdded: Draggable toggle for QuickToggles in MainTab\nMoved: Spinbot in the AntiAimTab\nFixed: Hitbox freezing issue\nAdded: Keybind for TriggerBot Wallcheck 'Y'\nChanged Client Keybind to 'N'\nFixed Bugs: 1",
+        Color = darkGray
+    })
 end
 
+-- tsu
 --[[
     InfoTab:Paragraph({
-        Title = "Gravel (DD/MM/YYYY)",
+        Title = "Gravel (DD/06/2026)",
         Desc = "",
         Color = darkGray
     })
@@ -9057,7 +9370,26 @@ local function initKeybinds()
                     Duration = 1
                 })
             end
-            
+        elseif input.KeyCode == Enum.KeyCode[config.Keybinds.bhop] then
+            if shouldTriggerKeybind(config.Keybinds.bhop) then
+                toggleBHop(not config.bhop.enabled)
+                WindUI:Notify({
+                    Title = "BHop",
+                    Content = config.bhop.enabled and "Enabled" or "Disabled",
+                    Icon = config.bhop.enabled and "check" or "x",
+                    Duration = 1
+                })
+            end
+        elseif input.KeyCode == Enum.KeyCode[config.Keybinds.tbotwallcheck] then
+            if shouldTriggerKeybind(config.Keybinds.tbotwallcheck) then
+                config.tbot.wallCheck = not config.tbot.wallCheck
+                WindUI:Notify({
+                    Title = "TriggerBot Wall Check",
+                    Content = config.tbot.wallCheck and "Enabled" or "Disabled",
+                    Icon = config.tbot.wallCheck and "check" or "x",
+                    Duration = 1
+                })
+            end
         elseif input.KeyCode == Enum.KeyCode[config.Keybinds.hitbox] then
             if shouldTriggerKeybind(config.Keybinds.hitbox) then
                 config.hitboxEnabled = not config.hitboxEnabled
