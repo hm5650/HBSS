@@ -519,7 +519,7 @@ local function saveConfig(saveName)
     end
     
     local configToSave = {
-        version = "sand",
+        version = "1.0",
         timestamp = os.time(),
         config = {
             masterTeamTarget = config.masterTeamTarget,
