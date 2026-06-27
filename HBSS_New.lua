@@ -461,6 +461,459 @@ local config = {
     },
 }
 
+local SaveSystem = {
+    Folder = "Gravel_Saves",
+    Extension = ".json",
+    CurrentSave = nil
+}
+
+local function getSavePath(saveName)
+    return SaveSystem.Folder .. "/" .. saveName .. SaveSystem.Extension
+end
+
+local function getSaveList()
+    local saves = {}
+    if not isfolder(SaveSystem.Folder) then
+        return saves
+    end
+    
+    for _, file in ipairs(listfiles(SaveSystem.Folder)) do
+        local fileName = file:match("([^/]+)" .. SaveSystem.Extension .. "$")
+        if fileName then
+            table.insert(saves, fileName)
+        end
+    end
+    return saves
+end
+
+local function loadSaveData(saveName)
+    local path = getSavePath(saveName)
+    if not isfile(path) then
+        return nil
+    end
+    
+    local success, data = pcall(function()
+        return readfile(path)
+    end)
+    
+    if not success or not data then
+        return nil
+    end
+    
+    local success, decoded = pcall(function()
+        return game:GetService("HttpService"):JSONDecode(data)
+    end)
+    
+    return success and decoded or nil
+end
+
+local function saveConfig(saveName)
+    if not saveName or saveName == "" then
+        WindUI:Notify({
+            Title = "Save System",
+            Content = "Please enter a save name!",
+            Icon = "x",
+            Duration = 2
+        })
+        return false
+    end
+    
+    local configToSave = {
+        version = "sand",
+        timestamp = os.time(),
+        config = {
+            masterTeamTarget = config.masterTeamTarget,
+            masterTarget = config.masterTarget,
+            masterGetTarget = config.masterGetTarget,
+            targetSeenSwitchRate = config.targetSeenSwitchRate,
+            ignoreForcefield = config.ignoreForcefield,
+            autoFarmEnabled = config.autoFarmEnabled,
+            autoFarmWallCheck = config.autoFarmWallCheck,
+            autoFarmDistance = config.autoFarmDistance,
+            autoFarmMaxRange = config.autoFarmMaxRange,
+            autoFarmVerticalOffset = config.autoFarmVerticalOffset,
+            autoFarmTargetPart = config.autoFarmTargetPart,
+            gp = config.gp,
+            QuickToggles = config.QuickToggles,
+            QTDrag = config.QTDrag,
+            espMasterEnabled = config.espMasterEnabled,
+            prefHighlightESP = config.prefHighlightESP,
+            prefTextESP = config.prefTextESP,
+            prefBoxESP = config.prefBoxESP,
+            prefHealthESP = config.prefHealthESP,
+            prefHeadDotESP = config.prefHeadDotESP,
+            lineESPEnabled = config.lineESPEnabled,
+            lineESPOnlyTarget = config.lineESPOnlyTarget,
+            lineStartPosition = config.lineStartPosition,
+            prefColorByHealth = config.prefColorByHealth,
+            espc = config.espc,
+            esptargetc = config.esptargetc,
+            espteamc = config.espteamc,
+            lineColor = config.lineColor,
+            fovc = config.fovc,
+            fovct = config.fovct,
+            SA2_FovColor = config.SA2_FovColor,
+            SA2_FovColourTarget = config.SA2_FovColourTarget,
+            tbot_fovColor = config.tbot.fovColor,
+            hitboxColor = config.hitboxColor,
+            visualizer_color = config.visualizer.color,
+            LowRender = config.LowRender,
+            antiAimEnabled = config.antiAimEnabled,
+            raycastAntiAim = config.raycastAntiAim,
+            antiAimAbovePlayer = config.antiAimAbovePlayer,
+            antiAimBehindPlayer = config.antiAimBehindPlayer,
+            antiAimOrbitEnabled = config.antiAimOrbitEnabled,
+            antiAimTPDistance = config.antiAimTPDistance,
+            antiAimAboveHeight = config.antiAimAboveHeight,
+            antiAimBehindDistance = config.antiAimBehindDistance,
+            antiAimOrbitSpeed = config.antiAimOrbitSpeed,
+            antiAimOrbitRadius = config.antiAimOrbitRadius,
+            antiAimOrbitHeight = config.antiAimOrbitHeight,
+            spinbot_enabled = config.spinbot.enabled,
+            spinbot_speed = config.spinbot.speed,
+            aimbotEnabled = config.aimbotEnabled,
+            aimbotWallCheck = config.aimbotWallCheck,
+            aimbot360Enabled = config.aimbot360Enabled,
+            aimbotTargetPart = config.aimbotTargetPart,
+            aimbotStrength = config.aimbotStrength,
+            aimbotFOVSize = config.aimbotFOVSize,
+            startsa = config.startsa,
+            wallc = config.wallc,
+            scaleToScreen = config.scaleToScreen,
+            stsdistance = config.stsdistance,
+            bodypart = config.bodypart,
+            hitchance = config.hitchance,
+            fovsize = config.fovsize,
+            hbtrans = config.hbtrans,
+            SA2_Enabled = config.SA2_Enabled,
+            SA2_Wallcheck = config.SA2_Wallcheck,
+            SA2_WallbangEnabled = config.SA2_WallbangEnabled,
+            SA2_ThreeSixtyMode = config.SA2_ThreeSixtyMode,
+            SA2_Method = config.SA2_Method,
+            SA2_TargetPart = config.SA2_TargetPart,
+            SA2_HitChance = config.SA2_HitChance,
+            SA2_FovRadius = config.SA2_FovRadius,
+            SA2_TargetRange = config.SA2_TargetRange,
+            hitboxEnabled = config.hitboxEnabled,
+            hitboxTeamTarget = config.hitboxTeamTarget,
+            hitboxSize = config.hitboxSize,
+            reach_enabled = config.reach.enabled,
+            reach_type = config.reach.type,
+            reach_distance = config.reach.distance,
+            visualizer_enabled = config.visualizer.enabled,
+            visualizer_material = config.visualizer.material,
+            visualizer_transparency = config.visualizer.transparency,
+            reach_autoSwing = config.reach.autoSwing.enabled,
+            reach_autoSwing_delay = config.reach.autoSwing.delay,
+            clientMasterEnabled = config.clientMasterEnabled,
+            clientNoclipEnabled = config.clientNoclipEnabled,
+            clientWalkEnabled = config.clientWalkEnabled,
+            clientJumpEnabled = config.clientJumpEnabled,
+            clientCFrameWalkToggle = config.clientCFrameWalkToggle,
+            clientWalkSpeed = config.clientWalkSpeed,
+            clientJumpPower = config.clientJumpPower,
+            clientCFrameSpeed = config.clientCFrameSpeed,
+            trussEnabled = config.trussEnabled,
+            airwalkEnabled = config.airwalkEnabled,
+            autorespawnEnabled = config.autorespawnEnabled,
+            fastspawn = config.fastspawn,
+            animations = config.animations,
+            anim_speed = config.anim_speed,
+            R15 = config.R15,
+            tbot_enabled = config.tbot.enabled,
+            tbot_targetPart = config.tbot.targetPart,
+            tbot_fovRadius = config.tbot.fovRadius,
+            tbot_hitChance = config.tbot.hitChance,
+            tbot_delay = config.tbot.delay,
+            tbot_wallCheck = config.tbot.wallCheck,
+            tbot_holdToShoot = config.tbot.holdToShoot,
+            tbot_holdKey = config.tbot.holdKey,
+            bhop_enabled = config.bhop.enabled,
+            bhop_jumpDelay = config.bhop.jumpDelay,
+            bhop_quickToggleEnabled = config.bhop.quickToggleEnabled,
+            bhop_quickToggleDraggable = config.bhop.quickToggleDraggable,
+            antiafk = config.antiafk,
+            Viewing = config.Viewing,
+            camYOffsetEnabled = config.camYOffsetEnabled,
+            camYOffsetValue = config.camYOffsetValue,
+            Keybinds = config.Keybinds,
+            KeybindsEnabled = config.KeybindsEnabled,
+            HoldKeysEnabled = config.HoldKeysEnabled,
+            varibz_CameraDistance = config.varibz.CameraDistance,
+        }
+    }
+    
+    local success, encoded = pcall(function()
+        return game:GetService("HttpService"):JSONEncode(configToSave)
+    end)
+    
+    if not success then
+        WindUI:Notify({
+            Title = "Save System",
+            Content = "Failed to encode save data!",
+            Icon = "x",
+            Duration = 2
+        })
+        return false
+    end
+    
+    if not isfolder(SaveSystem.Folder) then
+        pcall(function() makefolder(SaveSystem.Folder) end)
+    end
+    
+    local path = getSavePath(saveName)
+    local success, err = pcall(function()
+        writefile(path, encoded)
+    end)
+    
+    if success then
+        WindUI:Notify({
+            Title = "Save System",
+            Content = "Saved '" .. saveName .. "' successfully!",
+            Icon = "check",
+            Duration = 2
+        })
+        return true
+    else
+        WindUI:Notify({
+            Title = "Save System",
+            Content = "Failed to save: " .. tostring(err),
+            Icon = "x",
+            Duration = 2
+        })
+        return false
+    end
+end
+
+local function deleteSave(saveName)
+    if not saveName or saveName == "" then
+        WindUI:Notify({
+            Title = "Save System",
+            Content = "Please enter a save name to delete!",
+            Icon = "x",
+            Duration = 2
+        })
+        return false
+    end
+    
+    local path = getSavePath(saveName)
+    if not isfile(path) then
+        WindUI:Notify({
+            Title = "Save System",
+            Content = "Save '" .. saveName .. "' not found!",
+            Icon = "x",
+            Duration = 2
+        })
+        return false
+    end
+    
+    local success, err = pcall(function()
+        delfile(path)
+    end)
+    
+    if success then
+        WindUI:Notify({
+            Title = "Save System",
+            Content = "Deleted '" .. saveName .. "' successfully!",
+            Icon = "check",
+            Duration = 2
+        })
+        return true
+    else
+        WindUI:Notify({
+            Title = "Save System",
+            Content = "Failed to delete: " .. tostring(err),
+            Icon = "x",
+            Duration = 2
+        })
+        return false
+    end
+end
+
+local function loadSave(saveName)
+    if not saveName or saveName == "" then
+        WindUI:Notify({
+            Title = "Save System",
+            Content = "Please enter a save name to load!",
+            Icon = "x",
+            Duration = 2
+        })
+        return false
+    end
+    
+    local data = loadSaveData(saveName)
+    if not data or not data.config then
+        WindUI:Notify({
+            Title = "Save System",
+            Content = "Save '" .. saveName .. "' not found or corrupted!",
+            Icon = "x",
+            Duration = 2
+        })
+        return false
+    end
+    
+    local cfg = data.config
+    if cfg.masterTeamTarget then config.masterTeamTarget = cfg.masterTeamTarget end
+    if cfg.masterTarget then config.masterTarget = cfg.masterTarget end
+    if cfg.masterGetTarget then config.masterGetTarget = cfg.masterGetTarget end
+    if cfg.targetSeenSwitchRate then config.targetSeenSwitchRate = cfg.targetSeenSwitchRate end
+    if cfg.ignoreForcefield ~= nil then config.ignoreForcefield = cfg.ignoreForcefield end
+    if cfg.autoFarmEnabled ~= nil then config.autoFarmEnabled = cfg.autoFarmEnabled end
+    if cfg.autoFarmWallCheck ~= nil then config.autoFarmWallCheck = cfg.autoFarmWallCheck end
+    if cfg.autoFarmDistance then config.autoFarmDistance = cfg.autoFarmDistance end
+    if cfg.autoFarmMaxRange then config.autoFarmMaxRange = cfg.autoFarmMaxRange end
+    if cfg.autoFarmVerticalOffset then config.autoFarmVerticalOffset = cfg.autoFarmVerticalOffset end
+    if cfg.autoFarmTargetPart then config.autoFarmTargetPart = cfg.autoFarmTargetPart end
+    if cfg.gp then config.gp = cfg.gp end
+    if cfg.QuickToggles ~= nil then config.QuickToggles = cfg.QuickToggles end
+    if cfg.QTDrag ~= nil then config.QTDrag = cfg.QTDrag end
+    if cfg.espMasterEnabled ~= nil then config.espMasterEnabled = cfg.espMasterEnabled end
+    if cfg.prefHighlightESP ~= nil then config.prefHighlightESP = cfg.prefHighlightESP end
+    if cfg.prefTextESP ~= nil then config.prefTextESP = cfg.prefTextESP end
+    if cfg.prefBoxESP ~= nil then config.prefBoxESP = cfg.prefBoxESP end
+    if cfg.prefHealthESP ~= nil then config.prefHealthESP = cfg.prefHealthESP end
+    if cfg.prefHeadDotESP ~= nil then config.prefHeadDotESP = cfg.prefHeadDotESP end
+    if cfg.lineESPEnabled ~= nil then config.lineESPEnabled = cfg.lineESPEnabled end
+    if cfg.lineESPOnlyTarget ~= nil then config.lineESPOnlyTarget = cfg.lineESPOnlyTarget end
+    if cfg.lineStartPosition then config.lineStartPosition = cfg.lineStartPosition end
+    if cfg.prefColorByHealth ~= nil then config.prefColorByHealth = cfg.prefColorByHealth end
+    if cfg.espc then config.espc = cfg.espc end
+    if cfg.esptargetc then config.esptargetc = cfg.esptargetc end
+    if cfg.espteamc then config.espteamc = cfg.espteamc end
+    if cfg.lineColor then config.lineColor = cfg.lineColor end
+    if cfg.fovc then config.fovc = cfg.fovc end
+    if cfg.fovct then config.fovct = cfg.fovct end
+    if cfg.SA2_FovColor then config.SA2_FovColor = cfg.SA2_FovColor end
+    if cfg.SA2_FovColourTarget then config.SA2_FovColourTarget = cfg.SA2_FovColourTarget end
+    if cfg.tbot_fovColor then config.tbot.fovColor = cfg.tbot_fovColor end
+    if cfg.hitboxColor then config.hitboxColor = cfg.hitboxColor end
+    if cfg.visualizer_color then config.visualizer.color = cfg.visualizer_color end
+    if cfg.LowRender ~= nil then config.LowRender = cfg.LowRender end
+    if cfg.antiAimEnabled ~= nil then config.antiAimEnabled = cfg.antiAimEnabled end
+    if cfg.raycastAntiAim ~= nil then config.raycastAntiAim = cfg.raycastAntiAim end
+    if cfg.antiAimAbovePlayer ~= nil then config.antiAimAbovePlayer = cfg.antiAimAbovePlayer end
+    if cfg.antiAimBehindPlayer ~= nil then config.antiAimBehindPlayer = cfg.antiAimBehindPlayer end
+    if cfg.antiAimOrbitEnabled ~= nil then config.antiAimOrbitEnabled = cfg.antiAimOrbitEnabled end
+    if cfg.antiAimTPDistance then config.antiAimTPDistance = cfg.antiAimTPDistance end
+    if cfg.antiAimAboveHeight then config.antiAimAboveHeight = cfg.antiAimAboveHeight end
+    if cfg.antiAimBehindDistance then config.antiAimBehindDistance = cfg.antiAimBehindDistance end
+    if cfg.antiAimOrbitSpeed then config.antiAimOrbitSpeed = cfg.antiAimOrbitSpeed end
+    if cfg.antiAimOrbitRadius then config.antiAimOrbitRadius = cfg.antiAimOrbitRadius end
+    if cfg.antiAimOrbitHeight then config.antiAimOrbitHeight = cfg.antiAimOrbitHeight end
+    if cfg.spinbot_enabled ~= nil then config.spinbot.enabled = cfg.spinbot_enabled end
+    if cfg.spinbot_speed then config.spinbot.speed = cfg.spinbot_speed end
+    if cfg.aimbotEnabled ~= nil then config.aimbotEnabled = cfg.aimbotEnabled end
+    if cfg.aimbotWallCheck ~= nil then config.aimbotWallCheck = cfg.aimbotWallCheck end
+    if cfg.aimbot360Enabled ~= nil then config.aimbot360Enabled = cfg.aimbot360Enabled end
+    if cfg.aimbotTargetPart then config.aimbotTargetPart = cfg.aimbotTargetPart end
+    if cfg.aimbotStrength then config.aimbotStrength = cfg.aimbotStrength end
+    if cfg.aimbotFOVSize then config.aimbotFOVSize = cfg.aimbotFOVSize end
+    if cfg.startsa ~= nil then config.startsa = cfg.startsa end
+    if cfg.wallc ~= nil then config.wallc = cfg.wallc end
+    if cfg.scaleToScreen ~= nil then config.scaleToScreen = cfg.scaleToScreen end
+    if cfg.stsdistance then config.stsdistance = cfg.stsdistance end
+    if cfg.bodypart then config.bodypart = cfg.bodypart end
+    if cfg.hitchance then config.hitchance = cfg.hitchance end
+    if cfg.fovsize then config.fovsize = cfg.fovsize end
+    if cfg.hbtrans then config.hbtrans = cfg.hbtrans end
+    if cfg.SA2_Enabled ~= nil then config.SA2_Enabled = cfg.SA2_Enabled end
+    if cfg.SA2_Wallcheck ~= nil then config.SA2_Wallcheck = cfg.SA2_Wallcheck end
+    if cfg.SA2_WallbangEnabled ~= nil then config.SA2_WallbangEnabled = cfg.SA2_WallbangEnabled end
+    if cfg.SA2_ThreeSixtyMode ~= nil then config.SA2_ThreeSixtyMode = cfg.SA2_ThreeSixtyMode end
+    if cfg.SA2_Method then config.SA2_Method = cfg.SA2_Method end
+    if cfg.SA2_TargetPart then config.SA2_TargetPart = cfg.SA2_TargetPart end
+    if cfg.SA2_HitChance then config.SA2_HitChance = cfg.SA2_HitChance end
+    if cfg.SA2_FovRadius then config.SA2_FovRadius = cfg.SA2_FovRadius end
+    if cfg.SA2_TargetRange then config.SA2_TargetRange = cfg.SA2_TargetRange end
+    if cfg.hitboxEnabled ~= nil then config.hitboxEnabled = cfg.hitboxEnabled end
+    if cfg.hitboxTeamTarget then config.hitboxTeamTarget = cfg.hitboxTeamTarget end
+    if cfg.hitboxSize then config.hitboxSize = cfg.hitboxSize end
+    if cfg.reach_enabled ~= nil then config.reach.enabled = cfg.reach_enabled end
+    if cfg.reach_type then config.reach.type = cfg.reach_type end
+    if cfg.reach_distance then config.reach.distance = cfg.reach_distance end
+    if cfg.visualizer_enabled ~= nil then config.visualizer.enabled = cfg.visualizer_enabled end
+    if cfg.visualizer_material then config.visualizer.material = cfg.visualizer_material end
+    if cfg.visualizer_transparency then config.visualizer.transparency = cfg.visualizer_transparency end
+    if cfg.reach_autoSwing ~= nil then config.reach.autoSwing.enabled = cfg.reach_autoSwing end
+    if cfg.reach_autoSwing_delay then config.reach.autoSwing.delay = cfg.reach_autoSwing_delay end
+    if cfg.clientMasterEnabled ~= nil then config.clientMasterEnabled = cfg.clientMasterEnabled end
+    if cfg.clientNoclipEnabled ~= nil then config.clientNoclipEnabled = cfg.clientNoclipEnabled end
+    if cfg.clientWalkEnabled ~= nil then config.clientWalkEnabled = cfg.clientWalkEnabled end
+    if cfg.clientJumpEnabled ~= nil then config.clientJumpEnabled = cfg.clientJumpEnabled end
+    if cfg.clientCFrameWalkToggle ~= nil then config.clientCFrameWalkToggle = cfg.clientCFrameWalkToggle end
+    if cfg.clientWalkSpeed then config.clientWalkSpeed = cfg.clientWalkSpeed end
+    if cfg.clientJumpPower then config.clientJumpPower = cfg.clientJumpPower end
+    if cfg.clientCFrameSpeed then config.clientCFrameSpeed = cfg.clientCFrameSpeed end
+    if cfg.trussEnabled ~= nil then config.trussEnabled = cfg.trussEnabled end
+    if cfg.airwalkEnabled ~= nil then config.airwalkEnabled = cfg.airwalkEnabled end
+    if cfg.autorespawnEnabled ~= nil then config.autorespawnEnabled = cfg.autorespawnEnabled end
+    if cfg.fastspawn ~= nil then config.fastspawn = cfg.fastspawn end
+    if cfg.animations ~= nil then config.animations = cfg.animations end
+    if cfg.anim_speed then config.anim_speed = cfg.anim_speed end
+    if cfg.R15 ~= nil then config.R15 = cfg.R15 end
+    if cfg.tbot_enabled ~= nil then config.tbot.enabled = cfg.tbot_enabled end
+    if cfg.tbot_targetPart then config.tbot.targetPart = cfg.tbot_targetPart end
+    if cfg.tbot_fovRadius then config.tbot.fovRadius = cfg.tbot_fovRadius end
+    if cfg.tbot_hitChance then config.tbot.hitChance = cfg.tbot_hitChance end
+    if cfg.tbot_delay then config.tbot.delay = cfg.tbot_delay end
+    if cfg.tbot_wallCheck ~= nil then config.tbot.wallCheck = cfg.tbot_wallCheck end
+    if cfg.tbot_holdToShoot ~= nil then config.tbot.holdToShoot = cfg.tbot_holdToShoot end
+    if cfg.tbot_holdKey then config.tbot.holdKey = cfg.tbot_holdKey end
+    if cfg.bhop_enabled ~= nil then config.bhop.enabled = cfg.bhop_enabled end
+    if cfg.bhop_jumpDelay then config.bhop.jumpDelay = cfg.bhop_jumpDelay end
+    if cfg.bhop_quickToggleEnabled ~= nil then config.bhop.quickToggleEnabled = cfg.bhop_quickToggleEnabled end
+    if cfg.bhop_quickToggleDraggable ~= nil then config.bhop.quickToggleDraggable = cfg.bhop_quickToggleDraggable end
+    if cfg.antiafk ~= nil then config.antiafk = cfg.antiafk end
+    if cfg.Viewing ~= nil then config.Viewing = cfg.Viewing end
+    if cfg.camYOffsetEnabled ~= nil then config.camYOffsetEnabled = cfg.camYOffsetEnabled end
+    if cfg.camYOffsetValue then config.camYOffsetValue = cfg.camYOffsetValue end
+    if cfg.Keybinds then
+        for key, value in pairs(cfg.Keybinds) do
+            config.Keybinds[key] = value
+        end
+    end
+    if cfg.KeybindsEnabled ~= nil then config.KeybindsEnabled = cfg.KeybindsEnabled end
+    if cfg.HoldKeysEnabled ~= nil then config.HoldKeysEnabled = cfg.HoldKeysEnabled end
+    if cfg.varibz_CameraDistance then config.varibz.CameraDistance = cfg.varibz_CameraDistance end
+    
+    SaveSystem.CurrentSave = saveName
+    
+    updateTeamTargetModes()
+    syncSilentAimWithMaster()
+    
+    if config.aimbotEnabled and not config.aimbotFOVRing then
+        aimbotfov()
+    end
+    if config.aimbot360Enabled then
+        toggle360Aimbot(true)
+    end
+    
+    WindUI:Notify({
+        Title = "Save System",
+        Content = "Loaded '" .. saveName .. "' successfully!",
+        Icon = "check",
+        Duration = 3
+    })
+    
+    return true
+end
+
+local function updateSaveListParagraph()
+    local saves = getSaveList()
+    local saveText = "Available Saves:\n"
+    
+    if #saves == 0 then
+        saveText = saveText .. "  No saves found"
+    else
+        for i, save in ipairs(saves) do
+            local isCurrent = (save == SaveSystem.CurrentSave)
+            saveText = saveText .. "  " .. (isCurrent and "▶ " or "• ") .. save .. (isCurrent and " (loaded)" or "") .. "\n"
+        end
+    end
+    
+    return saveText
+end
+
 function respawn(plr)
     if not config or not config.fastspawn then 
         return 
@@ -5631,7 +6084,7 @@ local nd = function()
         "sigmasigmaboug",
         "I'm a rng pop-up that picks random messages 24/7",
         "would dis script work on every gaem\nyh & noe",
-        "this script is 9000+ lines long I could be wrong but who knows :o",
+        "this script is 10000+ lines... oml :s",
         "the UI ts using is WindUi and the notification is Alurt btw I just found it from ballmart",
         "a free?! keyless?! script?! and open source?! that has silentaim?! wtf",
         "the script is randomly picking messages your not freaking out :p",
@@ -6375,6 +6828,85 @@ local Optiz = loadstring(game:HttpGet('https://raw.githubusercontent.com/hm5650/
             config.LowRender = v
         end
     })
+
+MainTab:Paragraph({
+    Title = "Save/Load",
+    Desc = "Save and load your configuration settings\n[I might forgor to add sum config 2 be supported with saves :T]",
+    Color = lightGreen
+})
+
+MainTab:Input({
+    Title = "Save Name",
+    Desc = "Enter a name for your save like blahblahagaha",
+    Placeholder = "put words here!11",
+    Value = "",
+    ClearTextOnFocus = true,
+    Callback = function(text)
+        saveInputValue = text
+    end
+})
+
+MainTab:Button({
+    Title = "New Save",
+    Desc = "Save New/Overwrite",
+    Callback = function()
+        local name = saveInputValue or ""
+        if name == "" then
+            local timestamp = os.time()
+            local date = os.date("%Y-%m-%d_%H-%M-%S", timestamp)
+            name = "Config_" .. date
+            WindUI:Notify({
+                Title = "Save System",
+                Content = "Using default name: " .. name,
+                Icon = "info",
+                Duration = 2
+            })
+        end
+        saveConfig(name)
+    end
+})
+
+MainTab:Button({
+    Title = "Load Save",
+    Desc = "Load selected save",
+    Callback = function()
+        local name = saveInputValue or ""
+        if name == "" then
+            WindUI:Notify({
+                Title = "Save System",
+                Content = "Please enter a save name to load!",
+                Icon = "x",
+                Duration = 2
+            })
+            return
+        end
+        loadSave(name)
+    end
+})
+
+MainTab:Button({
+    Title = "Delete Save",
+    Desc = "Delete selected save",
+    Callback = function()
+        local name = saveInputValue or ""
+        if name == "" then
+            WindUI:Notify({
+                Title = "Save System",
+                Content = "Please enter a save name to delete!",
+                Icon = "x",
+                Duration = 2
+            })
+            return
+        end
+        deleteSave(name)
+    end
+})
+
+MainTab:Paragraph({
+    Title = "Saves List",
+    Desc = updateSaveListParagraph() .. "\n(Refresh by reloading the script so blame windui)",
+    Color = darkGray
+})
 end
 local VisualsTab = Window:Tab({
     Title = "Visuals",
@@ -9169,6 +9701,11 @@ local InfoTab = Window:Tab({
     InfoTab:Paragraph({
         Title = "Gravel (27/06/2026)",
         Desc = "Added: Bhop in the MiscTab\nAdded: Draggable toggle for QuickToggles in MainTab\nMoved: Spinbot in the AntiAimTab\nFixed: Hitbox freezing issue\nAdded: Keybind for TriggerBot Wallcheck 'Y'\nChanged Client Keybind to 'N'\nFixed Bugs: 1",
+        Color = darkGray
+    })
+    InfoTab:Paragraph({
+        Title = "Gravel (28/06/2026)",
+        Desc = "Added: Save/Load in the MainTab :3",
         Color = darkGray
     })
 end
