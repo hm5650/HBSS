@@ -7230,7 +7230,7 @@ local nd = function()
         "alt-f4 = free rboux",
         "^_^",
         "Did you do your chores?\nyessirski!\nDid you do your chores?\nyessirskiDid you do your chores?\nyessirski!\nDid you do your chores?\nyessirski\nWhen I get home it better be clean!\nDid you do your chores?\nyessirski!\nOH! BOI WHY DID U LIE TO ME!!!\nAHHHHH",
-        "Homework?\nNah!Homework?\nNah!Homework?\nNah!Homework?\ni did it at school\nNah!Homework?\nNah!\nHomework?\nNah!\nWHY ARE YOU CLASSES PHAILING\n D:",
+        "Homework?\nNah!\nHomework?\nNah!\nHomework?\nNah!\nHomework?\ni did it at school\nNah!\nHomework?\nNah!\nHomework?\nNah!\nWHY ARE YOU CLASSES PHAILING\n AHHH D:",
         "Turkey in the Straw!",
         "本当に出口はないのか、くる、くる、くる、くる、繰り返し、繰り返し、繰り返し…\n\n\ni ain't writing allat",
         "*Stranger Things Intro*\ndustin lucas will mike...\nBURP",
