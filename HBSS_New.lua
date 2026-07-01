@@ -303,6 +303,7 @@ local config = {
     aimbot360OriginalFOV = 100,
     gp = 200,
     gp2 = 1,
+    fbenabled = false,
     targetSeenMode = "Switch",
     targetSeenSwitchRate = 0.2,
     lastTargetSwitchTime = 0,
@@ -461,6 +462,7 @@ local config = {
     },
 }
 
+
 local SaveSystem = {
     Folder = "Gravel_Saves",
     Extension = ".json",
@@ -507,7 +509,7 @@ local function loadSaveData(saveName)
     return success and decoded or nil
 end
 
-local function saveConfig(saveName)
+function saveConfig(saveName)
     if not saveName or saveName == "" then
         WindUI:Notify({
             Title = "Save System",
@@ -519,13 +521,14 @@ local function saveConfig(saveName)
     end
     
     local configToSave = {
-        version = "1.0",
+        version = "2.0",
         timestamp = os.time(),
         config = {
             masterTeamTarget = config.masterTeamTarget,
             masterTarget = config.masterTarget,
             masterGetTarget = config.masterGetTarget,
             targetSeenSwitchRate = config.targetSeenSwitchRate,
+            targetSeenMode = config.targetSeenMode,
             ignoreForcefield = config.ignoreForcefield,
             autoFarmEnabled = config.autoFarmEnabled,
             autoFarmWallCheck = config.autoFarmWallCheck,
@@ -533,7 +536,9 @@ local function saveConfig(saveName)
             autoFarmMaxRange = config.autoFarmMaxRange,
             autoFarmVerticalOffset = config.autoFarmVerticalOffset,
             autoFarmTargetPart = config.autoFarmTargetPart,
+            autoFarmMinRange = config.autoFarmMinRange,
             gp = config.gp,
+            gp2 = config.gp2,
             QuickToggles = config.QuickToggles,
             QTDrag = config.QTDrag,
             espMasterEnabled = config.espMasterEnabled,
@@ -546,17 +551,63 @@ local function saveConfig(saveName)
             lineESPOnlyTarget = config.lineESPOnlyTarget,
             lineStartPosition = config.lineStartPosition,
             prefColorByHealth = config.prefColorByHealth,
-            espc = config.espc,
-            esptargetc = config.esptargetc,
-            espteamc = config.espteamc,
-            lineColor = config.lineColor,
-            fovc = config.fovc,
-            fovct = config.fovct,
-            SA2_FovColor = config.SA2_FovColor,
-            SA2_FovColourTarget = config.SA2_FovColourTarget,
-            tbot_fovColor = config.tbot.fovColor,
-            hitboxColor = config.hitboxColor,
-            visualizer_color = config.visualizer.color,
+            espc = {
+                R = config.espc.R,
+                G = config.espc.G,
+                B = config.espc.B
+            },
+            esptargetc = {
+                R = config.esptargetc.R,
+                G = config.esptargetc.G,
+                B = config.esptargetc.B
+            },
+            espteamc = {
+                R = config.espteamc.R,
+                G = config.espteamc.G,
+                B = config.espteamc.B
+            },
+            lineColor = {
+                R = config.lineColor.R,
+                G = config.lineColor.G,
+                B = config.lineColor.B
+            },
+            fbenabled = config.fbenabled,
+            fovc = {
+                R = config.fovc.R,
+                G = config.fovc.G,
+                B = config.fovc.B
+            },
+            fovct = {
+                R = config.fovct.R,
+                G = config.fovct.G,
+                B = config.fovct.B
+            },
+            SA2_FovColor = {
+                R = config.SA2_FovColor.R,
+                G = config.SA2_FovColor.G,
+                B = config.SA2_FovColor.B
+            },
+            SA2_FovColourTarget = {
+                R = config.SA2_FovColourTarget.R,
+                G = config.SA2_FovColourTarget.G,
+                B = config.SA2_FovColourTarget.B
+            },
+            SA2_FovTransparency = config.SA2_FovTransparency,
+            tbot_fovColor = {
+                R = config.tbot.fovColor.R,
+                G = config.tbot.fovColor.G,
+                B = config.tbot.fovColor.B
+            },
+            hitboxColor = {
+                R = config.hitboxColor.R,
+                G = config.hitboxColor.G,
+                B = config.hitboxColor.B
+            },
+            visualizer_color = {
+                R = config.visualizer.color.R,
+                G = config.visualizer.color.G,
+                B = config.visualizer.color.B
+            },
             LowRender = config.LowRender,
             antiAimEnabled = config.antiAimEnabled,
             raycastAntiAim = config.raycastAntiAim,
@@ -569,6 +620,7 @@ local function saveConfig(saveName)
             antiAimOrbitSpeed = config.antiAimOrbitSpeed,
             antiAimOrbitRadius = config.antiAimOrbitRadius,
             antiAimOrbitHeight = config.antiAimOrbitHeight,
+            antiAimGetTarget = config.antiAimGetTarget,
             spinbot_enabled = config.spinbot.enabled,
             spinbot_speed = config.spinbot.speed,
             aimbotEnabled = config.aimbotEnabled,
@@ -577,6 +629,8 @@ local function saveConfig(saveName)
             aimbotTargetPart = config.aimbotTargetPart,
             aimbotStrength = config.aimbotStrength,
             aimbotFOVSize = config.aimbotFOVSize,
+            aimbotGetTarget = config.aimbotGetTarget,
+            aimbotTeamTarget = config.aimbotTeamTarget,
             startsa = config.startsa,
             wallc = config.wallc,
             scaleToScreen = config.scaleToScreen,
@@ -585,6 +639,7 @@ local function saveConfig(saveName)
             hitchance = config.hitchance,
             fovsize = config.fovsize,
             hbtrans = config.hbtrans,
+            silentGetTarget = config.silentGetTarget,
             SA2_Enabled = config.SA2_Enabled,
             SA2_Wallcheck = config.SA2_Wallcheck,
             SA2_WallbangEnabled = config.SA2_WallbangEnabled,
@@ -594,6 +649,8 @@ local function saveConfig(saveName)
             SA2_HitChance = config.SA2_HitChance,
             SA2_FovRadius = config.SA2_FovRadius,
             SA2_TargetRange = config.SA2_TargetRange,
+            SA2_TeamTarget = config.SA2_TeamTarget,
+            SA2_GetTarget = config.SA2_GetTarget,
             hitboxEnabled = config.hitboxEnabled,
             hitboxTeamTarget = config.hitboxTeamTarget,
             hitboxSize = config.hitboxSize,
@@ -620,6 +677,8 @@ local function saveConfig(saveName)
             animations = config.animations,
             anim_speed = config.anim_speed,
             R15 = config.R15,
+            Ids_R6 = config.Ids_R6,
+            Ids_R15 = config.Ids_R15,
             tbot_enabled = config.tbot.enabled,
             tbot_targetPart = config.tbot.targetPart,
             tbot_fovRadius = config.tbot.fovRadius,
@@ -628,6 +687,8 @@ local function saveConfig(saveName)
             tbot_wallCheck = config.tbot.wallCheck,
             tbot_holdToShoot = config.tbot.holdToShoot,
             tbot_holdKey = config.tbot.holdKey,
+            tbot_fovTransparency = config.tbot.fovTransparency,
+            tbot_fovVisible = config.tbot.fovVisible,
             bhop_enabled = config.bhop.enabled,
             bhop_jumpDelay = config.bhop.jumpDelay,
             bhop_quickToggleEnabled = config.bhop.quickToggleEnabled,
@@ -639,7 +700,12 @@ local function saveConfig(saveName)
             Keybinds = config.Keybinds,
             KeybindsEnabled = config.KeybindsEnabled,
             HoldKeysEnabled = config.HoldKeysEnabled,
+            HoldKeybind = config.Keybinds.HoldKeybind,
             varibz_CameraDistance = config.varibz.CameraDistance,
+            varibz_patcherwait = config.varibz.patcherwait,
+            varibz_lowpatcherwait = config.varibz.lowpatcherwait,
+            varibz_patcher = config.varibz.patcher,
+            varibz_lowpatcher = config.varibz.lowpatcher,
         }
     }
     
@@ -685,7 +751,7 @@ local function saveConfig(saveName)
     end
 end
 
-local function deleteSave(saveName)
+function deleteSave(saveName)
     if not saveName or saveName == "" then
         WindUI:Notify({
             Title = "Save System",
@@ -730,7 +796,392 @@ local function deleteSave(saveName)
     end
 end
 
-local function loadSave(saveName)
+local function deleteAllSaves()
+    local saves = getSaveList()
+    if #saves == 0 then
+        WindUI:Notify({
+            Title = "Save System",
+            Content = "No saves found to delete!",
+            Icon = "x",
+            Duration = 2
+        })
+        return false
+    end
+    
+    local confirmCount = 0
+    local maxConfirmations = 3
+    
+    local function showConfirmation()
+        WindUI:Popup({
+            Title = "Delete All Saves",
+            Icon = "trash",
+            Content = string.format(
+                "This will permanently delete ALL %d save files!\n\n" ..
+                "This action cannot be undone.\n\n" ..
+                "Confirmation %d/%d - Click 'Yes' to proceed",
+                #saves,
+                confirmCount + 1,
+                maxConfirmations
+            ),
+            Buttons = {
+                {
+                    Title = "Yes",
+                    Icon = "check",
+                    Variant = "Danger",
+                    Callback = function()
+                        confirmCount = confirmCount + 1
+                        
+                        if confirmCount >= maxConfirmations then
+                            local deletedCount = 0
+                            local failedSaves = {}
+                            
+                            for _, save in ipairs(saves) do
+                                local success = deleteSave(save)
+                                if success then
+                                    deletedCount = deletedCount + 1
+                                else
+                                    table.insert(failedSaves, save)
+                                end
+                            end
+                            
+                            if deletedCount > 0 then
+                                WindUI:Notify({
+                                    Title = "Save System",
+                                    Content = string.format(
+                                        "Deleted %d/%d saves successfully!",
+                                        deletedCount,
+                                        #saves
+                                    ),
+                                    Icon = "check",
+                                    Duration = 3
+                                })
+                            end
+                            
+                            if #failedSaves > 0 then
+                                WindUI:Notify({
+                                    Title = "Save System",
+                                    Content = "Failed to delete: " .. table.concat(failedSaves, ", "),
+                                    Icon = "x",
+                                    Duration = 3
+                                })
+                            end
+                            
+                            SaveSystem.CurrentSave = nil
+                            confirmCount = 0
+                        else
+                            showConfirmation()
+                        end
+                    end
+                },
+                {
+                    Title = "No",
+                    Icon = "x",
+                    Variant = "Secondary",
+                    Callback = function()
+                        confirmCount = 0
+                        WindUI:Notify({
+                            Title = "Save System",
+                            Content = "Delete all saves cancelled",
+                            Icon = "info",
+                            Duration = 2
+                        })
+                    end
+                }
+            }
+        })
+    end
+    
+    showConfirmation()
+    return true
+end
+
+local function applyFeatureAfterLoad(featureName, state, ...)
+    local args = {...}
+    pcall(function()
+        if featureName == "espMaster" then
+            applyESPMaster(state)
+        elseif featureName == "hitbox" then
+            if state then
+                applyhb()
+            else
+                for player, _ in pairs(config.hitboxExpandedParts) do
+                    restoreTorso(player)
+                end
+                config.hitboxExpandedParts = {}
+            end
+        elseif featureName == "autoFarm" then
+            if state then
+                autoFarmProcess()
+            else
+                stopAutoFarm()
+            end
+        elseif featureName == "aimbot" then
+            handleAimbotToggle(state)
+        elseif featureName == "silentAim" then
+            config.startsa = state
+            if gui.RingHolder then
+                gui.RingHolder.Visible = state
+            end
+            if not state then
+                for pl, _ in pairs(config.activeApplied) do
+                    restorePartForPlayer(pl)
+                end
+            end
+        elseif featureName == "clientMaster" then
+            applyClientMaster(state)
+        elseif featureName == "antiAim" then
+            config.antiAimEnabled = state
+            if not state then
+                returnToOriginalPosition()
+            end
+        elseif featureName == "triggerBot" then
+            toggleTriggerBot(state)
+        elseif featureName == "bhop" then
+            toggleBHop(state)
+        elseif featureName == "spinbot" then
+            config.spinbot.enabled = state
+            if state then
+                spinbotUpdate()
+            else
+                if config.varibz.spinbotConnection then
+                    config.varibz.spinbotConnection:Disconnect()
+                    config.varibz.spinbotConnection = nil
+                end
+                if localPlayer.Character then
+                    local rootPart = localPlayer.Character:FindFirstChild("HumanoidRootPart")
+                    if rootPart then
+                        local pos = rootPart.Position
+                        rootPart.CFrame = CFrame.new(pos)
+                    end
+                end
+            end
+        elseif featureName == "silentAimHK" then
+            config.SA2_Enabled = state
+        elseif featureName == "viewing" then
+            config.Viewing = state
+            if state then
+                local tempState = config.Viewing
+                config.Viewing = false
+                task.wait(0.05)
+                config.Viewing = tempState
+                pcall(function()
+                    local cb = MiscTab and MiscTab.Callbacks and MiscTab.Callbacks.viewing
+                    if cb then cb(state) end
+                end)
+            end
+        elseif featureName == "camYOffset" then
+            config.camYOffsetEnabled = state
+            if state then
+                if not config.camYOffsetConnection then
+                    config.camYOffsetConnection = game:GetService("RunService").RenderStepped:Connect(function()
+                        if config.camYOffsetEnabled then
+                            local cam = workspace.CurrentCamera
+                            if cam then
+                                if not config.camYOffsetOriginalCFrame then
+                                    config.camYOffsetOriginalCFrame = cam.CFrame
+                                end
+                                local offset = Vector3.new(0, config.camYOffsetValue, 0)
+                                local newCFrame = CFrame.new(
+                                    cam.CFrame.Position + offset,
+                                    cam.CFrame.Position + offset + cam.CFrame.LookVector
+                                )
+                                cam.CFrame = newCFrame
+                            end
+                        end
+                    end)
+                end
+            else
+                if config.camYOffsetConnection then
+                    config.camYOffsetConnection:Disconnect()
+                    config.camYOffsetConnection = nil
+                end
+                config.camYOffsetOriginalCFrame = nil
+            end
+        elseif featureName == "truss" then
+            config.trussEnabled = state
+            if state then
+                local player = game.Players.LocalPlayer
+                local character = player.Character
+                if character then
+                    local rootPart = character:FindFirstChild("HumanoidRootPart")
+                    if rootPart then
+                        if config.trussPart then
+                            config.trussPart:Destroy()
+                            config.trussPart = nil
+                        end
+                        if config.trussConnection then
+                            config.trussConnection:Disconnect()
+                            config.trussConnection = nil
+                        end
+                        config.trussPart = Instance.new("TrussPart")
+                        config.trussPart.Transparency = 1
+                        config.trussPart.Size = Vector3.new(2, 10, 2)
+                        config.trussPart.Parent = workspace
+                        config.trussPart.CanCollide = true
+                        config.trussPart.Name = "TrussPart_" .. tostring(math.random(10000, 99999))
+                        config.trussConnection = game:GetService("RunService").Heartbeat:Connect(function()
+                            if config.trussEnabled and config.trussPart and rootPart and rootPart.Parent then
+                                config.trussPart.CFrame = rootPart.CFrame * CFrame.new(0, 0, -1.5)
+                            else
+                                if config.trussConnection then
+                                    config.trussConnection:Disconnect()
+                                    config.trussConnection = nil
+                                end
+                            end
+                        end)
+                    end
+                end
+            else
+                if config.trussPart then
+                    config.trussPart:Destroy()
+                    config.trussPart = nil
+                end
+                if config.trussConnection then
+                    config.trussConnection:Disconnect()
+                    config.trussConnection = nil
+                end
+            end
+        elseif featureName == "airwalk" then
+            config.airwalkEnabled = state
+            if state then
+                local character = game.Players.LocalPlayer.Character
+                if character then
+                    local rootPart = character:FindFirstChild("HumanoidRootPart")
+                    if rootPart then
+                        config.airwalkPart = Instance.new("Part")
+                        config.airwalkPart.Transparency = 1
+                        config.airwalkPart.Size = Vector3.new(7, 2, 3)
+                        config.airwalkPart.Parent = workspace
+                        config.airwalkPart.CanCollide = true
+                        config.airwalkPart.Anchored = true
+                        config.airwalkPart.Name = "AirwalkPlatform_" .. tostring(math.random(10000, 99999))
+                        if config.airwalkConnection then
+                            config.airwalkConnection:Disconnect()
+                            config.airwalkConnection = nil
+                        end
+                        config.airwalkConnection = game:GetService("RunService").Heartbeat:Connect(function()
+                            if config.airwalkEnabled and config.airwalkPart and rootPart and rootPart.Parent then
+                                config.airwalkPart.CFrame = rootPart.CFrame + Vector3.new(0, -4, 0)
+                            else
+                                if config.airwalkConnection then
+                                    config.airwalkConnection:Disconnect()
+                                    config.airwalkConnection = nil
+                                end
+                            end
+                        end)
+                    end
+                end
+            else
+                if config.airwalkPart then
+                    config.airwalkPart:Destroy()
+                    config.airwalkPart = nil
+                end
+                if config.airwalkConnection then
+                    config.airwalkConnection:Disconnect()
+                    config.airwalkConnection = nil
+                end
+            end
+        elseif featureName == "autorespawn" then
+            config.autorespawnEnabled = state
+            if state then
+                config.autorespawnConnections = config.autorespawnConnections or {}
+                config.autorespawnDeathPosition = nil
+                local player = game.Players.LocalPlayer
+                local function setupRespawn(character)
+                    local humanoid = character:WaitForChild("Humanoid")
+                    local rootPart = character:WaitForChild("HumanoidRootPart")
+                    if config.autorespawnConnections.died then
+                        config.autorespawnConnections.died:Disconnect()
+                    end
+                    config.autorespawnConnections.died = humanoid.Died:Connect(function()
+                        if config.autorespawnEnabled then
+                            config.autorespawnDeathPosition = rootPart.CFrame
+                        end
+                    end)
+                end
+                local function teleportToDeathPosition(newCharacter)
+                    if config.autorespawnEnabled and config.autorespawnDeathPosition then
+                        local newRoot = newCharacter:WaitForChild("HumanoidRootPart")
+                        newRoot.CFrame = config.autorespawnDeathPosition
+                        config.autorespawnDeathPosition = nil
+                    end
+                end
+                if player.Character then
+                    setupRespawn(player.Character)
+                end
+                if config.autorespawnConnections.characterAdded then
+                    config.autorespawnConnections.characterAdded:Disconnect()
+                end
+                config.autorespawnConnections.characterAdded = player.CharacterAdded:Connect(function(character)
+                    if config.autorespawnEnabled then
+                        character:WaitForChild("Humanoid")
+                        character:WaitForChild("HumanoidRootPart")
+                        teleportToDeathPosition(character)
+                        setupRespawn(character)
+                    end
+                end)
+            else
+                config.autorespawnDeathPosition = nil
+                if config.autorespawnConnections then
+                    for _, connection in pairs(config.autorespawnConnections) do
+                        if connection then
+                            connection:Disconnect()
+                        end
+                    end
+                    config.autorespawnConnections = {}
+                end
+            end
+        elseif featureName == "fullbright" then
+            config.fbenabled = state
+            if state then
+                local lighting = game:GetService("Lighting")
+                fullBrightSettings = {
+                    Ambient = lighting.Ambient,
+                    Brightness = lighting.Brightness,
+                    ClockTime = lighting.ClockTime,
+                    FogEnd = lighting.FogEnd,
+                    GlobalShadows = lighting.GlobalShadows,
+                    OutdoorAmbient = lighting.OutdoorAmbient
+                }
+                lighting.Ambient = Color3.fromRGB(255, 255, 255)
+                lighting.Brightness = 2
+                lighting.FogEnd = 100000
+                lighting.GlobalShadows = false
+                lighting.OutdoorAmbient = Color3.fromRGB(128, 128, 128)
+                lighting.ClockTime = 14
+            else
+                if fullBrightSettings then
+                    local lighting = game:GetService("Lighting")
+                    for property, value in pairs(fullBrightSettings) do
+                        lighting[property] = value
+                    end
+                    fullBrightSettings = nil
+                end
+            end
+        elseif featureName == "quickToggles" then
+            config.QuickToggles = state
+            if state then
+                CreateQT()
+            else
+                KillQT()
+            end
+        elseif featureName == "bhopQuickToggle" then
+            config.bhop.quickToggleEnabled = state
+            updateBHopQuickToggle()
+        elseif featureName == "animation" then
+            config.animations = state
+            if not state then
+                stopCurrentAnimation()
+            elseif currentAnimation then
+                playAnimation(currentAnimation, config.R15)
+            end
+        elseif featureName == "antiafk" then
+            config.antiafk = state
+        end
+    end)
+end
+
+function loadSave(saveName)
     if not saveName or saveName == "" then
         WindUI:Notify({
             Title = "Save System",
@@ -751,12 +1202,163 @@ local function loadSave(saveName)
         })
         return false
     end
-    
     local cfg = data.config
+    pcall(function()
+        if config.autoFarmLoop then
+            config.autoFarmLoop:Disconnect()
+            config.autoFarmLoop = nil
+        end
+        config.autoFarmEnabled = false
+        if config.varibz.spinbotConnection then
+            config.varibz.spinbotConnection:Disconnect()
+            config.varibz.spinbotConnection = nil
+        end
+        config.spinbot.enabled = false
+        if config.isTeleported then
+            returnToOriginalPosition()
+        end
+        config.antiAimEnabled = false
+        config.antiAimAbovePlayer = false
+        config.antiAimBehindPlayer = false
+        config.antiAimOrbitEnabled = false
+        config.raycastAntiAim = false
+        if config.varibz.bhopConnection then
+            config.varibz.bhopConnection:Disconnect()
+            config.varibz.bhopConnection = nil
+        end
+        config.bhop.enabled = false
+        if config.varibz.triggerBotConnection then
+            config.varibz.triggerBotConnection:Disconnect()
+            config.varibz.triggerBotConnection = nil
+        end
+        if config.tbot.fovCircle and config.tbot.fovCircle.ScreenGui then
+            config.tbot.fovCircle.ScreenGui:Destroy()
+            config.tbot.fovCircle = nil
+        end
+        config.tbot.enabled = false
+        config.varibz.aimbot360LoopRunning = false
+        if config.varibz.aimbot360LoopTask then
+            config.varibz.aimbot360LoopTask = nil
+        end
+        config.aimbot360Enabled = false
+        config.aimbotEnabled = false
+        config.startsa = false
+        if gui.RingHolder then
+            gui.RingHolder.Visible = false
+        end
+        for pl, _ in pairs(config.activeApplied) do
+            restorePartForPlayer(pl)
+        end
+        config.SA2_Enabled = false
+        config.espMasterEnabled = false
+        for target in pairs(config.espData) do
+            removeESPLabel(target)
+        end
+        for target in pairs(config.highlightData) do
+            removeHighlightESP(target)
+        end
+        for target in pairs(config.lineESPData) do
+            removeLineESP(target)
+        end
+        config.espData = {}
+        config.highlightData = {}
+        config.lineESPData = {}
+        config.hitboxEnabled = false
+        for player, _ in pairs(config.hitboxExpandedParts) do
+            restoreTorso(player)
+        end
+        config.hitboxExpandedParts = {}
+        config.hitboxOriginalSizes = {}
+        if config.clientMasterEnabled then
+            restoreClientValues()
+        end
+        config.clientMasterEnabled = false
+        config.clientNoclipEnabled = false
+        config.clientWalkEnabled = false
+        config.clientJumpEnabled = false
+        config.clientCFrameWalkToggle = false
+        if _noclipConn then
+            _noclipConn:Disconnect()
+            _noclipConn = nil
+        end
+        if config._tpwalking then
+            TpWalkStop()
+        end
+        config.trussEnabled = false
+        if config.trussPart then
+            config.trussPart:Destroy()
+            config.trussPart = nil
+        end
+        if config.trussConnection then
+            config.trussConnection:Disconnect()
+            config.trussConnection = nil
+        end
+        config.airwalkEnabled = false
+        if config.airwalkPart then
+            config.airwalkPart:Destroy()
+            config.airwalkPart = nil
+        end
+        if config.airwalkConnection then
+            config.airwalkConnection:Disconnect()
+            config.airwalkConnection = nil
+        end
+        config.autorespawnEnabled = false
+        config.autorespawnDeathPosition = nil
+        if config.autorespawnConnections then
+            for _, connection in pairs(config.autorespawnConnections) do
+                if connection then
+                    connection:Disconnect()
+                end
+            end
+            config.autorespawnConnections = {}
+        end
+        config.Viewing = false
+        if config.varibz.ViewConnection then
+            config.varibz.ViewConnection:Disconnect()
+            config.varibz.ViewConnection = nil
+        end
+        config.camYOffsetEnabled = false
+        if config.camYOffsetConnection then
+            config.camYOffsetConnection:Disconnect()
+            config.camYOffsetConnection = nil
+        end
+        config.camYOffsetOriginalCFrame = nil
+        config.fbenabled = false
+        if fullBrightSettings then
+            local lighting = game:GetService("Lighting")
+            for property, value in pairs(fullBrightSettings) do
+                lighting[property] = value
+            end
+            fullBrightSettings = nil
+        end
+        config.QuickToggles = false
+        KillQT()
+        config.bhop.quickToggleEnabled = false
+        if config.varibz.bhopQuickToggleUI and config.varibz.bhopQuickToggleUI.ScreenGui then
+            config.varibz.bhopQuickToggleUI.ScreenGui:Destroy()
+            config.varibz.bhopQuickToggleUI = nil
+        end
+        config.animations = false
+        stopCurrentAnimation()
+        config.antiafk = false
+        config.currentTarget = nil
+        config.aimbotCurrentTarget = nil
+        config.SA2_currentTarget = nil
+        config.currentAutoFarmTarget = nil
+        config.currentAntiAimTarget = nil
+        config.autoFarmCompleted = {}
+        config.autoFarmOriginalPositions = {}
+        config.activeApplied = {}
+        config.originalSizes = {}
+        config.targethbSizes = {}
+        config.centerLocked = {}
+    end)
+    task.wait(0.2)
     if cfg.masterTeamTarget then config.masterTeamTarget = cfg.masterTeamTarget end
     if cfg.masterTarget then config.masterTarget = cfg.masterTarget end
     if cfg.masterGetTarget then config.masterGetTarget = cfg.masterGetTarget end
     if cfg.targetSeenSwitchRate then config.targetSeenSwitchRate = cfg.targetSeenSwitchRate end
+    if cfg.targetSeenMode then config.targetSeenMode = cfg.targetSeenMode end
     if cfg.ignoreForcefield ~= nil then config.ignoreForcefield = cfg.ignoreForcefield end
     if cfg.autoFarmEnabled ~= nil then config.autoFarmEnabled = cfg.autoFarmEnabled end
     if cfg.autoFarmWallCheck ~= nil then config.autoFarmWallCheck = cfg.autoFarmWallCheck end
@@ -764,7 +1366,9 @@ local function loadSave(saveName)
     if cfg.autoFarmMaxRange then config.autoFarmMaxRange = cfg.autoFarmMaxRange end
     if cfg.autoFarmVerticalOffset then config.autoFarmVerticalOffset = cfg.autoFarmVerticalOffset end
     if cfg.autoFarmTargetPart then config.autoFarmTargetPart = cfg.autoFarmTargetPart end
+    if cfg.autoFarmMinRange then config.autoFarmMinRange = cfg.autoFarmMinRange end
     if cfg.gp then config.gp = cfg.gp end
+    if cfg.gp2 then config.gp2 = cfg.gp2 end
     if cfg.QuickToggles ~= nil then config.QuickToggles = cfg.QuickToggles end
     if cfg.QTDrag ~= nil then config.QTDrag = cfg.QTDrag end
     if cfg.espMasterEnabled ~= nil then config.espMasterEnabled = cfg.espMasterEnabled end
@@ -777,17 +1381,42 @@ local function loadSave(saveName)
     if cfg.lineESPOnlyTarget ~= nil then config.lineESPOnlyTarget = cfg.lineESPOnlyTarget end
     if cfg.lineStartPosition then config.lineStartPosition = cfg.lineStartPosition end
     if cfg.prefColorByHealth ~= nil then config.prefColorByHealth = cfg.prefColorByHealth end
-    if cfg.espc then config.espc = cfg.espc end
-    if cfg.esptargetc then config.esptargetc = cfg.esptargetc end
-    if cfg.espteamc then config.espteamc = cfg.espteamc end
-    if cfg.lineColor then config.lineColor = cfg.lineColor end
-    if cfg.fovc then config.fovc = cfg.fovc end
-    if cfg.fovct then config.fovct = cfg.fovct end
-    if cfg.SA2_FovColor then config.SA2_FovColor = cfg.SA2_FovColor end
-    if cfg.SA2_FovColourTarget then config.SA2_FovColourTarget = cfg.SA2_FovColourTarget end
-    if cfg.tbot_fovColor then config.tbot.fovColor = cfg.tbot_fovColor end
-    if cfg.hitboxColor then config.hitboxColor = cfg.hitboxColor end
-    if cfg.visualizer_color then config.visualizer.color = cfg.visualizer_color end
+    
+    if cfg.espc then
+        config.espc = Color3.new(cfg.espc.R or 1, cfg.espc.G or 0.71, cfg.espc.B or 0.76)
+    end
+    if cfg.esptargetc then
+        config.esptargetc = Color3.new(cfg.esptargetc.R or 1, cfg.esptargetc.G or 1, cfg.esptargetc.B or 0)
+    end
+    if cfg.espteamc then
+        config.espteamc = Color3.new(cfg.espteamc.R or 0, cfg.espteamc.G or 1, cfg.espteamc.B or 0)
+    end
+    if cfg.lineColor then
+        config.lineColor = Color3.new(cfg.lineColor.R or 1, cfg.lineColor.G or 1, cfg.lineColor.B or 1)
+    end
+    if cfg.fbenabled ~= nil then config.fbenabled = cfg.fbenabled end
+    if cfg.fovc then
+        config.fovc = Color3.new(cfg.fovc.R or 0.39, cfg.fovc.G or 0, cfg.fovc.B or 0)
+    end
+    if cfg.fovct then
+        config.fovct = Color3.new(cfg.fovct.R or 1, cfg.fovct.G or 1, cfg.fovct.B or 0)
+    end
+    if cfg.SA2_FovColor then
+        config.SA2_FovColor = Color3.new(cfg.SA2_FovColor.R or 0, cfg.SA2_FovColor.G or 0, cfg.SA2_FovColor.B or 0)
+    end
+    if cfg.SA2_FovColourTarget then
+        config.SA2_FovColourTarget = Color3.new(cfg.SA2_FovColourTarget.R or 1, cfg.SA2_FovColourTarget.G or 1, cfg.SA2_FovColourTarget.B or 0)
+    end
+    if cfg.SA2_FovTransparency then config.SA2_FovTransparency = cfg.SA2_FovTransparency end
+    if cfg.tbot_fovColor then
+        config.tbot.fovColor = Color3.new(cfg.tbot_fovColor.R or 1, cfg.tbot_fovColor.G or 0, cfg.tbot_fovColor.B or 0)
+    end
+    if cfg.hitboxColor then
+        config.hitboxColor = Color3.new(cfg.hitboxColor.R or 1, cfg.hitboxColor.G or 1, cfg.hitboxColor.B or 1)
+    end
+    if cfg.visualizer_color then
+        config.visualizer.color = Color3.new(cfg.visualizer_color.R or 1, cfg.visualizer_color.G or 0, cfg.visualizer_color.B or 0)
+    end
     if cfg.LowRender ~= nil then config.LowRender = cfg.LowRender end
     if cfg.antiAimEnabled ~= nil then config.antiAimEnabled = cfg.antiAimEnabled end
     if cfg.raycastAntiAim ~= nil then config.raycastAntiAim = cfg.raycastAntiAim end
@@ -800,6 +1429,7 @@ local function loadSave(saveName)
     if cfg.antiAimOrbitSpeed then config.antiAimOrbitSpeed = cfg.antiAimOrbitSpeed end
     if cfg.antiAimOrbitRadius then config.antiAimOrbitRadius = cfg.antiAimOrbitRadius end
     if cfg.antiAimOrbitHeight then config.antiAimOrbitHeight = cfg.antiAimOrbitHeight end
+    if cfg.antiAimGetTarget then config.antiAimGetTarget = cfg.antiAimGetTarget end
     if cfg.spinbot_enabled ~= nil then config.spinbot.enabled = cfg.spinbot_enabled end
     if cfg.spinbot_speed then config.spinbot.speed = cfg.spinbot_speed end
     if cfg.aimbotEnabled ~= nil then config.aimbotEnabled = cfg.aimbotEnabled end
@@ -808,6 +1438,8 @@ local function loadSave(saveName)
     if cfg.aimbotTargetPart then config.aimbotTargetPart = cfg.aimbotTargetPart end
     if cfg.aimbotStrength then config.aimbotStrength = cfg.aimbotStrength end
     if cfg.aimbotFOVSize then config.aimbotFOVSize = cfg.aimbotFOVSize end
+    if cfg.aimbotGetTarget then config.aimbotGetTarget = cfg.aimbotGetTarget end
+    if cfg.aimbotTeamTarget then config.aimbotTeamTarget = cfg.aimbotTeamTarget end
     if cfg.startsa ~= nil then config.startsa = cfg.startsa end
     if cfg.wallc ~= nil then config.wallc = cfg.wallc end
     if cfg.scaleToScreen ~= nil then config.scaleToScreen = cfg.scaleToScreen end
@@ -816,6 +1448,7 @@ local function loadSave(saveName)
     if cfg.hitchance then config.hitchance = cfg.hitchance end
     if cfg.fovsize then config.fovsize = cfg.fovsize end
     if cfg.hbtrans then config.hbtrans = cfg.hbtrans end
+    if cfg.silentGetTarget then config.silentGetTarget = cfg.silentGetTarget end
     if cfg.SA2_Enabled ~= nil then config.SA2_Enabled = cfg.SA2_Enabled end
     if cfg.SA2_Wallcheck ~= nil then config.SA2_Wallcheck = cfg.SA2_Wallcheck end
     if cfg.SA2_WallbangEnabled ~= nil then config.SA2_WallbangEnabled = cfg.SA2_WallbangEnabled end
@@ -825,6 +1458,8 @@ local function loadSave(saveName)
     if cfg.SA2_HitChance then config.SA2_HitChance = cfg.SA2_HitChance end
     if cfg.SA2_FovRadius then config.SA2_FovRadius = cfg.SA2_FovRadius end
     if cfg.SA2_TargetRange then config.SA2_TargetRange = cfg.SA2_TargetRange end
+    if cfg.SA2_TeamTarget then config.SA2_TeamTarget = cfg.SA2_TeamTarget end
+    if cfg.SA2_GetTarget then config.SA2_GetTarget = cfg.SA2_GetTarget end
     if cfg.hitboxEnabled ~= nil then config.hitboxEnabled = cfg.hitboxEnabled end
     if cfg.hitboxTeamTarget then config.hitboxTeamTarget = cfg.hitboxTeamTarget end
     if cfg.hitboxSize then config.hitboxSize = cfg.hitboxSize end
@@ -851,6 +1486,8 @@ local function loadSave(saveName)
     if cfg.animations ~= nil then config.animations = cfg.animations end
     if cfg.anim_speed then config.anim_speed = cfg.anim_speed end
     if cfg.R15 ~= nil then config.R15 = cfg.R15 end
+    if cfg.Ids_R6 then config.Ids_R6 = cfg.Ids_R6 end
+    if cfg.Ids_R15 then config.Ids_R15 = cfg.Ids_R15 end
     if cfg.tbot_enabled ~= nil then config.tbot.enabled = cfg.tbot_enabled end
     if cfg.tbot_targetPart then config.tbot.targetPart = cfg.tbot_targetPart end
     if cfg.tbot_fovRadius then config.tbot.fovRadius = cfg.tbot_fovRadius end
@@ -859,6 +1496,8 @@ local function loadSave(saveName)
     if cfg.tbot_wallCheck ~= nil then config.tbot.wallCheck = cfg.tbot_wallCheck end
     if cfg.tbot_holdToShoot ~= nil then config.tbot.holdToShoot = cfg.tbot_holdToShoot end
     if cfg.tbot_holdKey then config.tbot.holdKey = cfg.tbot_holdKey end
+    if cfg.tbot_fovTransparency then config.tbot.fovTransparency = cfg.tbot_fovTransparency end
+    if cfg.tbot_fovVisible ~= nil then config.tbot.fovVisible = cfg.tbot_fovVisible end
     if cfg.bhop_enabled ~= nil then config.bhop.enabled = cfg.bhop_enabled end
     if cfg.bhop_jumpDelay then config.bhop.jumpDelay = cfg.bhop_jumpDelay end
     if cfg.bhop_quickToggleEnabled ~= nil then config.bhop.quickToggleEnabled = cfg.bhop_quickToggleEnabled end
@@ -874,19 +1513,496 @@ local function loadSave(saveName)
     end
     if cfg.KeybindsEnabled ~= nil then config.KeybindsEnabled = cfg.KeybindsEnabled end
     if cfg.HoldKeysEnabled ~= nil then config.HoldKeysEnabled = cfg.HoldKeysEnabled end
+    if cfg.HoldKeybind then config.Keybinds.HoldKeybind = cfg.HoldKeybind end
     if cfg.varibz_CameraDistance then config.varibz.CameraDistance = cfg.varibz_CameraDistance end
-    
+    if cfg.varibz_patcherwait then config.varibz.patcherwait = cfg.varibz_patcherwait end
+    if cfg.varibz_lowpatcherwait then config.varibz.lowpatcherwait = cfg.varibz_lowpatcherwait end
+    if cfg.varibz_patcher ~= nil then config.varibz.patcher = cfg.varibz_patcher end
+    if cfg.varibz_lowpatcher ~= nil then config.varibz.lowpatcher = cfg.varibz_lowpatcher end
     SaveSystem.CurrentSave = saveName
+    pcall(function()
+        updateTeamTargetModes()
+        syncSilentAimWithMaster()
+    end)
+    pcall(function()
+        if gui.RingHolder then
+            gui.RingHolder.Size = UDim2.new(0, math.max(8, config.fovsize * 2), 0, math.max(8, config.fovsize * 2))
+            gui.RingHolder.Visible = config.startsa
+        end
+        if gui.RingStroke then
+            gui.RingStroke.Color = config.fovc
+        end
+    end)
     
-    updateTeamTargetModes()
-    syncSilentAimWithMaster()
-    
-    if config.aimbotEnabled and not config.aimbotFOVRing then
-        aimbotfov()
-    end
-    if config.aimbot360Enabled then
-        toggle360Aimbot(true)
-    end
+    pcall(function()
+        if config.aimbotFOVRing and config.aimbotFOVRing.RingFrame then
+            config.aimbotFOVRing.RingFrame.Size = UDim2.new(0, config.aimbotFOVSize * 2, 0, config.aimbotFOVSize * 2)
+            if config.aimbotEnabled and not config.aimbot360Enabled then
+                config.aimbotFOVRing.RingFrame.Visible = true
+            else
+                config.aimbotFOVRing.RingFrame.Visible = false
+            end
+        end
+    end)
+    task.wait(0.1)
+    pcall(function()
+        if config.espMasterEnabled then
+            applyESPMaster(true)
+            for _, target in ipairs(getAllTargets()) do
+                if addesp(target) then
+                    if config.prefTextESP or config.prefBoxESP or config.prefHealthESP or config.prefHeadDotESP then
+                        makeesp(target)
+                    end
+                    if config.prefHighlightESP and getTargetCharacter(target) then
+                        high(target)
+                    end
+                end
+            end
+            updateESPColors()
+        end
+    end)
+    pcall(function()
+        if config.hitboxEnabled then
+            applyhb()
+        end
+    end)
+    pcall(function()
+        if config.autoFarmEnabled then
+            autoFarmProcess()
+        end
+    end)
+    pcall(function()
+        if config.aimbotEnabled then
+            handleAimbotToggle(true)
+            if config.aimbot360Enabled then
+                toggle360Aimbot(true)
+            end
+            aimbotfov()
+            updateAimbotFOVRing()
+        end
+    end)
+    pcall(function()
+        if config.startsa then
+            if gui.RingHolder then
+                gui.RingHolder.Visible = true
+            end
+        end
+    end)
+    pcall(function()
+        if config.clientMasterEnabled then
+            applyClientMaster(true)
+        end
+    end)
+    pcall(function()
+        if config.antiAimEnabled then
+            if config.antiAimAbovePlayer then
+                config.antiAimAbovePlayer = true
+            elseif config.antiAimBehindPlayer then
+                config.antiAimBehindPlayer = true
+            elseif config.antiAimOrbitEnabled then
+                config.antiAimOrbitEnabled = true
+            elseif config.raycastAntiAim then
+                config.raycastAntiAim = true
+            end
+        end
+    end)
+    pcall(function()
+        if config.tbot.enabled then
+            toggleTriggerBot(true)
+        end
+    end)
+    pcall(function()
+        if config.bhop.enabled then
+            toggleBHop(true)
+        end
+    end)
+    pcall(function()
+        if config.spinbot.enabled then
+            spinbotUpdate()
+        end
+    end)
+    pcall(function()
+        if config.SA2_Enabled then
+            config.SA2_Enabled = true
+        end
+    end)
+    pcall(function()
+        if config.Viewing then
+            local tempView = config.Viewing
+            config.Viewing = false
+            task.wait(0.05)
+            config.Viewing = tempView
+            local function startViewing()
+                local Players = game:GetService("Players")
+                local RunService = game:GetService("RunService")
+                local Camera = workspace.CurrentCamera
+                
+                if config.varibz.ViewConnection then
+                    config.varibz.ViewConnection:Disconnect()
+                    config.varibz.ViewConnection = nil
+                end
+                
+                local function isEnemy(player)
+                    if not player or player == Players.LocalPlayer then return false end
+                    local localTeam = Players.LocalPlayer.Team
+                    local targetTeam = player.Team
+                    
+                    if config.masterTeamTarget == "All" then
+                        return true
+                    elseif config.masterTeamTarget == "Enemies" then
+                        if localTeam and targetTeam then
+                            return localTeam ~= targetTeam
+                        end
+                        return true
+                    elseif config.masterTeamTarget == "Teams" then
+                        if localTeam and targetTeam then
+                            return localTeam == targetTeam
+                        end
+                        return false
+                    end
+                    return true
+                end
+                
+                local function isNPCEnemy(model)
+                    if not model or not model:IsA("Model") then return false end
+                    if Players:GetPlayerFromCharacter(model) then return false end
+                    local humanoid = model:FindFirstChildOfClass("Humanoid")
+                    if not humanoid or humanoid.Health <= 0 then return false end
+                    if not (model:FindFirstChild("HumanoidRootPart") or model:FindFirstChild("Head")) then return false end
+                    if config.masterTeamTarget == "All" then
+                        return true
+                    elseif config.masterTeamTarget == "Enemies" then
+                        local npcTeam = model:FindFirstChild("Team")
+                        if npcTeam then
+                            local localTeam = Players.LocalPlayer.Team
+                            if localTeam and npcTeam:IsA("ObjectValue") and npcTeam.Value then
+                                return localTeam ~= npcTeam.Value
+                            end
+                        end
+                        return true
+                    elseif config.masterTeamTarget == "Teams" then
+                        local npcTeam = model:FindFirstChild("Team")
+                        if npcTeam and npcTeam:IsA("ObjectValue") and npcTeam.Value then
+                            local localTeam = Players.LocalPlayer.Team
+                            if localTeam then
+                                return localTeam == npcTeam.Value
+                            end
+                        end
+                        return false
+                    end
+                    return true
+                end
+                
+                local function GetRandomTarget()
+                    local Valid = {}
+                    local masterTarget = config.masterTarget or "Players"
+                    if masterTarget == "Players" or masterTarget == "Both" then
+                        for _, plr in ipairs(Players:GetPlayers()) do
+                            if plr ~= Players.LocalPlayer
+                                and plr.Character
+                                and plr.Character:FindFirstChild("HumanoidRootPart")
+                                and isEnemy(plr)
+                            then
+                                local humanoid = plr.Character:FindFirstChildOfClass("Humanoid")
+                                if humanoid and humanoid.Health > 0 then
+                                    if not config.ignoreForcefield or not hasForcefield(plr.Character) then
+                                        table.insert(Valid, {
+                                            type = "player",
+                                            instance = plr,
+                                            character = plr.Character
+                                        })
+                                    end
+                                end
+                            end
+                        end
+                    end
+                    if masterTarget == "NPCs" or masterTarget == "Both" then
+                        for _, obj in ipairs(workspace:GetDescendants()) do
+                            if obj:IsA("Model") and isNPCEnemy(obj) then
+                                local rootPart = obj:FindFirstChild("HumanoidRootPart") or obj:FindFirstChild("Head")
+                                if rootPart then
+                                    local humanoid = obj:FindFirstChildOfClass("Humanoid")
+                                    if humanoid and humanoid.Health > 0 then
+                                        if not config.ignoreForcefield or not hasForcefield(obj) then
+                                            table.insert(Valid, {
+                                                type = "npc",
+                                                instance = obj,
+                                                character = obj,
+                                                rootPart = rootPart
+                                            })
+                                        end
+                                    end
+                                end
+                            end
+                        end
+                    end
+                    return #Valid > 0 and Valid[math.random(1, #Valid)] or nil
+                end
+                
+                local Target = GetRandomTarget()
+                if not Target then
+                    config.Viewing = false
+                    return
+                end
+                
+                Camera.CameraType = Enum.CameraType.Scriptable
+                
+                config.varibz.ViewConnection = RunService.RenderStepped:Connect(function()
+                    if not config.Viewing then
+                        return
+                    end
+                    local isValid = false
+                    if Target.type == "player" then
+                        isValid = Target.instance 
+                            and Target.instance.Character 
+                            and Target.instance.Character:FindFirstChild("HumanoidRootPart")
+                            and isEnemy(Target.instance)
+                            and Target.instance.Character:FindFirstChildOfClass("Humanoid") 
+                            and Target.instance.Character:FindFirstChildOfClass("Humanoid").Health > 0
+                    elseif Target.type == "npc" then
+                        isValid = Target.instance 
+                            and Target.instance.Parent 
+                            and Target.instance:FindFirstChild("HumanoidRootPart")
+                            and isNPCEnemy(Target.instance)
+                            and Target.instance:FindFirstChildOfClass("Humanoid") 
+                            and Target.instance:FindFirstChildOfClass("Humanoid").Health > 0
+                    end
+                    
+                    if not isValid then
+                        Target = GetRandomTarget()
+                        if not Target then
+                            config.Viewing = false
+                            Camera.CameraType = Enum.CameraType.Custom
+                            return
+                        end
+                        return
+                    end
+                    
+                    local HRP = nil
+                    if Target.type == "player" then
+                        HRP = Target.instance.Character.HumanoidRootPart
+                    elseif Target.type == "npc" then
+                        HRP = Target.instance.HumanoidRootPart
+                    end
+                    
+                    if not HRP then
+                        Target = GetRandomTarget()
+                        if not Target then
+                            config.Viewing = false
+                            Camera.CameraType = Enum.CameraType.Custom
+                            return
+                        end
+                        return
+                    end
+                    
+                    local CameraPos = HRP.Position - HRP.CFrame.LookVector * config.varibz.CameraDistance + Vector3.new(0, 3, 0)
+                    Camera.CFrame = CFrame.lookAt(CameraPos, HRP.Position + Vector3.new(0, 2, 0))
+                end)
+            end
+            startViewing()
+        end
+    end)
+    pcall(function()
+        if config.camYOffsetEnabled then
+            if not config.camYOffsetConnection then
+                config.camYOffsetConnection = game:GetService("RunService").RenderStepped:Connect(function()
+                    if config.camYOffsetEnabled then
+                        local cam = workspace.CurrentCamera
+                        if cam then
+                            if not config.camYOffsetOriginalCFrame then
+                                config.camYOffsetOriginalCFrame = cam.CFrame
+                            end
+                            local offset = Vector3.new(0, config.camYOffsetValue, 0)
+                            local newCFrame = CFrame.new(
+                                cam.CFrame.Position + offset,
+                                cam.CFrame.Position + offset + cam.CFrame.LookVector
+                            )
+                            cam.CFrame = newCFrame
+                        end
+                    end
+                end)
+            end
+        end
+    end)
+    pcall(function()
+        if config.trussEnabled then
+            local player = game.Players.LocalPlayer
+            local character = player.Character
+            if character then
+                local rootPart = character:FindFirstChild("HumanoidRootPart")
+                if rootPart then
+                    if config.trussPart then
+                        config.trussPart:Destroy()
+                        config.trussPart = nil
+                    end
+                    if config.trussConnection then
+                        config.trussConnection:Disconnect()
+                        config.trussConnection = nil
+                    end
+                    config.trussPart = Instance.new("TrussPart")
+                    config.trussPart.Transparency = 1
+                    config.trussPart.Size = Vector3.new(2, 10, 2)
+                    config.trussPart.Parent = workspace
+                    config.trussPart.CanCollide = true
+                    config.trussPart.Name = "TrussPart_" .. tostring(math.random(10000, 99999))
+                    config.trussConnection = game:GetService("RunService").Heartbeat:Connect(function()
+                        if config.trussEnabled and config.trussPart and rootPart and rootPart.Parent then
+                            config.trussPart.CFrame = rootPart.CFrame * CFrame.new(0, 0, -1.5)
+                        else
+                            if config.trussConnection then
+                                config.trussConnection:Disconnect()
+                                config.trussConnection = nil
+                            end
+                        end
+                    end)
+                end
+            end
+        end
+    end)
+    pcall(function()
+        if config.airwalkEnabled then
+            local character = game.Players.LocalPlayer.Character
+            if character then
+                local rootPart = character:FindFirstChild("HumanoidRootPart")
+                if rootPart then
+                    config.airwalkPart = Instance.new("Part")
+                    config.airwalkPart.Transparency = 1
+                    config.airwalkPart.Size = Vector3.new(7, 2, 3)
+                    config.airwalkPart.Parent = workspace
+                    config.airwalkPart.CanCollide = true
+                    config.airwalkPart.Anchored = true
+                    config.airwalkPart.Name = "AirwalkPlatform_" .. tostring(math.random(10000, 99999))
+                    if config.airwalkConnection then
+                        config.airwalkConnection:Disconnect()
+                        config.airwalkConnection = nil
+                    end
+                    config.airwalkConnection = game:GetService("RunService").Heartbeat:Connect(function()
+                        if config.airwalkEnabled and config.airwalkPart and rootPart and rootPart.Parent then
+                            config.airwalkPart.CFrame = rootPart.CFrame + Vector3.new(0, -4, 0)
+                        else
+                            if config.airwalkConnection then
+                                config.airwalkConnection:Disconnect()
+                                config.airwalkConnection = nil
+                            end
+                        end
+                    end)
+                end
+            end
+        end
+    end)
+    pcall(function()
+        if config.autorespawnEnabled then
+            config.autorespawnConnections = config.autorespawnConnections or {}
+            config.autorespawnDeathPosition = nil
+            local player = game.Players.LocalPlayer
+            local function setupRespawn(character)
+                local humanoid = character:WaitForChild("Humanoid")
+                local rootPart = character:WaitForChild("HumanoidRootPart")
+                if config.autorespawnConnections.died then
+                    config.autorespawnConnections.died:Disconnect()
+                end
+                config.autorespawnConnections.died = humanoid.Died:Connect(function()
+                    if config.autorespawnEnabled then
+                        config.autorespawnDeathPosition = rootPart.CFrame
+                    end
+                end)
+            end
+            local function teleportToDeathPosition(newCharacter)
+                if config.autorespawnEnabled and config.autorespawnDeathPosition then
+                    local newRoot = newCharacter:WaitForChild("HumanoidRootPart")
+                    newRoot.CFrame = config.autorespawnDeathPosition
+                    config.autorespawnDeathPosition = nil
+                end
+            end
+            if player.Character then
+                setupRespawn(player.Character)
+            end
+            if config.autorespawnConnections.characterAdded then
+                config.autorespawnConnections.characterAdded:Disconnect()
+            end
+            config.autorespawnConnections.characterAdded = player.CharacterAdded:Connect(function(character)
+                if config.autorespawnEnabled then
+                    character:WaitForChild("Humanoid")
+                    character:WaitForChild("HumanoidRootPart")
+                    teleportToDeathPosition(character)
+                    setupRespawn(character)
+                end
+            end)
+        end
+    end)
+    pcall(function()
+        if config.fbenabled then
+            local lighting = game:GetService("Lighting")
+            fullBrightSettings = {
+                Ambient = lighting.Ambient,
+                Brightness = lighting.Brightness,
+                ClockTime = lighting.ClockTime,
+                FogEnd = lighting.FogEnd,
+                GlobalShadows = lighting.GlobalShadows,
+                OutdoorAmbient = lighting.OutdoorAmbient
+            }
+            lighting.Ambient = Color3.fromRGB(255, 255, 255)
+            lighting.Brightness = 2
+            lighting.FogEnd = 100000
+            lighting.GlobalShadows = false
+            lighting.OutdoorAmbient = Color3.fromRGB(128, 128, 128)
+            lighting.ClockTime = 14
+        end
+    end)
+    pcall(function()
+        if config.QuickToggles then
+            CreateQT()
+        end
+    end)
+    pcall(function()
+        if config.bhop.quickToggleEnabled then
+            updateBHopQuickToggle()
+        end
+    end)
+    pcall(function()
+        if config.animations then
+            config.animations = true
+            if currentAnimation then
+                playAnimation(currentAnimation, config.R15)
+            end
+        end
+    end)
+    pcall(function()
+        if config.antiafk then
+            config.antiafk = true
+        end
+    end)
+    pcall(function()
+        if config.fastspawn then
+            config.fastspawn = true
+        end
+    end)
+    pcall(function()
+        for _, tab in ipairs(Window.Tabs or {}) do
+            for _, element in ipairs(tab.Elements or {}) do
+                if element.Type == "Dropdown" and element.Callback then
+                    local currentValue = nil
+                    if element.Title == "Team Target" then
+                        currentValue = config.masterTeamTarget
+                    elseif element.Title == "TargetType" then
+                        currentValue = config.masterTarget
+                    elseif element.Title == "GetTarget" then
+                        currentValue = config.masterGetTarget
+                    elseif element.Title == "Target Part" and element.Parent and element.Parent.Title == "Aimbot" then
+                        currentValue = config.aimbotTargetPart
+                    end
+                    if currentValue then
+                        pcall(function() element:SetValue(currentValue) end)
+                    end
+                end
+            end
+        end
+    end)
+    pcall(function()
+        if config.QuickToggles and gui.mobileGui and gui.mobileGui.Buttons then
+            UpdateQT()
+        end
+    end)
     
     WindUI:Notify({
         Title = "Save System",
@@ -897,17 +2013,16 @@ local function loadSave(saveName)
     
     return true
 end
-
-local function updateSaveListParagraph()
+local function savePara()
     local saves = getSaveList()
     local saveText = "Available Saves:\n"
     
     if #saves == 0 then
-        saveText = saveText .. "  No saves found"
+        saveText = saveText .. "  There isn't any saves 💔🥀"
     else
         for i, save in ipairs(saves) do
             local isCurrent = (save == SaveSystem.CurrentSave)
-            saveText = saveText .. "  " .. (isCurrent and "▶ " or "• ") .. save .. (isCurrent and " (loaded)" or "") .. "\n"
+            saveText = saveText .. "  " .. (isCurrent and "⟩ " or "> ") .. save .. (isCurrent and " (loaded)" or "") .. "\n"
         end
     end
     
@@ -4755,7 +5870,7 @@ local function spinbotUpdate()
     if not humanoidRootPart then return end
     if not config.varibz.spinbotConnection then
         config.varibz.spinbotConnection = RunService.RenderStepped:Connect(function()
-            if not config.varibz.config.spinbot.enabled or not localPlayer.Character then
+            if not config.spinbot.enabled or not localPlayer.Character then
                 return
             end
             
@@ -6043,6 +7158,9 @@ local btntitle = {
     "D:",
     "unclose me NOW!!! D:",
     "just simply cheat through it",
+    "sand.cc",
+    "gta 6 when?",
+    "holy cow",
     "open4robuc",
     "me want to be open",
     "gravel is not sand",
@@ -6054,6 +7172,8 @@ local btntitle = {
     ":o",
     ";]",
     "error code: 6967420",
+    "🥀💔✌️🫩",
+    "brochacho",
 }
 local choose = btntitle[math.random(1, #btntitle)]
 local Window = WindUI:CreateWindow({
@@ -6099,7 +7219,7 @@ local nd = function()
         "2 atoms touch = big explosion",
         "you can noclip when your atoms aligned\ntrust",
         "I don't have DC btw",
-        "my code is used to be 8000+ now 9000+ lines long, I canf do dis sh on mobile D:",
+        "my code is used to be 8000+ now 9000+ and then 10000+ lines long, I canf do dis sh on mobile D:",
         "flatgrass",
         "search free robux to get free robux",
         "alt-f4 = free rboux",
@@ -6110,7 +7230,7 @@ local nd = function()
         "I'm not taking my sneakers off, I'm sneakers O'Toole",
         "Gpssickle is a gps with a sickle",
         "da script reached 8000 lines to 9000 o_o",
-        "just simply cheat through it",
+        "just simply cheat through it\n\n quite literally",
         "just simply go under it",
         "just simply go over it",
         "just simply script to it",
@@ -6134,12 +7254,15 @@ local nd = function()
         "/kill @p",
         "HBSS doesn't mean anything lolz\ni typed it randomly...",
         "rbxm",
+        "''Does this work in Minecraft''l",
         "dere is no Terraria final update D:",
-        "da cake is the truth... trust",
+        "da cake isnt a lie... trust",
         "iS ThAt ga hÆcker?????!?!?!!!?!???!?!",
         "y is this drooling cat meme all over my fyp D:",
         "tbh bro I'd go; [insert metalpipefalling.gif]",
-        "gravel vs sand",
+        "gravel vs sand vs rock vs thingamajang",
+        "GTA 6 when?",
+        "w wedgey 🥺",
         "sand.cc when?",
         "what version is this? well I don't fking know lol",
         "scirpotjg iz hard :(",
@@ -6831,13 +7954,13 @@ local Optiz = loadstring(game:HttpGet('https://raw.githubusercontent.com/hm5650/
 
 MainTab:Paragraph({
     Title = "Save/Load",
-    Desc = "Save and load your configuration settings\n[I might forgor to add sum config 2 be supported with saves :T]",
+    Desc = "Save and load your configuration settings\n\n[sum features won't be saved mb :< ]",
     Color = lightGreen
 })
 
 MainTab:Input({
     Title = "Save Name",
-    Desc = "Enter a name for your save like blahblahagaha",
+    Desc = "Enter a name for your save or select a save like blahblahagaha",
     Placeholder = "put words here!11",
     Value = "",
     ClearTextOnFocus = true,
@@ -6848,7 +7971,8 @@ MainTab:Input({
 
 MainTab:Button({
     Title = "New Save",
-    Desc = "Save New/Overwrite",
+    Desc = "Save New/Overwrite [leave blank for lazy text generation]",
+    Icon = "save",
     Callback = function()
         local name = saveInputValue or ""
         if name == "" then
@@ -6869,12 +7993,13 @@ MainTab:Button({
 MainTab:Button({
     Title = "Load Save",
     Desc = "Load selected save",
+    Icon = "download",
     Callback = function()
         local name = saveInputValue or ""
         if name == "" then
             WindUI:Notify({
                 Title = "Save System",
-                Content = "Please enter a save name to load!",
+                Content = "Please enter a save name to load! D:",
                 Icon = "x",
                 Duration = 2
             })
@@ -6887,12 +8012,13 @@ MainTab:Button({
 MainTab:Button({
     Title = "Delete Save",
     Desc = "Delete selected save",
+    Icon = "trash",
     Callback = function()
         local name = saveInputValue or ""
         if name == "" then
             WindUI:Notify({
                 Title = "Save System",
-                Content = "Please enter a save name to delete!",
+                Content = "Please enter a save name to delete! :/",
                 Icon = "x",
                 Duration = 2
             })
@@ -6902,9 +8028,18 @@ MainTab:Button({
     end
 })
 
+MainTab:Button({
+    Title = "Delete All Saves",
+    Desc = "Permanently delete ALL save files D:",
+    Icon = "delete",
+    Callback = function()
+        deleteAllSaves()
+    end
+})
+
 MainTab:Paragraph({
     Title = "Saves List",
-    Desc = updateSaveListParagraph() .. "\n(Refresh by reloading the script so blame windui)",
+    Desc = savePara() .. "\n(Refresh by reloading da script, blame WindUI 4 dat)",
     Color = darkGray
 })
 end
@@ -7059,58 +8194,60 @@ local VisualsTab = Window:Tab({
         end
     })
     VisualsTab:Space()
-    VisualsTab:Toggle({
-        Title = "Full Bright",
-        Desc = "Enable/disable full bright (no lighting)",
-        Value = false,
-        Callback = function(v)
-            if v then
-                local lighting = game:GetService("Lighting")
-                fullBrightSettings = {
-                    Ambient = lighting.Ambient,
-                    Brightness = lighting.Brightness,
-                    ClockTime = lighting.ClockTime,
-                    FogEnd = lighting.FogEnd,
-                    GlobalShadows = lighting.GlobalShadows,
-                    OutdoorAmbient = lighting.OutdoorAmbient
-                }
 
-                lighting.Ambient = Color3.fromRGB(255, 255, 255)
-                lighting.Brightness = 2
-                lighting.FogEnd = 100000
-                lighting.GlobalShadows = false
-                lighting.OutdoorAmbient = Color3.fromRGB(128, 128, 128)
-                
-                lighting.ClockTime = 14
-                
-                n({
-                    Title = "Full Bright",
-                    Content = "Enabled",
-                    Audio = "rbxassetid://17208361335",
-                    Length = 1,
-                    Image = "rbxassetid://4483362458",
-                    BarColor = Color3.fromRGB(0, 255, 0)
-                })
-            else
-                if fullBrightSettings then
-                    local lighting = game:GetService("Lighting")
-                    for property, value in pairs(fullBrightSettings) do
-                        lighting[property] = value
-                    end
-                    fullBrightSettings = nil
+VisualsTab:Toggle({
+    Title = "Full Bright",
+    Desc = "Enable/disable full bright (no lighting)",
+    Value = false,
+    Callback = function(v)
+        config.fbenabled = v
+        if v then
+            local lighting = game:GetService("Lighting")
+            fullBrightSettings = {
+                Ambient = lighting.Ambient,
+                Brightness = lighting.Brightness,
+                ClockTime = lighting.ClockTime,
+                FogEnd = lighting.FogEnd,
+                GlobalShadows = lighting.GlobalShadows,
+                OutdoorAmbient = lighting.OutdoorAmbient
+            }
+
+            lighting.Ambient = Color3.fromRGB(255, 255, 255)
+            lighting.Brightness = 2
+            lighting.FogEnd = 100000
+            lighting.GlobalShadows = false
+            lighting.OutdoorAmbient = Color3.fromRGB(128, 128, 128)
+            
+            lighting.ClockTime = 14
+            
+            n({
+                Title = "Full Bright",
+                Content = "Enabled",
+                Audio = "rbxassetid://17208361335",
+                Length = 1,
+                Image = "rbxassetid://4483362458",
+                BarColor = Color3.fromRGB(0, 255, 0)
+            })
+        else
+            if fullBrightSettings then
+                local lighting = game:GetService("Lighting")
+                for property, value in pairs(fullBrightSettings) do
+                    lighting[property] = value
                 end
-                
-                n({
-                    Title = "Full Bright",
-                    Content = "Disabled",
-                    Audio = "rbxassetid://17208361335",
-                    Length = 1,
-                    Image = "rbxassetid://4483362458",
-                    BarColor = Color3.fromRGB(255, 0, 0)
-                })
+                fullBrightSettings = nil
             end
+            
+            n({
+                Title = "Full Bright",
+                Content = "Disabled",
+                Audio = "rbxassetid://17208361335",
+                Length = 1,
+                Image = "rbxassetid://4483362458",
+                BarColor = Color3.fromRGB(255, 0, 0)
+            })
         end
-    })
+    end
+})
 
 VisualsTab:Space()
 VisualsTab:Paragraph({
