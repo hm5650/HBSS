@@ -5228,7 +5228,11 @@ local function hb()
                     part.Size = newSize
                     part.Transparency = config.hbtrans
                     part.CanCollide = false
-                    part.Massless = true
+                    if part.Name == "Head" then
+                        part.Massless = true
+                    elseif part.Name == "HumanoidRootPart" then
+                        part.Massless = false
+                    end
                 end)
             end
         else
@@ -10853,12 +10857,17 @@ local InfoTab = Window:Tab({
         Desc = "Added: Save/Load in the MainTab :3",
         Color = darkGray
     })
+    InfoTab:Paragraph({
+        Title = "Gravel (01/07/2026)",
+        Desc = "Fixed: Save/Load bugs\nFixed: Hitbox bugs\nFixed Bugs: 5",
+        Color = darkGray
+    })
 end
 
 -- tsu
 --[[
     InfoTab:Paragraph({
-        Title = "Gravel (DD/06/2026)",
+        Title = "Gravel (DD/07/2026)",
         Desc = "",
         Color = darkGray
     })
