@@ -16,7 +16,7 @@ local aspect = Instance.new("UIAspectRatioConstraint")
 local plrs = game:GetService("Players")
 local blurEffect = Instance.new("BlurEffect")
 local plr = plrs.LocalPlayer
-
+local filesText = Instance.new("TextLabel")
 blurEffect.Size = 0
 blurEffect.Parent = game:GetService("Lighting")
 gui.Name = "load"
@@ -73,6 +73,16 @@ bar.TextTransparency = 1
 bar.BackgroundTransparency = 1
 bar.Text = "[                    ]"
 bar.Parent = center
+filesText.Size = UDim2.fromScale(1, 0.15)
+filesText.Position = UDim2.fromScale(0.5, 0.88)
+filesText.AnchorPoint = Vector2.new(0.5, 0.5)
+filesText.Text = ""
+filesText.Font = Enum.Font.Code
+filesText.TextSize = 14
+filesText.TextColor3 = Color3.fromRGB(180, 180, 180)
+filesText.TextTransparency = 1
+filesText.BackgroundTransparency = 1
+filesText.Parent = center
 
 local fadeIn = TweenInfo.new(1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
 TweenService:Create(blurEffect, fadeIn, {Size = 24}):Play()
@@ -81,6 +91,7 @@ TweenService:Create(icon, fadeIn, {ImageTransparency = 0}):Play()
 TweenService:Create(brand, fadeIn, {TextTransparency = 0}):Play()
 TweenService:Create(loadingText, fadeIn, {TextTransparency = 0}):Play()
 TweenService:Create(bar, fadeIn, {TextTransparency = 0}):Play()
+TweenService:Create(filesText, fadeIn, {TextTransparency = 0}):Play()
 
 task.spawn(function()
     local totalBars = 20
@@ -89,16 +100,44 @@ task.spawn(function()
     local startTime = tick()
     local elapsed = 0
     
+    if not isfolder("Gravel_Saves") then
+        makefolder("Gravel_Saves")
+    end
+    
+    local saveFiles = {}
+    local files = listfiles("Gravel_Saves")
+    for _, file in ipairs(files) do
+        if string.match(file, "%.json$") then
+            table.insert(saveFiles, file)
+        end
+    end
+    
     local sound = Instance.new("Sound")
     sound.SoundId = "rbxassetid://9120299810"
     sound.Volume = 0.5
     sound.Parent = SoundService
+    local extraDelay = #saveFiles * 0.15
+    local adjustedMaxDuration = maxDuration + extraDelay
+    local totalFiles = #saveFiles
+    local processedFiles = 0
     
-    while elapsed < maxDuration do
+    while elapsed < adjustedMaxDuration do
         task.wait(math.random(10, 30) / 100)
         elapsed = tick() - startTime
-        
-        local targetFilled = math.min(totalBars, math.floor((elapsed / maxDuration) * totalBars))
+        if totalFiles > 0 and processedFiles < totalFiles and elapsed > (processedFiles + 1) * (adjustedMaxDuration / (totalFiles + 2)) then
+            processedFiles = processedFiles + 1
+            local fileName = saveFiles[processedFiles]
+            fileName = string.match(fileName, "([^/\\]+)%.json$") or "Unknown"
+            filesText.Text = "Files: " .. fileName
+            sound:Play()
+        elseif totalFiles > 0 then
+            local currentFile = saveFiles[math.min(processedFiles + 1, totalFiles)]
+            local displayName = currentFile and string.match(currentFile, "([^/\\]+)%.json$") or ""
+            if processedFiles > 0 then
+                filesText.Text = "Files: " .. displayName
+            end
+        end
+        local targetFilled = math.min(totalBars, math.floor((elapsed / adjustedMaxDuration) * totalBars))
         
         if targetFilled > filled then
             for i = filled + 1, targetFilled do
@@ -121,10 +160,15 @@ task.spawn(function()
             loadingText.Text = "Loading..."
         end
     end
-
     filled = totalBars
     bar.Text = "[" .. string.rep("|", totalBars) .. "]"
     loadingText.Text = "Loaded"
+    
+    if totalFiles > 0 then
+        filesText.Text = "Files: " .. totalFiles .. " saves loaded"
+    else
+        filesText.Text = "No Files: I checked for no reason 💔🥀"
+    end
 
     task.wait(0.6)
     sound:Destroy()
@@ -135,6 +179,7 @@ task.spawn(function()
     TweenService:Create(brand, fadeOut, {TextTransparency = 1}):Play()
     TweenService:Create(loadingText, fadeOut, {TextTransparency = 1}):Play()
     TweenService:Create(bar, fadeOut, {TextTransparency = 1}):Play()
+    TweenService:Create(filesText, fadeOut, {TextTransparency = 1}):Play()
 
     task.wait(1)
     gui:Destroy()
