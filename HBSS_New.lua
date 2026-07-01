@@ -7220,6 +7220,7 @@ local nd = function()
         "something is coming in 3 days\n\n- verity",
         "real",
         "tuff",
+        "guhby this guhby that",
         "2 atoms touch = big explosion",
         "you can noclip when your atoms aligned\ntrust",
         "I don't have DC btw",
@@ -7228,6 +7229,9 @@ local nd = function()
         "search free robux to get free robux",
         "alt-f4 = free rboux",
         "^_^",
+        "Did you do your chores?\nyessirski!\nDid you do your chores?\nyessirskiDid you do your chores?\nyessirski!\nDid you do your chores?\nyessirski\nWhen I get home it better be clean!\nDid you do your chores?\nyessirski!\nOH! BOI WHY DID U LIE TO ME!!!\nAHHHHH",
+        "Homework?\nNah!Homework?\nNah!Homework?\nNah!Homework?\ni did it at school\nNah!Homework?\nNah!\nHomework?\nNah!\nWHY ARE YOU CLASSES PHAILING\n D:",
+        "Turkey in the Straw!",
         "本当に出口はないのか、くる、くる、くる、くる、繰り返し、繰り返し、繰り返し…\n\n\ni ain't writing allat",
         "*Stranger Things Intro*\ndustin lucas will mike...\nBURP",
         "robloz where classic faces :‹",
@@ -10322,6 +10326,14 @@ MiscTab:Input({
         Desc = "WHO FLUNGED ME1!!11!1 D:",
         Callback = function()
               loadstring(game:HttpGet("https://raw.githubusercontent.com/hm5650/BringParts/refs/heads/main/BringParts.lua"))()
+        end
+    })
+
+    MiscTab:Button({
+        Title = "Brick.cc (pls ignore)",
+        Desc = "I has da powa of unanchored (yes brick is back again :D!!1!1)",
+        Callback = function()
+              loadstring(game:HttpGet("https://raw.githubusercontent.com/hm5650/Brick/refs/heads/main/Brick.lua"))()
         end
     })
 
