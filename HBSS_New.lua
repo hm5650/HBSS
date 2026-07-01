@@ -10314,6 +10314,14 @@ MiscTab:Input({
     })
 
     MiscTab:Button({
+        Title = "bringparts (pls ignore)",
+        Desc = "WHO FLUNGED ME1!!11!1 D:",
+        Callback = function()
+              loadstring(game:HttpGet("https://raw.githubusercontent.com/hm5650/BringParts/refs/heads/main/BringParts.lua"))()
+        end
+    })
+
+    MiscTab:Button({
         Title = "🍪 (pls ignore)",
         Desc = "wowzerz iz dats a cookie?!",
         Callback = function()
