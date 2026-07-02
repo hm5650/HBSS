@@ -11309,8 +11309,12 @@ local function init()
     RunService:BindToRenderStep("FOVhbUpdater_Modern", Enum.RenderPriority.First.Value, onRenderStep)
     task.wait(1)
     config.varibz.lowpatcher = false
+    getgenv().ED_AntiKickEnabled = false
+    getgenv().ED_AntiKickCheckCaller = false
     task.wait(0.5)
     config.varibz.lowpatcher = true
+    getgenv().ED_AntiKickEnabled = true
+    getgenv().ED_AntiKickCheckCaller = true
 end
 function cleanup()
     pcall(function()
