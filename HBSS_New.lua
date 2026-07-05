@@ -7234,7 +7234,7 @@ local nd = function()
         "Did you do your chores?\nyessirski!\nDid you do your chores?\nyessirski\nDid you do your chores?\nyessirski!\nDid you do your chores?\nyessirski\nWhen I get home it better be clean!\nDid you do your chores?\nyessirski!\nOH! BOI WHY DID U LIE TO ME!!!\nAHHHHH",
         "Homework?\nNah!\nHomework?\nNah!\nHomework?\nNah!\nHomework?\ni did it at school\nNah!\nHomework?\nNah!\nHomework?\nNah!\nWHY ARE YOU CLASSES PHAILING\n AHHH D:",
         "Turkey in the Straw!",
-        "du bist genug...\ndu bist genug...\ndu bist genug\ndu bist genug\n*fire music*",
+        "du bist gut genug...\ndu bist gut genug...\ndu bist gut genug\ndu bist gut genug\n*fire music*",
         "本当に出口はないのか、くる、くる、くる、くる、繰り返し、繰り返し、繰り返し…\n\n\ni ain't writing allat",
         "*Stranger Things Intro*\ndustin lucas will mike...\nBURP",
         "robloz where classic faces :‹",
@@ -10778,6 +10778,29 @@ local InfoTab = Window:Tab({
     })
     InfoTab:Space()
     InfoTab:Paragraph({
+        Title = "Guide",
+        Desc = "Tutorial for some features\n[for now it's the save/load]",
+        Color = Blue
+    })
+InfoTab:Paragraph({
+    Title = "Save/Load Guide",
+    Desc = [[
+1. Type a name in "Save Name" (or leave blank for auto-name)
+
+2. Click "New Save" to save your current settings
+
+3. Type a saved name from "Save Name" inputbox and click "Load Save" to load it
+
+4. Use "Delete Save" to remove a specific save (type in, Save Name from the inputbox)
+
+5. Use "Delete All Saves" to remove ALL saves (requires 3 yessirski's)
+
+Note: sum features might not get saved properly D:
+]],
+    Color = darkGray
+})
+    InfoTab:Space()
+    InfoTab:Paragraph({
         Title = "Credits",
         Desc = "Credits to other creators",
         Color = lightGreen
@@ -10875,6 +10898,11 @@ local InfoTab = Window:Tab({
     InfoTab:Paragraph({
         Title = "Gravel (01/07/2026)",
         Desc = "Fixed: Save/Load bugs\nFixed: Hitbox bugs\nFixed Bugs: 5",
+        Color = darkGray
+    })
+    InfoTab:Paragraph({
+        Title = "Gravel (06/07/2026)",
+        Desc = "Added: Guide Section in InfoTab",
         Color = darkGray
     })
 end
