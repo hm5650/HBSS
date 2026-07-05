@@ -2843,7 +2843,7 @@ OldNamecall = hookmetamethod(game, "__namecall", newcclosure(function(...)
                 Arguments[3] = func.Direction(A_Origin, HitPart.Position)
                 return OldNamecall(unpack(Arguments))
             end
-        end
+        end s()
     end
     
     return OldNamecall(...)
@@ -11437,7 +11437,7 @@ task.spawn(function()
     while config.varibz.lowpatcher do
         clearTargetCache()
         task.wait(config.varibz.lowpatcherwait)
-    end
+    end d()
 end)
 
 local LowRender = function()
@@ -11462,7 +11462,7 @@ local LowRender = function()
            
         end)
     end
-end
+end s()
 
 task.spawn(function()
     local lastRespawnTime = os.clock()
@@ -11523,9 +11523,9 @@ task.spawn(function()
         end
         
         task.wait(config.varibz.patcherwait)
-    end
+    end s()
 end)
 
 init()
 return config
--- fin
+-- fin hope u didn't read the whole entire 11000+ lines of code
