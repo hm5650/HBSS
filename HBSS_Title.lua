@@ -1,4 +1,4 @@
-local function givetitle()()
+local function givetitle()
     local currentDate = os.date("*t")
     local month = currentDate.month
     local day = currentDate.day
