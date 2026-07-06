@@ -7298,14 +7298,48 @@ local rng = function()
         "this script isn't full ban proof so if you get banned DON'T blame on us when your using risky features :/",
         "deres like idk amount of random messages I contains lolz",
     }
-    local mc = m[math.random(1, #m)]
+    local ml = {
+        "wth is ts",
+        "hell nah",
+        "OHHHH HELLL NAH",
+        "pop-up goes bye bye",
+        "isn't phonk just noise?",
+        "guys it's a-a, a-a h-hacker!?!?!",
+        "tiki tiki",
+        "Nosirski!",
+        "[Eminem Throwing Meme.png]",
+        "why am I writing ts?",
+        "idk, sterling?",
+        "is that a toby?",
+        "click here or ur gay",
+        "lolzer-fying",
+    }
+    local McDonalds = {
+        "helohi",
+        "meeeeeoow :3 .... MAW >:3",
+        "Bang, Bang, Bang",
+        "20-20-20 Gugu Gaga dropkick",
+        "portal above portal below *jumps in*",
+        "Gugu Gaga Ultimated Flex Works",
+        "can gravel run doom?",
+        "ipad kid vs ipad, who would win?",
+        "ifone 90 proe max",
+        "image me missing one ',' on a large table..",
+        "Gravel supports Android 5+",
+        "your bluetooth device is ready to pair",
+        "why is there ai slop on my TikTok fyp....",
+        ":3 >:3 ›:3 :3",
+    }
+    local Spotify = ml[math.random(1, #ml)]
+    local YouTube = m[math.random(1, #m)]
+    local Netflix = McDonalds[math.random(1, #McDonalds)]
     return WindUI:Popup({
-        Title = "Thzx for usin Gravel :DD!",
+        Title = Netflix,
         Icon = "shovel",
-        Content = mc,
+        Content = YouTube,
         Buttons = {
             {
-                Title = "no",
+                Title = Spotify,
                 Icon = "hammer",
                 Variant = "Tertiary"
             }
@@ -7361,7 +7395,7 @@ local rng2 = function()
     }
     local bju3 = tinf3[math.random(1, #tinf3)]
     n({
-        Title = "Gravel.cc",
+        Title = "Gravel.cc :3",
         Content = bju,
         Audio = bju3,
         Length = 10,
