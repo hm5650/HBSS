@@ -460,7 +460,8 @@ local config = {
         darkGray = Color3.fromRGB(40, 40, 40),
         lightGray = Color3.fromRGB(200, 200, 200),
         Red = Color3.fromRGB(255, 0, 0),
-        Blue = Color3.fromRGB(175, 221, 255)
+        Blue = Color3.fromRGB(175, 221, 255),
+        Black = Color3.fromRGB(0, 0, 0),
     }
 }
 local SaveSystem = {
@@ -7184,8 +7185,123 @@ local btntitle = {
     "brochacho",
 }
 local rng = btntitle[math.random(1, #btntitle)]
+local function givename()
+    local currentDate = os.date("%m %d")
+    local currentYear = tonumber(os.date("%Y"))
+    local festiveTitles = {
+        ["01 01"] = {
+            "New Gravel.cc :>",
+            "Happy new year!1!1!11",
+            "A new year, a same Gravel",
+            "welcome 2 a new year buddy",
+            "I haven't showered since last year- ok this one is overrated",
+            "year of da shovel",
+        },
+        ["02 14"] = {
+            "Gravel.<3",
+            "will u be my gravel",
+            "gravel iz love",
+            "be my gravel",
+        },
+        ["03 17"] = {
+            "Gravel.luck",
+            "lucky gravel",
+            "good luck or smth",
+            "lucky shovel",
+        },
+        ["10 31"] = {
+            "spooky gravel",
+            "gravel go boo",
+            "BOO (I definitely scared u)",
+            "trick or gravel",
+            "da haunted gravel",
+        },
+        ["12 25"] = {
+            "merry gravelmas",
+            "gravel gifts for all",
+            "Gravel.Feliz Navidad!",
+            "gravel under da tree",
+        },
+    }
+    local function getEasterDate(year)
+        local A = math.floor(year/100)
+        local B = math.floor((13+8*A)/25)
+        local C = (15-B+A-math.floor(A/4))%30
+        local D = (4+A-math.floor(A/4))%7
+        local E = (19*(year%19)+C)%30
+        local F = (2*(year%4)+4*(year%7)+6*E+D)%7
+        local G = (22+E+F)
+        if E == 29 and F == 6 then
+            return "04 19"
+        elseif E == 28 and F == 6 then
+            return "04 18"
+        elseif 31 < G then
+            return ("04 %02d"):format(G-31)
+        end
+        return ("03 %02d"):format(G)
+    end
+    
+    local easterDate = getEasterDate(currentYear)
+    
+    local easterTitles = {
+        "Gravel.egg",
+        "gravel.easteeeeerrr",
+        "Gravel.eggcellent",
+        "Gravel.ILikeEgg",
+        "hunting 4 da gravel",
+        "easter shovel",
+    }
+    if currentDate == easterDate then
+        return easterTitles[math.random(1, #easterTitles)]
+    end
+    for datePattern, titles in pairs(festiveTitles) do
+        if currentDate == datePattern then
+            return titles[math.random(1, #titles)]
+        end
+    end
+    if currentDate == "04 01" then
+        local aprilFools = {
+            "Sand.cc",
+            "u got pranked",
+            "Gravel is sand",
+            "not gravel",
+            "Dirt.cc",
+            "Flour.cc",
+            "Brick.cc 2.0",
+            "I'm quitting (I think....)",
+            "CrushedStone.cc",
+            "cc.levarG",
+            "grvel",
+            "Enrique.cc",
+            "Adrian.cc",
+        }
+        return aprilFools[math.random(1, #aprilFools)]
+    end
+    local defaultTitles = {
+        "Gravel.cc",
+        "Gravel-est",
+        "Gravel-er",
+        "Graaaavel",
+        "Shovel.cc",
+        "Gravel.com",
+        "Hi! I'm Gravel!",
+        "Gravel enjoyer",
+        "GRAVEL",
+        "g r a v e l",
+        "GravelGravelGravel",
+        "G.cc",
+        "I like gravel",
+        "Gravel.cheatcheat",
+        "Gravel.yes",
+        "Gravel.no",
+        "Gravel",
+        "GRAVEL GRAVEL",
+    }
+    return defaultTitles[math.random(1, #defaultTitles)]
+end
+
 local Window = WindUI:CreateWindow({
-    Title = "Gravel.cc",
+    Title = givename(),
     Theme = "Dark",
     Icon = "shovel",
     Size = UDim2.fromOffset(600, 70),
@@ -7598,8 +7714,8 @@ end
 -- rng3("")
 
 Window:Tag({
-    Title = "SRC: https://github.com/hm5650/HBSS/tree/main\nYT: @gpssickle ;3",
-    Icon = "github",
+    Title = "YT: @gpssickle ;3",
+    Icon = "youtube",
     Color = Color3.fromHex("#1c1c1c"),
     Border = true
 })
@@ -11005,8 +11121,13 @@ local InfoTab = Window:Tab({
 }) do
     InfoTab:Paragraph({
         Title = "Gravel",
-        Desc = "Our YouTube channel is @gpssickle\nim stupid & lazy :T",
+        Desc = "Our YouTube channel is @gpssickle\n\nWowzerzy",
         Color = config.uicolor.Red
+    })
+    InfoTab:Paragraph({
+        Title = "Gravel Source",
+        Desc = "https://github.com/hm5650/HBSS/tree/main\n\n''i wanna seek how gravel works :o''",
+        Color = config.uicolor.Black
     })
     InfoTab:Paragraph({
         Title = "Tabs",
