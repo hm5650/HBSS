@@ -179,19 +179,9 @@ local GetPartsObscuringTarget = Camera.GetPartsObscuringTarget
 local lastCharacter = nil
 local camera = workspace.CurrentCamera
 local animationTrack = nil
-local currentAnimation = nil
-local animationLoopConnection = nil
 local humanoid = nil
 local character = nil
 local updateESPColors = function() end
-local bhopConnection = nil
-
--- uicolor
-local lightGreen = Color3.fromRGB(144, 238, 144)
-local darkGray = Color3.fromRGB(40, 40, 40)
-local lightGray = Color3.fromRGB(200, 200, 200)
-local Red = Color3.fromRGB(255, 0, 0)
-local Blue = Color3.fromRGB(175, 221, 255)
 
 -- random stuff lololol (don't mind my naming skills............ok... it's how it is >:c)
 local config = {
@@ -452,9 +442,12 @@ local config = {
         triggerBotConnection = nil,
         sa2thing = 0,
         sa2stuff = 0.03,
+        animationLoopConnection = nil,
+        currentAnimation = nil,
         spinbotConnection = nil,
         ViewConnection = nil,
         CameraDistance = 8,
+        bhopConnection = nil,
         lowpatcherwait = 0.03,
         lowpatcher = true,
         patcherwait = 0.5,
@@ -462,9 +455,14 @@ local config = {
         bhopQuickToggleUI = nil,
         lastJumpTime = 0,
     },
+    uicolor = {
+        lightGreen = Color3.fromRGB(144, 238, 144),
+        darkGray = Color3.fromRGB(40, 40, 40),
+        lightGray = Color3.fromRGB(200, 200, 200),
+        Red = Color3.fromRGB(255, 0, 0),
+        Blue = Color3.fromRGB(175, 221, 255)
+    }
 }
-
-
 local SaveSystem = {
     Folder = "Gravel_Saves",
     Extension = ".json",
@@ -1178,8 +1176,8 @@ local function applyFeatureAfterLoad(featureName, state, ...)
             config.animations = state
             if not state then
                 stopCurrentAnimation()
-            elseif currentAnimation then
-                playAnimation(currentAnimation, config.R15)
+            elseif config.varibz.currentAnimation then
+                playAnimation(config.varibz.currentAnimation, config.R15)
             end
         elseif featureName == "antiafk" then
             config.antiafk = state
@@ -1968,8 +1966,8 @@ function loadSave(saveName)
     pcall(function()
         if config.animations then
             config.animations = true
-            if currentAnimation then
-                playAnimation(currentAnimation, config.R15)
+            if config.varibz.currentAnimation then
+                playAnimation(config.varibz.currentAnimation, config.R15)
             end
         end
     end)
@@ -2098,9 +2096,9 @@ local function stopCurrentAnimation()
         animationTrack = nil
     end
     
-    if animationLoopConnection then
-        animationLoopConnection:Disconnect()
-        animationLoopConnection = nil
+    if config.varibz.animationLoopConnection then
+        config.varibz.animationLoopConnection:Disconnect()
+        config.varibz.animationLoopConnection = nil
     end
 end
 
@@ -2124,11 +2122,11 @@ local function playAnimation(animationId, isR15)
     animationTrack.Priority = Enum.AnimationPriority.Core
     animationTrack:Play()
     
-    if animationLoopConnection then
-        animationLoopConnection:Disconnect()
+    if config.varibz.animationLoopConnection then
+        config.varibz.animationLoopConnection:Disconnect()
     end
     
-    animationLoopConnection = humanoid.Died:Connect(function()
+    config.varibz.animationLoopConnection = humanoid.Died:Connect(function()
         task.wait(0.1)
         if config.animations then
             playAnimation(animationId, isR15)
@@ -2146,7 +2144,7 @@ local function playAnimation(animationId, isR15)
         end
     end)
     
-    currentAnimation = animationId
+    config.varibz.currentAnimation = animationId
     n({
         Title = "Animation",
         Content = "Playing animation ID: " .. animationId,
@@ -7611,18 +7609,18 @@ local MainTab = Window:Tab({
     Title = "Main",
     Desc = rng3("Main"),
     Icon = "hammer",
-    IconColor = lightGray
+    IconColor = config.uicolor.lightGray
 }) do
     MainTab:Paragraph({
         Title = "MainTab Settings",
         Desc = "Global settings for targeting and utilities",
-        Color = lightGreen
+        Color = config.uicolor.lightGreen
     })
     
     MainTab:Paragraph({
         Title = "Global",
         Desc = "Global configurations",
-        Color = lightGreen
+        Color = config.uicolor.lightGreen
     })
     
     MainTab:Dropdown({
@@ -7872,13 +7870,13 @@ MainTab:Keybind({
     MainTab:Paragraph({
         Title = "Utilities",
         Desc = "AutoFarm and utility features",
-        Color = lightGreen
+        Color = config.uicolor.lightGreen
     })
     
     MainTab:Paragraph({
         Title = "Gravel",
         Desc = "[ Autofarm might not work for every game]",
-        Color = darkGray
+        Color = config.uicolor.darkGray
     })
     
     MainTab:Toggle({
@@ -8073,13 +8071,13 @@ MainTab:Toggle({
     MainTab:Paragraph({
         Title = "Antikick [ We didn't made this ]",
         Desc = "Client-side anti-kick protection",
-        Color = lightGreen
+        Color = config.uicolor.lightGreen
     })
     
     MainTab:Paragraph({
         Title = "Gravel",
         Desc = "[ AntiKick only prevents client kicks ]\n[ Good Injectors are recommend ]",
-        Color = darkGray
+        Color = config.uicolor.darkGray
     })
     
     MainTab:Toggle({
@@ -8137,13 +8135,13 @@ MainTab:Toggle({
     MainTab:Paragraph({
         Title = "Optimization",
         Desc = "Performance optimization settings",
-        Color = lightGreen
+        Color = config.uicolor.lightGreen
     })
     
     MainTab:Paragraph({
         Title = "Optimization",
         Desc = "Copy and execute optimization code",
-        Color = darkGray,
+        Color = config.uicolor.darkGray,
         Buttons = {
             {
                 Title = "Copy Code",
@@ -8262,7 +8260,7 @@ local Optiz = loadstring(game:HttpGet('https://raw.githubusercontent.com/hm5650/
 MainTab:Paragraph({
     Title = "Save/Load",
     Desc = "Save and load your configuration settings\n\n[sum features won't be saved mb :< ]",
-    Color = lightGreen
+    Color = config.uicolor.lightGreen
 })
 
 MainTab:Input({
@@ -8347,7 +8345,7 @@ MainTab:Button({
 MainTab:Paragraph({
     Title = "Saves List",
     Desc = savePara() .. "\n(Refresh by reloading da script, blame WindUI 4 dat)",
-    Color = darkGray
+    Color = config.uicolor.darkGray
 })
 end
 -- Visuals Tab
@@ -8355,12 +8353,12 @@ local VisualsTab = Window:Tab({
     Title = "Visuals",
     Desc = rng3("Visuals"),
     Icon = "eye",
-    IconColor = lightGray
+    IconColor = config.uicolor.lightGray
 }) do
     VisualsTab:Paragraph({
         Title = "ESP Master",
         Desc = "Master control for ESP features",
-        Color = lightGreen
+        Color = config.uicolor.lightGreen
     })
     VisualsTab:Space()
     VisualsTab:Toggle({
@@ -8394,7 +8392,7 @@ local VisualsTab = Window:Tab({
     VisualsTab:Paragraph({
         Title = "ESP Components",
         Desc = "Individual ESP component settings",
-        Color = lightGreen
+        Color = config.uicolor.lightGreen
     })
     
     VisualsTab:Toggle({
@@ -8561,7 +8559,7 @@ VisualsTab:Space()
 VisualsTab:Paragraph({
     Title = "ESP Colors",
     Desc = "Customize ESP colors",
-    Color = lightGreen
+    Color = config.uicolor.lightGreen
 })
 
 VisualsTab:Colorpicker({
@@ -8620,7 +8618,7 @@ VisualsTab:Space()
 VisualsTab:Paragraph({
     Title = "FOV Colors",
     Desc = "Customize FOV ring colors",
-    Color = lightGreen
+    Color = config.uicolor.lightGreen
 })
 
 VisualsTab:Colorpicker({
@@ -8657,7 +8655,7 @@ VisualsTab:Space()
 VisualsTab:Paragraph({
     Title = "Silent Aim (HK) Colors",
     Desc = "Customize Silent Aim HK colors",
-    Color = lightGreen
+    Color = config.uicolor.lightGreen
 })
 
 VisualsTab:Colorpicker({
@@ -8688,7 +8686,7 @@ VisualsTab:Space()
 VisualsTab:Paragraph({
     Title = "TriggerBot Colors",
     Desc = "Customize TriggerBot colors",
-    Color = lightGreen
+    Color = config.uicolor.lightGreen
 })
 
 VisualsTab:Colorpicker({
@@ -8708,7 +8706,7 @@ VisualsTab:Space()
 VisualsTab:Paragraph({
     Title = "Hitbox Colors",
     Desc = "Customize hitbox colors",
-    Color = lightGreen
+    Color = config.uicolor.lightGreen
 })
 
 VisualsTab:Colorpicker({
@@ -8736,7 +8734,7 @@ VisualsTab:Space()
 VisualsTab:Paragraph({
     Title = "Reach Colors",
     Desc = "Customize reach visualizer colors",
-    Color = lightGreen
+    Color = config.uicolor.lightGreen
 })
 
 VisualsTab:Colorpicker({
@@ -8757,18 +8755,18 @@ local AntiAimTab = Window:Tab({
     Title = "AntiAim",
     Desc = rng3("AntiAim"),
     Icon = "shield",
-    IconColor = lightGray
+    IconColor = config.uicolor.lightGray
 }) do
     AntiAimTab:Paragraph({
         Title = "Gravel",
         Desc = "[ Bad Injectors might work here ]\n[ This might not work on every game ]",
-        Color = darkGray
+        Color = config.uicolor.darkGray
     })
 
     AntiAimTab:Paragraph({
         Title = "AntiAim Master",
         Desc = "Master control for AntiAim features",
-        Color = lightGreen
+        Color = config.uicolor.lightGreen
     })
     
     AntiAimTab:Toggle({
@@ -8813,7 +8811,7 @@ local AntiAimTab = Window:Tab({
     AntiAimTab:Paragraph({
         Title = "AntiAim Modes",
         Desc = "Different AntiAim evasion modes",
-        Color = lightGreen
+        Color = config.uicolor.lightGreen
     })
     
     AntiAimTab:Toggle({
@@ -8884,7 +8882,7 @@ local AntiAimTab = Window:Tab({
     AntiAimTab:Paragraph({
         Title = "AntiAim Settings",
         Desc = "Configuration for AntiAim modes",
-        Color = lightGreen
+        Color = config.uicolor.lightGreen
     })
     
     AntiAimTab:Slider({
@@ -8980,7 +8978,7 @@ local AntiAimTab = Window:Tab({
 AntiAimTab:Paragraph({
     Title = "Other",
     Desc = "other stuff",
-    Color = lightGreen
+    Color = config.uicolor.lightGreen
 })
 
 AntiAimTab:Toggle({
@@ -9066,18 +9064,18 @@ local AimbotTab = Window:Tab({
     Title = "Aimbot",
     Desc = "aimware-ing",
     Icon = "crosshair",
-    IconColor = lightGray
+    IconColor = config.uicolor.lightGray
 }) do
     AimbotTab:Paragraph({
         Title = "Gravel",
         Desc = "[ Bad Injectors might work here ]",
-        Color = darkGray
+        Color = config.uicolor.darkGray
     })
     
     AimbotTab:Paragraph({
         Title = "Aimbot Master",
         Desc = "Master control for aimbot features",
-        Color = lightGreen
+        Color = config.uicolor.lightGreen
     })
     AimbotTab:Space()
     AimbotTab:Toggle({
@@ -9111,7 +9109,7 @@ local AimbotTab = Window:Tab({
     AimbotTab:Paragraph({
         Title = "Aimbot Settings",
         Desc = "Configuration for aimbot behavior",
-        Color = lightGreen
+        Color = config.uicolor.lightGreen
     })
     
     AimbotTab:Toggle({
@@ -9180,18 +9178,18 @@ local SilentAimTab = Window:Tab({
     Title = "SilentAim (HB)",
     Desc = rng3("SilentAim (HB)"),
     Icon = "circle",
-    IconColor = lightGray
+    IconColor = config.uicolor.lightGray
 }) do
     SilentAimTab:Paragraph({
         Title = "Gravel",
         Desc = "[ Hitbox Based ]\n[ Bad Injectors might work here ]\n[ This might not work on every game ]",
-        Color = darkGray
+        Color = config.uicolor.darkGray
     })
 
     SilentAimTab:Paragraph({
         Title = "SilentAim Master",
         Desc = "Master control for hitbox silent aim",
-        Color = lightGreen
+        Color = config.uicolor.lightGreen
     })
     
     SilentAimTab:Toggle({
@@ -9238,7 +9236,7 @@ local SilentAimTab = Window:Tab({
     SilentAimTab:Paragraph({
         Title = "SilentAim Settings",
         Desc = "Configuration for silent aim behavior",
-        Color = lightGreen
+        Color = config.uicolor.lightGreen
     })
     
     SilentAimTab:Toggle({
@@ -9346,18 +9344,18 @@ local SilentAimTab2 = Window:Tab({
     Title = "SilentAim (HK)",
     Desc = rng3("SilentAim (HK)"),
     Icon = "target",
-    IconColor = lightGray
+    IconColor = config.uicolor.lightGray
 }) do
     SilentAimTab2:Paragraph({
         Title = "Gravel",
         Desc = "[ Hooked Based ]\n[ Bad injectors might not work here ]\n[ risky towards anticheats ]\n[ Might not work on every game ]",
-        Color = darkGray
+        Color = config.uicolor.darkGray
     })
     
     SilentAimTab2:Paragraph({
         Title = "SilentAim Master",
         Desc = "Master control for hook-based silent aim",
-        Color = lightGreen
+        Color = config.uicolor.lightGreen
     })
     
     SilentAimTab2:Toggle({
@@ -9380,7 +9378,7 @@ local SilentAimTab2 = Window:Tab({
     SilentAimTab2:Paragraph({
         Title = "SilentAim Settings",
         Desc = "Configuration for hook-based silent aim",
-        Color = lightGreen
+        Color = config.uicolor.lightGreen
     })
     
     SilentAimTab2:Toggle({
@@ -9509,18 +9507,18 @@ local HitboxTab = Window:Tab({
     Title = "Hitbox",
     Desc = rng3("Hitbox"),
     Icon = "box",
-    IconColor = lightGray
+    IconColor = config.uicolor.lightGray
 }) do
     HitboxTab:Paragraph({
         Title = "Gravel",
         Desc = "[ Bad Injectors might work here ]\n[ This might not work on every game ]",
-        Color = darkGray
+        Color = config.uicolor.darkGray
     })
     
     HitboxTab:Paragraph({
         Title = "Hitbox Master",
         Desc = "Master control for hitbox expansion",
-        Color = lightGreen
+        Color = config.uicolor.lightGreen
     })
     
     HitboxTab:Toggle({
@@ -9559,7 +9557,7 @@ local HitboxTab = Window:Tab({
     HitboxTab:Paragraph({
         Title = "Hitbox Settings",
         Desc = "Configuration for hitbox expansion",
-        Color = lightGreen
+        Color = config.uicolor.lightGreen
     })
     
     HitboxTab:Dropdown({
@@ -9608,18 +9606,18 @@ local ReachTab = Window:Tab({
     Title = "Reach",
     Desc = rng3("Reach"),
     Icon = "sword",
-    IconColor = lightGray
+    IconColor = config.uicolor.lightGray
 }) do
     ReachTab:Paragraph({
         Title = "Gravel",
         Desc = "[ FireTouchInterest ]\n[ Melees Recommended ]\n[ Bad Injectors might work here ]\n[ This might not work for every game ]",
-        Color = darkGray
+        Color = config.uicolor.darkGray
     })
     
     ReachTab:Paragraph({
         Title = "Reach Master",
         Desc = "Master control for extended reach",
-        Color = lightGreen
+        Color = config.uicolor.lightGreen
     })
     
     local visualizer = Instance.new("Part") 
@@ -9661,7 +9659,7 @@ local ReachTab = Window:Tab({
     ReachTab:Paragraph({
         Title = "Reach Settings",
         Desc = "Configuration for extended reach",
-        Color = lightGreen
+        Color = config.uicolor.lightGreen
     })
     
     ReachTab:Dropdown({
@@ -9692,7 +9690,7 @@ local ReachTab = Window:Tab({
     ReachTab:Paragraph({
         Title = "Visuals",
         Desc = "Visual settings for reach indicator",
-        Color = lightGreen
+        Color = config.uicolor.lightGreen
     })
     
     ReachTab:Toggle({
@@ -9895,7 +9893,7 @@ local ReachTab = Window:Tab({
     ReachTab:Paragraph({
         Title = "Utilities",
         Desc = "Utility functions for reach",
-        Color = lightGreen
+        Color = config.uicolor.lightGreen
     })
     
     ReachTab:Button({
@@ -9960,12 +9958,12 @@ local ClientTab = Window:Tab({
     Title = "Client",
     Desc = rng3("Client"),
     Icon = "user",
-    IconColor = lightGray
+    IconColor = config.uicolor.lightGray
 }) do
     ClientTab:Paragraph({
         Title = "Client Master",
         Desc = "Master control for client features",
-        Color = lightGreen
+        Color = config.uicolor.lightGreen
     })
     
     ClientTab:Toggle({
@@ -9980,7 +9978,7 @@ local ClientTab = Window:Tab({
     ClientTab:Paragraph({
         Title = "Client Features",
         Desc = "Individual client feature toggles",
-        Color = lightGreen
+        Color = config.uicolor.lightGreen
     })
     
     ClientTab:Toggle({
@@ -10052,7 +10050,7 @@ local ClientTab = Window:Tab({
     ClientTab:Paragraph({
         Title = "Client Values",
         Desc = "Numerical values for client features",
-        Color = lightGreen
+        Color = config.uicolor.lightGreen
     })
     
     ClientTab:Slider({
@@ -10109,7 +10107,7 @@ local ClientTab = Window:Tab({
     ClientTab:Paragraph({
         Title = "Client Stuff",
         Desc = "Additional client utilities",
-        Color = lightGreen
+        Color = config.uicolor.lightGreen
     })
     
     ClientTab:Toggle({
@@ -10405,12 +10403,12 @@ local MiscTab = Window:Tab({
     Title = "Miscellaneous",
     Desc = rng3("Misc"),
     Icon = "settings",
-    IconColor = lightGray
+    IconColor = config.uicolor.lightGray
 }) do
     MiscTab:Paragraph({
         Title = "Animation System",
         Desc = "Character animation controls",
-        Color = lightGreen
+        Color = config.uicolor.lightGreen
     })
     
     MiscTab:Toggle({
@@ -10421,8 +10419,8 @@ local MiscTab = Window:Tab({
             config.animations = v
             if not v then
                 stopCurrentAnimation()
-            elseif currentAnimation then
-                playAnimation(currentAnimation, config.R15)
+            elseif config.varibz.currentAnimation then
+                playAnimation(config.varibz.currentAnimation, config.R15)
             end
             updateAnimation()
         end
@@ -10489,7 +10487,7 @@ local MiscTab = Window:Tab({
         Desc = "Stop current animation",
         Callback = function()
             stopCurrentAnimation()
-            currentAnimation = nil
+            config.varibz.currentAnimation = nil
             WindUI:Notify({
                 Title = "Animation",
                 Content = "Animation stopped",
@@ -10502,7 +10500,7 @@ local MiscTab = Window:Tab({
 MiscTab:Paragraph({
     Title = "Trigger Bot",
     Desc = "Automatically shoot when crosshair is on target\nNot mobile friendly!",
-    Color = lightGreen
+    Color = config.uicolor.lightGreen
 })
 
 MiscTab:Toggle({
@@ -10611,7 +10609,7 @@ MiscTab:Input({
     MiscTab:Paragraph({
         Title = "Other",
         Desc = "Additional miscellaneous features",
-        Color = lightGreen
+        Color = config.uicolor.lightGreen
     })
 
     MiscTab:Button({
@@ -11003,95 +11001,95 @@ local InfoTab = Window:Tab({
     Title = "Info",
     Desc = rng3("Info"),
     Icon = "info",
-    IconColor = lightGray
+    IconColor = config.uicolor.lightGray
 }) do
     InfoTab:Paragraph({
         Title = "Gravel",
         Desc = "Our YouTube channel is @gpssickle\nim stupid & lazy :T",
-        Color = Red
+        Color = config.uicolor.Red
     })
     InfoTab:Paragraph({
         Title = "Tabs",
         Desc = "Information about each tab",
-        Color = Blue
+        Color = config.uicolor.Blue
     })
     
     InfoTab:Paragraph({
         Title = "MainTab",
         Desc = "All basic features, Team targeting, Configuring, optimizing and etc",
-        Color = darkGray
+        Color = config.uicolor.darkGray
     })
     
     InfoTab:Paragraph({
         Title = "Visualstab",
         Desc = "Changes your visuals full bright or rendering in esps",
-        Color = darkGray
+        Color = config.uicolor.darkGray
     })
     
     InfoTab:Paragraph({
         Title = "AntiAimTab",
         Desc = "It would do it's best to make your opponents miss every shot",
-        Color = darkGray
+        Color = config.uicolor.darkGray
     })
     
     InfoTab:Paragraph({
         Title = "AimbotTab",
         Desc = "Manipulates your camera and it would automatically aim at your opponents",
-        Color = darkGray
+        Color = config.uicolor.darkGray
     })
     
     InfoTab:Paragraph({
         Title = "SilentAimTab (HB)",
         Desc = "Automatically resizes opponents hitbox and aligning it to your crosshair or the center of your screen (the only working SilentAim)",
-        Color = darkGray
+        Color = config.uicolor.darkGray
     })
     
     InfoTab:Paragraph({
         Title = "SilentAimTab (HK)",
         Desc = "Intercepts raycasts to accurately hit targets.",
-        Color = darkgray
+        Color = config.uicolor.darkGray
     })
 
     InfoTab:Paragraph({
         Title = "HitboxTab",
         Desc = "Resizes opponents hitbox to easily hit or shoot at opponents",
-        Color = darkGray
+        Color = config.uicolor.darkGray
     })
     
     InfoTab:Paragraph({
         Title = "ReachTab",
         Desc = "Resizes your melee or any tools Firetouchinterest to hit opponents further",
-        Color = darkGray
+        Color = config.uicolor.darkGray
     })
     
     InfoTab:Paragraph({
         Title = "ClientTab",
         Desc = "Change your walkspeed or jump power or even fly around to dodge any attacks from your opponents",
-        Color = darkGray
+        Color = config.uicolor.darkGray
     })
     
     InfoTab:Paragraph({
         Title = "MiscTab",
         Desc = "Basically experiment any features that are or aren't related to combating",
-        Color = darkGray
+        Color = config.uicolor.darkGray
     })
     
     InfoTab:Paragraph({
         Title = "InfoTab",
         Desc = "InfoTab the tab that your in just shows informations or details",
-        Color = darkGray
+        Color = config.uicolor.darkGray
     })
 
     InfoTab:Paragraph({
         Title = "BotTab",
         Desc = "Deleted due to 200 variable limit & uselessness",
-        Color = Red
+        Color = config.uicolor.Red
     })
     InfoTab:Space()
     InfoTab:Paragraph({
         Title = "Guide",
         Desc = "Tutorial for some features\n[for now it's the save/load]",
-        Color = Blue
+        Color = config.uicolor.Blue
     })
 InfoTab:Paragraph({
     Title = "Save/Load Guide",
@@ -11108,118 +11106,118 @@ InfoTab:Paragraph({
 
 Note: sum features might not get saved properly D:
 ]],
-    Color = darkGray
+    Color = config.uicolor.darkGray
 })
     InfoTab:Space()
     InfoTab:Paragraph({
         Title = "Credits",
         Desc = "Credits to other creators",
-        Color = lightGreen
+        Color = config.uicolor.lightGreen
     })
     
     InfoTab:Paragraph({
         Title = "Gravel",
         Desc = "UI: WindUI\nNotification: Alurt",
-        Color = darkGray
+        Color = config.uicolor.darkGray
     })
     InfoTab:Space()
     InfoTab:Paragraph({
         Title = "Updatelog",
         Desc = "Update history and changes\n\nGravel (DD/MM/YYYY)",
-        Color = lightGreen
+        Color = config.uicolor.lightGreen
     })
 
     InfoTab:Paragraph({
         Title = "Gravel (14/01/2026)",
         Desc = "Added: Legacy\nAdded: Reachtab\nAdded: Wallbang in Silentaim HK\nFixed Bugs: 0",
-        Color = darkGray
+        Color = config.uicolor.darkGray
     })
     
     InfoTab:Paragraph({
         Title = "Gravel (22/01/2026)",
         Desc = "Added: MiscTab\nChanged: Redesigned the OptionGui\nFixed Bugs: 9",
-        Color = darkGray
+        Color = config.uicolor.darkGray
     })
     
     InfoTab:Paragraph({
         Title = "Gravel (23/01/2026)",
         Desc = "Fixed: Execution Problem\nFixed: Bugs in the SilentAimTab (HK)\nAdded: BackgroundBlur on the loading screeen\nFixed Bugs: 27",
-        Color = darkGray
+        Color = config.uicolor.darkGray
     })
     InfoTab:Paragraph({
         Title = "Gravel (02/02/2026)",
         Desc = "Changed: DummyUI to WindUI Rewritten UI Creation\nFixed: Keybind Systems are now more accurate and Rewritten\nFixed: SilentAimTab (HK) hooks now less laggy\nFixed: Loop Errors\nFixed: Notification Spam\nAdded: Colorpickers to the VisualsTab\nAdded: Random Messages to the OpenButton and Popup UI\nFixed: UI Causing errors, Callback errors\nFixed Bugs: 34+",
-        Color = darkGray
+        Color = config.uicolor.darkGray
     })
     InfoTab:Paragraph({
         Title = "Gravel (10/02/2026)",
         Desc = "Added: Optimization and tweaks\nFixed: Optimized SilentAimTab (HK)\nAdded: Distance limitation to SilentAimTab (HK)\nAdded: Cache Optimization\nFixed Bugs: 5",
-        Color = darkGray
+        Color = config.uicolor.darkGray
     })
     InfoTab:Paragraph({
         Title = "Gravel (06/05/2026)",
         Desc = "More optimizations!",
-        Color = darkGray
+        Color = config.uicolor.darkGray
     })
     InfoTab:Paragraph({
         Title = "Gravel (18/05/2026)",
         Desc = "Removed: Bot Tab has been removed to avoid 200 variable limit\nInfo: SilentAim (HK) would no longer work at this time.\nAdded: Cam-Y or WallOver toggle to SilentAimTab (HB)\nAdded: Cframe View to MiscTab\nInfo: At this time Gravel.cc might be buggy for now.",
-        Color = darkGray
+        Color = config.uicolor.darkGray
     })
     InfoTab:Paragraph({
         Title = "Gravel (18/05/2026)",
         Desc = "Removed: SilentAim (HK) is now removed due to an update :(",
-        Color = darkGray
+        Color = config.uicolor.darkGray
     })
     InfoTab:Paragraph({
         Title = "Gravel (18/05/2026)",
         Desc = "Improved: SilentAim (HB) Accuracy",
-        Color = darkGray
+        Color = config.uicolor.darkGray
     })
     InfoTab:Paragraph({
         Title = "Gravel (19/06/2026)",
         Desc = "Fixed: Targeting Systems\nFixed Bugs: 10",
-        Color = darkGray
+        Color = config.uicolor.darkGray
     })
     InfoTab:Paragraph({
         Title = "Gravel (21/06/2026)",
         Desc = "Re-Added: SilentAim (HK) [Nothing wrong actually happened.. I'm just stupid]",
-        Color = darkGray
+        Color = config.uicolor.darkGray
     })
     InfoTab:Paragraph({
         Title = "Gravel (23/06/2026)",
         Desc = "Fixed: SilentAim (HK) Targeting issues\nMoved: WallOver/Cam-Y to MiscTab\nAdded: ScaleToScreen Toggle & STSDistance to SilentAim (HB)\nAdded: some other additional features :p",
-        Color = darkGray
+        Color = config.uicolor.darkGray
     })
     InfoTab:Paragraph({
         Title = "Gravel (25/06/2026)",
         Desc = "Added: Triggerbot & Spinbot in the MiscTab\nAdded: Additional stuff & optimization \nFixed Bugs: 7",
-        Color = darkGray
+        Color = config.uicolor.darkGray
     })
     InfoTab:Paragraph({
         Title = "Gravel (27/06/2026)",
         Desc = "Added: Bhop in the MiscTab\nAdded: Draggable toggle for QuickToggles in MainTab\nMoved: Spinbot in the AntiAimTab\nFixed: Hitbox freezing issue\nAdded: Keybind for TriggerBot Wallcheck 'Y'\nChanged Client Keybind to 'N'\nFixed Bugs: 1",
-        Color = darkGray
+        Color = config.uicolor.darkGray
     })
     InfoTab:Paragraph({
         Title = "Gravel (28/06/2026)",
         Desc = "Added: Save/Load in the MainTab :3",
-        Color = darkGray
+        Color = config.uicolor.darkGray
     })
     InfoTab:Paragraph({
         Title = "Gravel (01/07/2026)",
         Desc = "Fixed: Save/Load bugs\nFixed: Hitbox bugs\nFixed Bugs: 5",
-        Color = darkGray
+        Color = config.uicolor.darkGray
     })
     InfoTab:Paragraph({
         Title = "Gravel (06/07/2026)",
         Desc = "Added: Guide Section in InfoTab",
-        Color = darkGray
+        Color = config.uicolor.darkGray
     })
     InfoTab:Paragraph({
         Title = "Gravel (06/07/2026)",
         Desc = "Added: More RNGs :3",
-        Color = darkGray
+        Color = config.uicolor.darkGray
     })
 end
 
@@ -11228,7 +11226,7 @@ end
     InfoTab:Paragraph({
         Title = "Gravel (DD/07/2026)",
         Desc = "",
-        Color = darkGray
+        Color = config.uicolor.darkGray
     })
 ]]
 
