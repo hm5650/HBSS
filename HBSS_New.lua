@@ -7235,6 +7235,7 @@ local rng = function()
         "search free robux to get free robux",
         "alt-f4 = free rboux",
         "^_^",
+        "half life 3 when?",
         "it's a game called HELLO NEIGHBOR -HEL -HEL -HELHEL-HELLO NE-NEIGH-BOR",
         "FORTYNIGHTY LA PABAJI\npabaji\nPABAJI LA EKES BOKES SERES EKES\npabaji\nPABAJI LA BALESTHONFAIV\nbalesteshon... faiv...\nBALESTHONFAIV LA LUKITIK\nlukitik\nLUKITTIK LA HAYBAR EKES EKES EKES EKES\nhybar ekes ekes ekes ekes\nHYBAR EKES EKES EKES EKES LA GIRANDIFIFDORIGINI\ngirandififdorigini",
         "Did you do your chores?\nyessirski!\nDid you do your chores?\nyessirski\nDid you do your chores?\nyessirski!\nDid you do your chores?\nyessirski\nWhen I get home it better be clean!\nDid you do your chores?\nyessirski!\nOH! BOI WHY DID U LIE TO ME!!!\nAHHHHH",
@@ -7254,6 +7255,9 @@ local rng = function()
         "just simply walk around it\n\n- Electracy",
         "You die\n\n- StromBrew",
         "sonion",
+        "I like trains",
+        "welcome to McDonald's.",
+        "you are my sunshine, my only sunshine",
         "IS THAT SONIC WITH GRAY SHOES D:",
         "Atoms never touch so dat means I didn't steal ur chocolate",
         "Yeah, come gets some you freakin' wuss\n\n- Scout (not Taunt form dod)",
@@ -7336,13 +7340,32 @@ local rng2 = function()
         ":3",
         "lololololooloo",
     }
-    local randomMessage = tinf[math.random(1, #tinf)]
+    local bju = tinf[math.random(1, #tinf)]
+    local tinf2 = {
+        "rbxassetid://128670966889578",
+        "rbxassetid://132214308111067",
+        "rbxassetid://72509803293342",
+        "rbxassetid://130435138559679",
+        "rbxassetid://127155823074936",
+        "rbxassetid://126485931781624",
+    }
+    local bju2 = tinf2[math.random(1, #tinf2)]
+    local tinf3 = {
+	    "rbxassetid://72298953503422",
+	    "rbxassetid://17608357332",
+       "rbxassetid://130776885039264",
+       "rbxassetid://6303045144",
+       "rbxassetid://101513669346450",
+       "rbxassetid://17748195478",
+       "rbxassetid://17517499979",
+    }
+    local bju3 = tinf3[math.random(1, #tinf3)]
     n({
         Title = "Gravel.cc",
-        Content = randomMessage,
-        Audio = "rbxassetid://17208361335",
+        Content = bju,
+        Audio = bju3,
         Length = 10,
-        Image = "rbxassetid://4483362458",
+        Image = bju2,
         BarColor = Color3.fromRGB(0, 170, 255)
     })
 end
