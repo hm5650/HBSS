@@ -2444,6 +2444,9 @@ end
 
 local function ShouldTargetPlayer(targetPlayer)
     if targetPlayer == plr then return false end
+    if config.ignoreForcefield and targetPlayer.Character and hasForcefield(targetPlayer.Character) then
+        return false
+    end
     
     if config.SA2_TeamTarget == "All" then
         return true
@@ -2516,7 +2519,9 @@ local function GetClosestPlayer()
     for _, Player in next, GetPlayers(plrs) do
         if Player == plr then continue end
         if not ShouldTargetPlayer(Player) then continue end
-        
+        if config.ignoreForcefield and hasForcefield(Character) then
+            continue
+        end
         local Character = Player.Character
         if not Character then continue end
         local Humanoid = FindFirstChild(Character, "Humanoid")
@@ -11092,6 +11097,11 @@ Note: sum features might not get saved properly D:
     InfoTab:Paragraph({
         Title = "Gravel (07/07/2026)",
         Desc = "Fixed: Fixed sum lags",
+        Color = config.uicolor.darkGray
+    })
+    InfoTab:Paragraph({
+        Title = "Gravel (07/07/2026)",
+        Desc = "Ignore forcefield now supports SilentAim (HK)",
         Color = config.uicolor.darkGray
     })
 end
