@@ -95,7 +95,7 @@ end
 local CanCastToSTDString = function(...)
     return pcall(FindFirstChild, game, ...)
 end
-
+task.wait(0.4)
 getgenv().ED_AntiKick = {
     Enabled = true, 
     SendNotifications = false,
@@ -166,7 +166,7 @@ n({
     BarColor = Color3.fromRGB(0, 170, 255)
 })
 end)
-
+task.wait(0.8) -- I hate http 429 errors...
 -- other wallmart variables
 local gui = {}
 local ValidTargetParts = {"Head", "HumanoidRootPart", "Torso", "UpperTorso", "LowerTorso", "RightUpperArm", "LeftUpperArm", "RightLowerArm", "LeftLowerArm", "RightHand", "LeftHand", "RightUpperLeg", "LeftUpperLeg", "RightLowerLeg", "LeftLowerLeg", "RightFoot", "LeftFoot"}
