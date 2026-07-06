@@ -764,6 +764,7 @@ local function givename()
         "Gravel-er",
         "Graaaavel",
         "Shovel.cc",
+        "HBSS.lua",
         "Gravel.com",
         "Hi! I'm Gravel!",
         "Gravel enjoyer",
