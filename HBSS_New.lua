@@ -11089,6 +11089,11 @@ Note: sum features might not get saved properly D:
         Desc = "Added: Guide Section in InfoTab",
         Color = config.uicolor.darkGray
     })
+    InfoTab:Paragraph({
+        Title = "Gravel (07/07/2026)",
+        Desc = "Fixed: Fixed sum lags",
+        Color = config.uicolor.darkGray
+    })
 end
 
 -- tsu
