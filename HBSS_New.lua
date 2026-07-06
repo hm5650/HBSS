@@ -9,6 +9,7 @@ for _, v in pairs(getconnections(game:GetService("LogService").MessageOut)) do
     v:Disable()
 end
 
+-- spaghetti code yummy
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
