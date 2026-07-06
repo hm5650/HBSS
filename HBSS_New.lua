@@ -814,7 +814,7 @@ local function deleteAllSaves()
     local maxConfirmations = 3
     
     local function getRandomYesText()
-        local options = {"yes....", "Yes-ful", "YESSIRSKIIL"}
+        local options = {"yes....", "that's a missclick", "YOU SURE BOUT THAT???", "SAVES GO TO HELL", "I demand", "YÆS", "IM 100% SURE", "KILL EM ALL!!!"}
         return options[math.random(1, #options)]
     end
     
@@ -824,8 +824,8 @@ local function deleteAllSaves()
             Icon = "trash",
             Content = string.format(
                 "This will permanently delete ALL %d save files!\n\n" ..
-                "This action cannot be undone.\n\n" ..
-                "Confirmation %d/%d - Click 'Yes' to proceed",
+                "This action cannot be undone D:\n\n" ..
+                "Confirmation %d/%d - Click 'Check' to proceed",
                 #saves,
                 confirmCount + 1,
                 maxConfirmations
