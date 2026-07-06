@@ -11782,7 +11782,7 @@ task.spawn(function()
         end
         
         task.wait(config.varibz.patcherwait)
-    end s()
+    end d()
 end)
 
 init()
