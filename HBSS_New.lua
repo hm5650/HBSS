@@ -95,6 +95,7 @@ local CanCastToSTDString = function(...)
     return pcall(FindFirstChild, game, ...)
 end
 
+-- dis antikick ain't mines :v
 getgenv().ED_AntiKick = {
     Enabled = true, 
     SendNotifications = false,
@@ -191,7 +192,7 @@ local lightGray = Color3.fromRGB(200, 200, 200)
 local Red = Color3.fromRGB(255, 0, 0)
 local Blue = Color3.fromRGB(175, 221, 255)
 
--- random stuff lololol
+-- random stuff lololol (don't mind my naming skills............ok... it's how it is >:c)
 local config = {
     startsa = false,
     fovsize = 120,
@@ -811,6 +812,11 @@ local function deleteAllSaves()
     local confirmCount = 0
     local maxConfirmations = 3
     
+    local function getRandomYesText()
+        local options = {"yes....", "Yes-ful", "YESSIRSKIIL"}
+        return options[math.random(1, #options)]
+    end
+    
     local function showConfirmation()
         WindUI:Popup({
             Title = "Delete All Saves",
@@ -825,7 +831,7 @@ local function deleteAllSaves()
             ),
             Buttons = {
                 {
-                    Title = "Yes",
+                    Title = getRandomYesText(),
                     Icon = "check",
                     Variant = "Danger",
                     Callback = function()
@@ -894,7 +900,6 @@ local function deleteAllSaves()
     showConfirmation()
     return true
 end
-
 local function applyFeatureAfterLoad(featureName, state, ...)
     local args = {...}
     pcall(function()
@@ -7179,7 +7184,7 @@ local btntitle = {
     "🥀💔✌️🫩",
     "brochacho",
 }
-local choose = btntitle[math.random(1, #btntitle)]
+local rng = btntitle[math.random(1, #btntitle)]
 local Window = WindUI:CreateWindow({
     Title = "Gravel.cc",
     Theme = "Dark",
@@ -7187,7 +7192,7 @@ local Window = WindUI:CreateWindow({
     Size = UDim2.fromOffset(600, 70),
     HideSearchBar = false,
     OpenButton = {
-        Title = choose,
+        Title = rng,
         Enabled = true,
         Draggable = true,
     },
@@ -7197,7 +7202,7 @@ local Window = WindUI:CreateWindow({
     }
 })
 
-local nd = function()
+local rng = function()
     local m = {
         ":0",
         ":7",
@@ -7252,6 +7257,8 @@ local nd = function()
         "Atoms never touch so dat means I didn't steal ur chocolate",
         "Yeah, come gets some you freakin' wuss\n\n- Scout (not Taunt form dod)",
         "sybau 🥀💔",
+        "these are meme reference ok",
+        "water + ice + melt = water",
         "3.1415926535897932384626433832795028841971693993751058209749445923078164062862089986280348253421170679",
         "1.61803398874989484820458683436563811772030917980576",
         "print(''*prints cutely*'')\nerror(''*errors cutely*'')\nwarn(''*warns cutely*'')",
@@ -7300,11 +7307,248 @@ local nd = function()
         }
     })
 end
-nd()
-
+rng()
+local rng2 = function()
+    local tinf = {
+        "bombastic side eye",
+        "oh shiddings nott gud D:",
+        "67 vs 67",
+        "what's yer zodiac sign",
+        "hi I'm a rng",
+        "what's a brainfuck :s",
+        "Gravel.cc says be gravel",
+        "tag ur it",
+        "shimmy ey shimmy yaaa",
+        "so many references :o",
+        "me wants grabel :(",
+        "life never made lemons...",
+        "01001000 01101001",
+        "whoz dat",
+        "user :3",
+        "water",
+        "my diet is gravel",
+        "6761694203602048",
+        "ur definitely using delta cuz idk",
+        "dab me up :>",
+        "how much saves do u has",
+        "O rly",
+        ":3",
+        "lololololooloo",
+    }
+    local randomMessage = tinf[math.random(1, #tinf)]
+    n({
+        Title = "Gravel.cc",
+        Content = randomMessage,
+        Audio = "rbxassetid://17208361335",
+        Length = 10,
+        Image = "rbxassetid://4483362458",
+        BarColor = Color3.fromRGB(0, 170, 255)
+    })
+end
+rng2()
+local function rng3(tabName)
+    local descs = {
+        Main = {
+            "y u touching my brain",
+            "brain goes brrr",
+            "main stuffz",
+            "da core settings",
+            "trust me i know what im doing",
+            "settings go here!",
+            "don't touch unless you know what ur doing",
+            "gravels shovel",
+            "the real tab",
+            "where da magic happens",
+            "hehe settings go brr",
+            "u have no idea what ur doing",
+            "baaa",
+            "it's big brain time.",
+            "pls be careful D:",
+            "yolo toggle it all",
+            "main main main main",
+            "core settings 4 core ppl",
+            "don't blame me if u break stuff",
+            "folk",
+            "read da text vro :1",
+        },
+        Visuals = {
+            "4 the blind ppl",
+            "oooh shiny",
+            "make game look cool",
+            "ESP go brrrrrr",
+            "seeing ppl through walls :o",
+            "visuals for da win",
+            "colorful stuff",
+            "vision 1+",
+            "walls are just suggestion",
+            "make em glow",
+            "I can see china from here!1!",
+            "see everything",
+            "game looks different now",
+            "seekify",
+            "your eyes will thank u",
+            "wallhack energy",
+            "highlight da enemies",
+            "rainbow vibes",
+            "visibility is key",
+            "what walls?",
+            "xray vision activated",
+            "visuals go crazy"
+        },
+        AntiAim = {
+            "I suck at dodging tab",
+            "dodge master 3000",
+            "u cant hit me >:3",
+            "evasion tactics",
+            "why can't I hit u",
+            "they cant touch this",
+            "pew = miss",
+            "anti-getting-shot",
+            "hit me if u can",
+            "can't touch this",
+            "matrix mode",
+            "teleports behind u",
+            "nothing personnel kid",
+            "dodgeball champion",
+            "good luck hitting me",
+            "disappear",
+            "now u see me, now u dont",
+            "trust im legit dodging",
+        },
+        Aimbot = {
+            "aimware-ing",
+            "lock on target",
+            "no mouse movement aim tab",
+            "i legit never miss",
+            "accuracy 1+",
+            "headshot da kidz",
+            "crosshair magnet",
+            "technically aim assist",
+            "aimlabs? never heard of her",
+            "perfect aim every time",
+            "aim at thing",
+            "precision inc",
+            "never miss u again",
+            "ur aim is insane",
+            "holeh aimbot",
+            "aimbot go crazy"
+        },
+        ["SilentAim (HB)"] = {
+            "hitbox x aimbot x silentaim x bullet tracker",
+            "randomnesss",
+            "SilentAim & Hitbox made a baby",
+            "ssshhh its a secret",
+            "unaim-ful",
+            "where are you aiming at??",
+            "secret sauce"
+        },
+        ["SilentAim (HK)"] = {
+            "I'm the better option sonionster",
+            "hook-based baby",
+            "the true silent aim",
+            "raycast interception",
+            "the better silentsilentaim",
+            "raycast go brrr",
+            "uncatchable",
+            "legit looking I think..",
+            "aimbot 2.0",
+            "aim-ster",
+            "the real deal",
+            "undetectable",
+            "raycast domination",
+        },
+        Hitbox = {
+            "it's hitbox not HURTBOX D:<",
+            "size matters",
+            "make em bigger",
+            "expansion pack",
+            "hitbox go chud mode",
+            "bigger is better",
+            "easy mode",
+            "bro what's that hitbox",
+            "sizely",
+            "bigger hitbox bigger fun",
+            "they cant dodge",
+            "hurtbox",
+            "making targets fatter",
+            "hurt big box",
+            "big blob",
+        },
+        Reach = {
+            "1+1= √4",
+            "long arms",
+            "stretchy arms",
+            "extendo reach",
+            "touch things far away",
+            "reach for the stars",
+            "melee buff",
+            "sword go brrr",
+            "long distance relationship",
+            "can i touch u from here :3",
+            "extendo mode",
+            "range extender",
+            "COME TO BRAZIL",
+            "touchy touchy",
+            "stretch armstrong",
+            "big reach modeldh",
+            "reach around",
+            "long arms gng🥀",
+            "kill aura for sowrds"
+        },
+        Client = {
+            "I don't hold the serverside blud",
+            "GOTTA GO FAST",
+            "I'm in a sugar rush",
+            "due to my gaming chair",
+            "client the client of client",
+        },
+        Miscellaneous = {
+            "random bs go!!!🔥🔥🔥🔥",
+            "the leftovers",
+            "extra stuff",
+            "random stuff my brain made",
+            "the rest of em",
+            "thingamabob",
+            "experimental features",
+            "za-silly",
+            "wha",
+            "hidden gems",
+            "ragebait here",
+            "randomness",
+            "kiss me misc :3",
+            "extra goodies",
+            "funny features",
+            "wacky stuff",
+            "chaos mode"
+        },
+        Info = {
+            "show me da papperz",
+            "the knowledge",
+            "read me.txt",
+            "info-man",
+            "VRO HELP ME OUT",
+            "what is this",
+            "guide time",
+            "ENLIGHTEN ME",
+            "credits and stuff",
+            "dictionary",
+            "how to use roadblocked",
+            "info urself",
+            "wtf is this script",
+            "my dih"
+        }
+    }
+    
+    local tabDescs = descs[tabName]
+    if tabDescs and #tabDescs > 0 then
+        return tabDescs[math.random(1, #tabDescs)]
+    end
+    return "description missing D:"
+end
+-- rng3("")
 
 Window:Tag({
-    Title = "SRC: https://github.com/hm5650/HBSS/tree/main\nYT: @gpssickle",
+    Title = "SRC: https://github.com/hm5650/HBSS/tree/main\nYT: @gpssickle ;3",
     Icon = "github",
     Color = Color3.fromHex("#1c1c1c"),
     Border = true
@@ -7313,7 +7557,7 @@ Window:Tag({
 -- Main Tab
 local MainTab = Window:Tab({
     Title = "Main",
-    Desc = "Main settings and configurations",
+    Desc = rng3("Main"),
     Icon = "hammer",
     IconColor = lightGray
 }) do
@@ -8054,9 +8298,10 @@ MainTab:Paragraph({
     Color = darkGray
 })
 end
+-- Visuals Tab
 local VisualsTab = Window:Tab({
     Title = "Visuals",
-    Desc = "ESP and visual enhancements",
+    Desc = rng3("Visuals"),
     Icon = "eye",
     IconColor = lightGray
 }) do
@@ -8458,7 +8703,7 @@ end
 -- AntiAim Tab
 local AntiAimTab = Window:Tab({
     Title = "AntiAim",
-    Desc = "Anti-aim and evasion features",
+    Desc = rng3("AntiAim"),
     Icon = "shield",
     IconColor = lightGray
 }) do
@@ -8767,7 +9012,7 @@ end
 -- Aimbot Tab
 local AimbotTab = Window:Tab({
     Title = "Aimbot",
-    Desc = "Aimbot and targeting features",
+    Desc = "aimware-ing",
     Icon = "crosshair",
     IconColor = lightGray
 }) do
@@ -8881,7 +9126,7 @@ end
 -- SilentAim Tab (HB)
 local SilentAimTab = Window:Tab({
     Title = "SilentAim (HB)",
-    Desc = "Hitbox-based silent aim",
+    Desc = rng3("SilentAim (HB)"),
     Icon = "circle",
     IconColor = lightGray
 }) do
@@ -9047,7 +9292,7 @@ end
 -- SilentAim (HK)
 local SilentAimTab2 = Window:Tab({
     Title = "SilentAim (HK)",
-    Desc = "Hook-based silent aim",
+    Desc = rng3("SilentAim (HK)"),
     Icon = "target",
     IconColor = lightGray
 }) do
@@ -9210,7 +9455,7 @@ end
 -- Hitbox Tab
 local HitboxTab = Window:Tab({
     Title = "Hitbox",
-    Desc = "Hitbox expansion features",
+    Desc = rng3("Hitbox"),
     Icon = "box",
     IconColor = lightGray
 }) do
@@ -9306,9 +9551,10 @@ local HitboxTab = Window:Tab({
     })
 end
 
+-- Reach Tab
 local ReachTab = Window:Tab({
     Title = "Reach",
-    Desc = "Extended reach for melee weapons",
+    Desc = rng3("Reach"),
     Icon = "sword",
     IconColor = lightGray
 }) do
@@ -9660,7 +9906,7 @@ end
 -- Client Tab
 local ClientTab = Window:Tab({
     Title = "Client",
-    Desc = "Client-side modifications and utilities",
+    Desc = rng3("Client"),
     Icon = "user",
     IconColor = lightGray
 }) do
@@ -10105,7 +10351,7 @@ end
 -- Misc Tab
 local MiscTab = Window:Tab({
     Title = "Miscellaneous",
-    Desc = "Additional features and utilities",
+    Desc = rng3("Misc"),
     Icon = "settings",
     IconColor = lightGray
 }) do
@@ -10356,10 +10602,23 @@ MiscTab:Input({
         Title = "pop-up (pls ignore)",
         Desc = "it's the same pop-up that appears when da script loads",
         Callback = function()
-              nd()
+              rng()
             WindUI:Notify({
                 Title = "wat",
                 Content = "pop-up thingamasilly",
+                Icon = "shovel",
+                Duration = 1
+            })
+        end
+    })
+    MiscTab:Button({
+        Title = "notif (pls ignore)",
+        Desc = "it's the same notif that appears when da script loads",
+        Callback = function()
+              rng2()
+            WindUI:Notify({
+                Title = "wazzaa!!!!",
+                Content = "notif thingamajang",
                 Icon = "shovel",
                 Duration = 1
             })
@@ -10690,7 +10949,7 @@ end
 -- Info Tab
 local InfoTab = Window:Tab({
     Title = "Info",
-    Desc = "Information and documentation",
+    Desc = rng3("Info"),
     Icon = "info",
     IconColor = lightGray
 }) do
@@ -10903,6 +11162,11 @@ Note: sum features might not get saved properly D:
     InfoTab:Paragraph({
         Title = "Gravel (06/07/2026)",
         Desc = "Added: Guide Section in InfoTab",
+        Color = darkGray
+    })
+    InfoTab:Paragraph({
+        Title = "Gravel (06/07/2026)",
+        Desc = "Added: More RNGs :3",
         Color = darkGray
     })
 end
