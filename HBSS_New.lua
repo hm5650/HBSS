@@ -8,7 +8,7 @@
 ⠸⣿⡀⠀⠀⠀⣠⣾⠟⠁⠀⠀⠀⠀⠀⠀
 ⠀⠙⠻⠿⠿⠟⠛⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
            
-           “shoev” 
+           “wouldnt hbss mean Hemoglobin SS... tbh i didnt even know :/” 
                                            
                                - Gpssickle
 ]]
