@@ -753,7 +753,6 @@ local humanoid = nil
 local character = nil
 local updateESPColors = function() end
 local clone_ref = cloneref or function(v) return v end
-local heartbeatLock = false
 
 -- random stuff lololol
 -- I'm not gonna explain each variable U have to know allat
@@ -2069,6 +2068,15 @@ local config = {
            "rbxassetid://17517499979",
            "rbxassetid://119888856502065",
         },
+        uwu = {
+            "rbxassetid://72298953503422",
+            "rbxassetid://17608357332",
+            "rbxassetid://130776885039264",
+            "rbxassetid://6303045144",
+            "rbxassetid://101513669346450",
+            "rbxassetid://17748195478",
+            "rbxassetid://17517499979",
+        },
         descs = {
             Main = {
                 "y u touching my brain",
@@ -2313,6 +2321,7 @@ local config = {
         triggerBotConnection = nil,
         sa2thing = 0,
         sa2stuff = 0.5,
+        sa2this = false,
         spinbotConnection = nil,
         ViewConnection = nil,
         CameraDistance = 8,
@@ -4448,7 +4457,7 @@ local function syncSilentAimWithMaster()
 end
 
 local function GetClosestPlayer()
-    if not heartbeatLock then
+    if not config.varibz.sa2this then
         return cachedTarget or nil
     end
     if config.varibz.respawnLock or not plr.Character then
@@ -4691,9 +4700,9 @@ excusemesir.RunService.Heartbeat:Connect(function(deltaTime)
     if config.varibz.sa2thing >= config.varibz.sa2stuff then
         config.varibz.sa2thing = 0
         if config.SA2_Enabled then
-            heartbeatLock = true
+            config.varibz.sa2this = true
             cachedTarget = GetClosestPlayer()
-            heartbeatLock = false
+            config.varibz.sa2this = false
         end
     end
 end)
@@ -14128,7 +14137,61 @@ local function init()
     print("47 72 61 76 65 6C 2E 63 63 20 4C 6F 61 64 65 64 21 20 3A 33")
     print("01000111 01110000 01110011 73 69 63 6B 6C 65")
 end
+
 local function cleanup()
+    pcall(function()
+        local owo = config.varibz.uwu[math.random(1, #config.varibz.uwu)]
+        local explosionGui = Instance.new("ScreenGui")
+        local flash = Instance.new("Frame")
+        local explosion = Instance.new("ImageLabel")
+        local memeSound = Instance.new("Sound")
+        local explosionSound = Instance.new("Sound")
+        explosionGui.Name = "bang"
+        explosionGui.ResetOnSpawn = false
+        explosionGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+        explosionGui.Parent = localPlayer:WaitForChild("PlayerGui")
+        flash.Name = "Flash"
+        flash.Size = UDim2.new(1, 0, 1, 0)
+        flash.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+        flash.BackgroundTransparency = 0
+        flash.ZIndex = 9
+        flash.Parent = explosionGui
+        explosion.Name = "Explosion"
+        explosion.Size = UDim2.new(0, 200, 0, 200)
+        explosion.Position = UDim2.new(0.5, 0, 0.5, 0)
+        explosion.AnchorPoint = Vector2.new(0.5, 0.5)
+        explosion.BackgroundTransparency = 1
+        explosion.Image = "rbxassetid://128670966889578"
+        explosion.ImageTransparency = 0
+        explosion.ZIndex = 10
+        explosion.Parent = explosionGui
+        memeSound.SoundId = owo
+        memeSound.Volume = 1
+        memeSound.Parent = explosionGui
+        memeSound:Play()
+        explosionSound.SoundId = "rbxassetid://8447388510"
+        explosionSound.Volume = 2
+        explosionSound.Parent = explosionGui
+        explosionSound:Play()
+        
+        local flashTween = excusemesir.TweenService:Create(flash, TweenInfo.new(0.8, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+            BackgroundTransparency = 1
+        })
+        local explosionTween = excusemesir.TweenService:Create(explosion, TweenInfo.new(0.6, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+            Size = UDim2.new(0, 850, 0, 850),
+            ImageTransparency = 0.2
+        })
+        flashTween:Play()
+        explosionTween:Play()
+        task.wait(1.2)
+        local fadeOut = excusemesir.TweenService:Create(explosion, TweenInfo.new(0.4, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
+            ImageTransparency = 1,
+            Size = UDim2.new(0, 1200, 0, 1200)
+        })
+        fadeOut:Play()
+        task.wait(0.6)
+        explosionGui:Destroy()
+    end)
     pcall(function()
         RunService:UnbindFromRenderStep("FOVhbUpdater_Modern")
         RunService:UnbindFromRenderStep("ESPUpdater")
@@ -14363,16 +14426,14 @@ local function cleanup()
         getgenv().Graaaaaaaaaaaaaaaaaaaaaaavel = false
     end)
 end
-local clearTargetCache = function()
-    pcall(function()
-        config.SA2_currentTarget = nil
-        config.currentTarget = nil
-        config.aimbotCurrentTarget = nil
-        config.SA2_FovIsTargeted = false
-        config.targetSeenTargets = {}
-        config.autoFarmTargets = {}
-        config.autoFarmCompleted = {}
-    end)
+local function clearTargetCache()
+    config.SA2_currentTarget = nil
+    config.currentTarget = nil
+    config.aimbotCurrentTarget = nil
+    config.SA2_FovIsTargeted = false
+    config.targetSeenTargets = {}
+    config.autoFarmTargets = {}
+    config.autoFarmCompleted = {}
 end
 task.spawn(function()
     while config.varibz.lowpatcher do
