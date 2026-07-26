@@ -2674,7 +2674,7 @@ end
 
 local function makeui()
     lib:SetTitle("Gravel.cc (Legacy)")
-    lib:SetIcon("http://www.roblox.com/asset/?id=132214308111067")
+    lib:SetIcon("http://www.roblox.com/asset/?id=7734056878")
     lib:SetTheme("HighContrast")
     local T0 = lib:CreateTab("Client")
     local T1 = lib:CreateTab("Main")
