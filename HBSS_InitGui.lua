@@ -1,8 +1,8 @@
+local InitGuiModule = {}
 local InitGui = {}
-
-function InitGui:new()
-    local self = setmetatable({}, { __index = InitGui })
-    
+InitGui.__index = InitGui
+function InitGui.new()
+    local self = setmetatable({}, InitGui)
     self.statusMessages = {
         "fetching random asset files...",
         "getting urls...",
@@ -33,9 +33,11 @@ function InitGui:new()
         "staring at the code...",
         "hoping it works...",
         "it's not a virus i promise...",
-        "praying to the gps sickle..."
+        "praying to the gps sickle...",
+        "my code is pasta...",
+        "al dente and tangled...",
+        "bon appetit..."
     }
-    
     self.dotCount = 0
     self.dotTask = nil
     self.statusTask = nil
@@ -44,10 +46,8 @@ function InitGui:new()
     self.title = nil
     self.status = nil
     self.dots = nil
-    
     return self
 end
-
 function InitGui:create()
     local gui = Instance.new("ScreenGui")
     gui.Name = "InitializingGui"
@@ -56,21 +56,18 @@ function InitGui:create()
     gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
     gui.Parent = game:GetService("CoreGui")
     self.gui = gui
-
     local bg = Instance.new("Frame")
     bg.Size = UDim2.fromScale(1, 1)
     bg.BackgroundColor3 = Color3.new(0, 0, 0)
     bg.BackgroundTransparency = 0.7
     bg.Parent = gui
     self.bg = bg
-
     local center = Instance.new("Frame")
     center.Size = UDim2.fromScale(0.3, 0.25)
     center.Position = UDim2.fromScale(0.5, 0.5)
     center.AnchorPoint = Vector2.new(0.5, 0.5)
     center.BackgroundTransparency = 1
     center.Parent = bg
-
     local title = Instance.new("TextLabel")
     title.Size = UDim2.fromScale(1, 0.35)
     title.Position = UDim2.fromScale(0.5, 0.2)
@@ -83,7 +80,6 @@ function InitGui:create()
     title.BackgroundTransparency = 1
     title.Parent = center
     self.title = title
-
     local status = Instance.new("TextLabel")
     status.Size = UDim2.fromScale(1, 0.3)
     status.Position = UDim2.fromScale(0.5, 0.55)
@@ -96,7 +92,6 @@ function InitGui:create()
     status.BackgroundTransparency = 1
     status.Parent = center
     self.status = status
-
     local dots = Instance.new("TextLabel")
     dots.Size = UDim2.fromScale(1, 0.3)
     dots.Position = UDim2.fromScale(0.5, 0.8)
@@ -109,12 +104,9 @@ function InitGui:create()
     dots.BackgroundTransparency = 1
     dots.Parent = center
     self.dots = dots
-
     self:startAnimations()
-    
     return self
 end
-
 function InitGui:startAnimations()
     self.dotTask = task.spawn(function()
         while self.gui and self.gui.Parent do
@@ -177,8 +169,10 @@ function InitGui:destroy()
         self.dots = nil
     end
 end
-
-local initGui = InitGui:new():create()
-local function destroyInitGui()
-    initGui:destroy()
+local initGui = InitGui.new():create()
+_G.destroyInitGui = function()
+    if initGui then
+        initGui:destroy()
+        initGui = nil
+    end
 end
