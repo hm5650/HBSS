@@ -7834,7 +7834,7 @@ local function proxyhb(targetPlayer)
     end
     
     local proxyPart = Instance.new("Part")
-    proxyPart.Name = "ProxyHitbox_" .. tostring(math.random(10000, 99999))
+    proxyPart.Name = "idk" .. tostring(math.random(10000, 99999))
     proxyPart.Anchored = false
     proxyPart.CanCollide = false
     proxyPart.Massless = true
@@ -14667,7 +14667,7 @@ local InfoTab = Window:Tab({
     })
     InfoTab:Paragraph({
         Title = "Gravel: About",
-        Desc = "Hi I'm Gravel or HBSS ;D\nIm an semi-universal script\nthat happens to be open source, keyless & free :>\nim not full ban-proof, completely universal nor ''bug-proof''\nthe script is developed by an solo dev so yeh\n(also the oldest version of gravel is 'hitblox' insane lore right?)\n\nAlso wonder what does 'HBSS' means it means nothing....\ncould be a sickle cell tho..",
+        Desc = "Hi I'm Gravel or HBSS ;D\nIm an semi-universal script\nthat happens to be open source, keyless & free :>\nim not full ban-proof, completely universal nor ''bug-proof''\nthe script is developed by an solo dev so yeh\n(also the oldest version of gravel is 'hitblox' insane lore right?)\n\nAlso wonder what does 'HBSS' means it means nothing....\ncould be a sickle cell tho..\n\noh yeah the script also shadow updates\nalot so if you see something new you'll know why :7",
         Color = config.Gradow.uicolor.Black
     })
     InfoTab:Paragraph({
