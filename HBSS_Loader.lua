@@ -1,338 +1,375 @@
--- Errors be like: "Attempt to index nil" 🥀
+-- 100% not a redliner inspired intro... totally
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 local SoundService = game:GetService("SoundService")
 local RunService = game:GetService("RunService")
-local player = Players.LocalPlayer
-local PlayerGui = player:WaitForChild("PlayerGui")
+local CoreGui = game:GetService("CoreGui")
+local random = math.random
+local randomTable = table.random or function(t)
+    return t[random(1, #t)]
+end
+local originalPositions = {
+    filelabel = UDim2.new(0,7,0,4),
+    barlabel = UDim2.new(0,302,0,203),
+    percentagelabel = UDim2.new(0,329,0,189),
+    gravelmeme = UDim2.new(0,7,0,35)
+}
 local gui = Instance.new("ScreenGui")
 local bg = Instance.new("Frame")
-local center = Instance.new("Frame")
-local brand = Instance.new("TextLabel")
-local loadingText = Instance.new("TextLabel")
-local bar = Instance.new("TextLabel")
-local icon = Instance.new("ImageLabel")
-local gravelVideo = Instance.new("ImageLabel")
-local aspect = Instance.new("UIAspectRatioConstraint")
-local plrs = game:GetService("Players")
+local UIObject1 = Instance.new("ImageLabel")
+local UIObject2 = Instance.new("TextLabel")
+local UIObject3 = Instance.new("TextLabel")
+local UIObject4 = Instance.new("TextLabel")
+local UIObject5 = Instance.new("TextLabel")
 local blurEffect = Instance.new("BlurEffect")
-local plr = plrs.LocalPlayer
-local filesText = Instance.new("TextLabel")
-local memeText = Instance.new("TextLabel")
-local floatOffset = 0
-local floatDirection = 1
-local gravelFrames = {
-    "rbxassetid://77615568468059",
-    "rbxassetid://134610085244549",
-    "rbxassetid://96860104682417"
+local sounds = {
+    start = "rbxassetid://120092757126147",
+    hum = "rbxassetid://84642398160400",
+    endBSOD = "rbxassetid://121769472475128",
+    flash = "rbxassetid://85431715800788",
+    bar = "rbxassetid://6856723345",
+    glitch = {
+        "rbxassetid://131507757356742",
+        "rbxassetid://140043289814504",
+        "rbxassetid://129687541350237"
+    }
 }
-local currentFrame = 1
-gravelVideo.Size = UDim2.fromScale(0.15, 0.25)
-gravelVideo.Position = UDim2.fromScale(0.08, 0.88)
-gravelVideo.AnchorPoint = Vector2.new(0.5, 0.5)
-gravelVideo.Image = gravelFrames[1]
-gravelVideo.BackgroundTransparency = 1
-gravelVideo.ImageTransparency = 1
-gravelVideo.ScaleType = Enum.ScaleType.Fit
-gravelVideo.Parent = gui
-blurEffect.Size = 0
-blurEffect.Parent = game:GetService("Lighting")
-gui.Name = "load"
+gui.Name = "water"
 gui.IgnoreGuiInset = true
 gui.ResetOnSpawn = false
 gui.DisplayOrder = 2147483647
-gui.Parent = PlayerGui
+gui.Parent = CoreGui
 bg.Size = UDim2.fromScale(1, 1)
 bg.BackgroundColor3 = Color3.new(0, 0, 0)
-bg.BackgroundTransparency = 1
+bg.BackgroundTransparency = 0
 bg.Parent = gui
-center.Size = UDim2.fromScale(0.3, 0.4)
-center.Position = UDim2.fromScale(0.5, 0.5)
-center.AnchorPoint = Vector2.new(0.5, 0.5)
-center.BackgroundTransparency = 1
-center.Parent = bg
-icon.Size = UDim2.fromScale(0.5, 0.5)
-icon.Position = UDim2.fromScale(0.5, 0.10)
-icon.AnchorPoint = Vector2.new(0.5, 0.5)
-icon.Image = "rbxassetid://96858797315175"
-icon.BackgroundTransparency = 1
-icon.ImageTransparency = 1
-icon.ScaleType = Enum.ScaleType.Fit
-icon.Parent = center
-aspect.AspectRatio = 1
-aspect.Parent = icon
-brand.Size = UDim2.fromScale(1, 0.15)
-brand.Position = UDim2.fromScale(0.5, 0.42)
-brand.AnchorPoint = Vector2.new(0.5, 0.5)
-brand.Text = "Gravel.cc"
-brand.Font = Enum.Font.Code
-brand.TextSize = 22
-brand.TextColor3 = Color3.fromRGB(200, 200, 200)
-brand.TextTransparency = 1
-brand.BackgroundTransparency = 1
-brand.Parent = center
-loadingText.Size = UDim2.fromScale(1, 0.15)
-loadingText.Position = UDim2.fromScale(0.5, 0.6)
-loadingText.AnchorPoint = Vector2.new(0.5, 0.5)
-loadingText.Text = "Loading"
-loadingText.Font = Enum.Font.Code
-loadingText.TextSize = 18
-loadingText.TextColor3 = Color3.fromRGB(255, 255, 255)
-loadingText.TextTransparency = 1
-loadingText.BackgroundTransparency = 1
-loadingText.Parent = center
-bar.Size = UDim2.fromScale(1, 0.15)
-bar.Position = UDim2.fromScale(0.5, 0.75)
-bar.AnchorPoint = Vector2.new(0.5, 0.5)
-bar.Font = Enum.Font.Code
-bar.TextSize = 18
-bar.TextColor3 = Color3.fromRGB(255, 255, 255)
-bar.TextTransparency = 1
-bar.BackgroundTransparency = 1
-bar.Text = "[                    ]"
-bar.Parent = center
-filesText.Size = UDim2.fromScale(1, 0.15)
-filesText.Position = UDim2.fromScale(0.5, 0.88)
-filesText.AnchorPoint = Vector2.new(0.5, 0.5)
-filesText.Text = ""
-filesText.Font = Enum.Font.Code
-filesText.TextSize = 14
-filesText.TextColor3 = Color3.fromRGB(180, 180, 180)
-filesText.TextTransparency = 1
-filesText.BackgroundTransparency = 1
-filesText.Parent = center
-memeText.Size = UDim2.fromScale(1, 0.12)
-memeText.Position = UDim2.fromScale(0.5, 0.96)
-memeText.AnchorPoint = Vector2.new(0.5, 0.5)
-memeText.Text = ""
-memeText.Font = Enum.Font.Code
-memeText.TextSize = 12
-memeText.TextColor3 = Color3.fromRGB(120, 120, 120)
-memeText.TextTransparency = 1
-memeText.BackgroundTransparency = 1
-memeText.Parent = center
-local rngTitles = {
-    "Gravel.cc", "G.cc", "HBSS.cc", "Gravel-est", "Gravel-er", 
-    "Graaaavel.cc", "Gravelly.cc", "Gravel.com", "Hi! I'm Gravel.cc",
-    "Gravel enjoyer", "GRAVEL.CC >:D", "holy gravel.cc",
-    "GravelGravelGravel.cc", "I like gravel", "Gravel.cheatcheat",
-    "Gravel.yes", "Gravel.no", "Gravel.lua", "GRAVEL GRAVEL.CC",
-    "rock solid ui", "gravel is not sand", "is gravel just sand",
-    "gravel cute :3", "gravel go brr", "Gpssickle's child",
-    "shovel upgrade 1+", "crushed rocks simulator",
-    "the gravel experience", "Gravel :3", "gravel sim",
-    "I'm feelin' gravelly"
+UIObject1.Name = "UIimage"
+UIObject1.ImageColor3 = Color3.fromRGB(255,255,255)
+UIObject1.BorderMode = Enum.BorderMode.Outline
+UIObject1.AnchorPoint = Vector2.new(0.5, 0.5)
+UIObject1.Image = "rbxassetid://108749043601477"
+UIObject1.ImageRectSize = Vector2.new(0,0)
+UIObject1.ZIndex = 1
+UIObject1.BorderSizePixel = 0
+UIObject1.Size = UDim2.new(0,557,0,254)
+UIObject1.ScaleType = Enum.ScaleType.Stretch
+UIObject1.ClipsDescendants = false
+UIObject1.BorderColor3 = Color3.fromRGB(0,0,0)
+UIObject1.AutomaticSize = Enum.AutomaticSize.None
+UIObject1.LayoutOrder = 0
+UIObject1.Rotation = 0
+UIObject1.ResampleMode = Enum.ResamplerMode.Default
+UIObject1.BackgroundTransparency = 1
+UIObject1.Position = UDim2.new(0.5,0,0.5,0)
+UIObject1.Visible = true
+UIObject1.ImageRectOffset = Vector2.new(0,0)
+UIObject1.ImageTransparency = 0
+UIObject1.BackgroundColor3 = Color3.fromRGB(246,247,249)
+UIObject1.Parent = bg
+UIObject2 = Instance.new("TextLabel")
+UIObject2.Name = "filelabel"
+UIObject2.Size = UDim2.new(0,553,0,54)
+UIObject2.Position = originalPositions.filelabel
+UIObject2.BackgroundTransparency = 1
+UIObject2.TextColor3 = Color3.fromRGB(255,255,255)
+UIObject2.TextSize = 10
+UIObject2.Font = Enum.Font.Code
+UIObject2.TextXAlignment = Enum.TextXAlignment.Left
+UIObject2.TextYAlignment = Enum.TextYAlignment.Center
+UIObject2.ClipsDescendants = true
+UIObject2.Text = "[Files]: ..."
+UIObject2.Parent = UIObject1
+UIObject3 = Instance.new("TextLabel")
+UIObject3.Name = "Barlabel"
+UIObject3.Size = UDim2.new(0,280,0,55)
+UIObject3.Position = originalPositions.barlabel
+UIObject3.BackgroundTransparency = 1
+UIObject3.TextColor3 = Color3.fromRGB(255,255,255)
+UIObject3.TextSize = 10
+UIObject3.Font = Enum.Font.Code
+UIObject3.TextXAlignment = Enum.TextXAlignment.Center
+UIObject3.TextYAlignment = Enum.TextYAlignment.Center
+UIObject3.Text = "[                                       ]"
+UIObject3.Parent = UIObject1
+UIObject4 = Instance.new("TextLabel")
+UIObject4.Name = "Percentagelabel"
+UIObject4.Size = UDim2.new(0,220,0,55)
+UIObject4.Position = originalPositions.percentagelabel
+UIObject4.BackgroundTransparency = 1
+UIObject4.TextColor3 = Color3.fromRGB(255,255,255)
+UIObject4.TextSize = 10
+UIObject4.Font = Enum.Font.Code
+UIObject4.TextXAlignment = Enum.TextXAlignment.Center
+UIObject4.TextYAlignment = Enum.TextYAlignment.Center
+UIObject4.Text = "0%"
+UIObject4.Parent = UIObject1
+UIObject5 = Instance.new("TextLabel")
+UIObject5.Name = "Gravelmeme"
+UIObject5.Size = UDim2.new(0,564,0,72)
+UIObject5.Position = originalPositions.gravelmeme
+UIObject5.BackgroundTransparency = 1
+UIObject5.TextColor3 = Color3.fromRGB(255,255,255)
+UIObject5.TextSize = 10
+UIObject5.Font = Enum.Font.Code
+UIObject5.TextXAlignment = Enum.TextXAlignment.Left
+UIObject5.TextYAlignment = Enum.TextYAlignment.Center
+UIObject5.Text = "[G.cc]: ..."
+UIObject5.Parent = UIObject1
+blurEffect.Size = 0
+blurEffect.Parent = game:GetService("Lighting")
+local startSound = Instance.new("Sound")
+startSound.SoundId = sounds.start
+startSound.Volume = 0.5
+startSound.Parent = SoundService
+local humSound = Instance.new("Sound")
+humSound.SoundId = sounds.hum
+humSound.Volume = 0.3
+humSound.Looped = true
+humSound.Parent = SoundService
+local endSound = Instance.new("Sound")
+endSound.SoundId = sounds.endBSOD
+endSound.Volume = 0.5
+endSound.Parent = SoundService
+local flashSound = Instance.new("Sound")
+flashSound.SoundId = sounds.flash
+flashSound.Volume = 0.5
+flashSound.Parent = SoundService
+local barSound = Instance.new("Sound")
+barSound.SoundId = sounds.bar
+barSound.Volume = 0.4
+barSound.Parent = SoundService
+local glitchSounds = {}
+for i, id in ipairs(sounds.glitch) do
+    local sound = Instance.new("Sound")
+    sound.SoundId = id
+    sound.Volume = 0.3
+    sound.Parent = SoundService
+    glitchSounds[i] = sound
+end
+startSound:Play()
+humSound:Play()
+local glitchVersions = {
+    {id = "rbxassetid://94264734340895", weight = 30, offset = 2},
+    {id = "rbxassetid://73199835850160", weight = 25, offset = 4},
+    {id = "rbxassetid://111659265884052", weight = 20, offset = 6},
+    {id = "rbxassetid://135403100516021", weight = 15, offset = 8},
+    {id = "rbxassetid://108402549365872", weight = 10, offset = 12}
 }
-
+local glitchPool = {}
+for _, v in ipairs(glitchVersions) do
+    for _ = 1, v.weight do
+        table.insert(glitchPool, v)
+    end
+end
+local function getRandomGlitch()
+    return glitchPool[random(1, #glitchPool)]
+end
+local function applyGlitchPositions(offset)
+    if not offset or offset == 0 then
+        UIObject2.Position = originalPositions.filelabel
+        UIObject3.Position = originalPositions.barlabel
+        UIObject4.Position = originalPositions.percentagelabel
+        UIObject5.Position = originalPositions.gravelmeme
+        return
+    end
+    local offset2 = offset * 2
+    UIObject2.Position = UDim2.new(
+        originalPositions.filelabel.X.Scale,
+        originalPositions.filelabel.X.Offset + (random(0, 1) == 0 and -offset2 or offset2),
+        originalPositions.filelabel.Y.Scale,
+        originalPositions.filelabel.Y.Offset + (random(0, 1) == 0 and -offset or offset)
+    )
+    UIObject3.Position = UDim2.new(
+        originalPositions.barlabel.X.Scale,
+        originalPositions.barlabel.X.Offset + (random(0, 1) == 0 and -offset2 or offset2),
+        originalPositions.barlabel.Y.Scale,
+        originalPositions.barlabel.Y.Offset + (random(0, 1) == 0 and -offset or offset)
+    )
+    UIObject4.Position = UDim2.new(
+        originalPositions.percentagelabel.X.Scale,
+        originalPositions.percentagelabel.X.Offset + (random(0, 1) == 0 and -offset2 or offset2),
+        originalPositions.percentagelabel.Y.Scale,
+        originalPositions.percentagelabel.Y.Offset + (random(0, 1) == 0 and -offset or offset)
+    )
+    UIObject5.Position = UDim2.new(
+        originalPositions.gravelmeme.X.Scale,
+        originalPositions.gravelmeme.X.Offset + (random(0, 1) == 0 and -offset2 or offset2),
+        originalPositions.gravelmeme.Y.Scale,
+        originalPositions.gravelmeme.Y.Offset + (random(0, 1) == 0 and -offset or offset)
+    )
+end
+local bsodImage = "rbxassetid://119715944001369"
 local rngMemes = {
-    "did someone say spaghetti",
-    "my code is pasta",
-    "al dente and tangled",
-    "bon appetit",
-    "gaming chair diff fr",
-    "i got the 4000$ chair",
-    "that's why i never miss",
-    "totally not aimbot",
-    "me and the boys",
-    "running the script",
-    "and getting banned",
-    "worth it every time",
-    "the script is free",
-    "and open source",
-    "and has silent aim",
-    "what more could you want",
-    "Error: can't find message",
-    "i'm not having errors actually",
-    "or maybe I am, who knows??",
-    "is that a hack?",
-    "no it's a gaming chair",
-    "my chair has aimbot",
-    "you should get one",
-    "please read the InfoTab",
-    "and credit me if u did a snippet",
-    "i'm not a robot",
-    "i'm a gravel",
-    "robots are metal",
-    "gravel is rock",
-    "big difference",
-    "checkmate atheists",
-    "u ever just",
-    "silent aim someone",
-    "and they go '??? how'",
-    "and then u say ping diff",
-    "well I did that",
-    "i love when the script",
-    "works on the first try",
-    "that's a lie",
-    "it never does",
-    "Gravel has 0 calories 2 burn",
-    "wait this isn't a virus",
-    "i was told it was a virus",
-    "it's open source",
-    "you can literally read it",
-    "is that a toby?",
+    "did someone say spaghetti", "my code is pasta", "al dente and tangled",
+    "bon appetit", "gaming chair diff fr", "i got the 4000$ chair",
+    "that's why i never miss", "totally not aimbot", "me and the boys",
+    "running the script", "and getting banned", "worth it every time",
+    "the script is free", "and open source", "and has silent aim",
+    "what more could you want", "Error: can't find message",
+    "i'm not having errors actually", "or maybe I am, who knows??",
+    "is that a hack?", "no it's a gaming chair", "my chair has aimbot",
+    "you should get one", "please read the InfoTab",
+    "and credit me if u did a snippet", "i'm not a robot",
+    "i'm a gravel", "robots are metal", "gravel is rock",
+    "big difference", "checkmate atheists", "u ever just",
+    "silent aim someone", "and they go '??? how'", "and then u say ping diff",
+    "well I did that", "i love when the script", "works on the first try",
+    "that's a lie", "it never does", "Gravel has 0 calories 2 burn",
+    "wait this isn't a virus", "i was told it was a virus",
+    "it's open source", "you can literally read it", "is that a toby?",
     "meow :3 .... MAW >:3",
-    "Gugu Gaga Ultimated Flex Works",
-    "can gravel run doom?",
-    "ipad kid vs ipad, who would win?",
-    "why is there ai slop on my TikTok fyp",
-    "bombastic side eye",
-    "oh shiddings nott gud D:",
-    "what's a brainfuck :s",
-    "Gravel.cc says be gravel",
-    "me wants grabel :(",
-    "life never made lemons...",
-    "01001000 01101001",
-    "roblox is no longer robloz",
-    "GRAVEL-MAN",
-    "IM SKYLER WHITE, YO",
-    "my diet is gravel",
-    "ur definitely using delta cuz idk",
-    "dab me up :>",
-    "how much saves do u has",
-    "O rly",
-    ":3",
-    "lololololooloo",
-    "wth is ts",
-    "hell nah",
-    "OHHHH HELLL NAH",
-    "pop-up goes bye bye",
-    "isn't phonk just noise?",
-    "guys it's a-a, a-a h-hacker!?!?!",
-    "tiki tiki",
-    "Nosirski!",
-    "click here or ur gay",
-    "lolzer-fying",
-    "helohi",
-    "portal above portal below *jumps in*",
-    "ifone 90 proe max"
+    "This loader is definitely 100% not a inspiration from redliner's mercy.os",
+    "Gugu Gaga Ultimated Flex Works", "can gravel run doom?",
+    "ipad kid vs ipad, who would win?", "why is there ai slop on my TikTok fyp",
+    "bombastic side eye", "oh shiddings nott gud D:", "what's a brainfuck :s",
+    "Gravel.cc says be gravel", "me wants grabel :(", "life never made lemons...",
+    "01001000 01101001", "roblox is no longer robloz", "GRAVEL-MAN",
+    "IM SKYLER WHITE, YO", "my diet is gravel", "ur definitely using delta cuz idk",
+    "dab me up :>", "how much saves do u has", "O rly", ":3",
+    "lololololooloo", "wth is ts", "hell nah", "OHHHH HELLL NAH",
+    "pop-up goes bye bye", "isn't phonk just noise?", "guys it's a-a, a-a h-hacker!?!?!",
+    "tiki tiki", "Nosirski!", "click here or ur gay", "lolzer-fying",
+    "helohi", "portal above portal below *jumps in*", "ifone 90 proe max"
 }
-
-local fadeIn = TweenInfo.new(1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
-TweenService:Create(blurEffect, fadeIn, {Size = 24}):Play()
-TweenService:Create(bg, fadeIn, {BackgroundTransparency = 0.4}):Play()
-TweenService:Create(icon, fadeIn, {ImageTransparency = 0}):Play()
-TweenService:Create(gravelVideo, fadeIn, {ImageTransparency = 0}):Play()
-TweenService:Create(brand, fadeIn, {TextTransparency = 0}):Play()
-TweenService:Create(loadingText, fadeIn, {TextTransparency = 0}):Play()
-TweenService:Create(bar, fadeIn, {TextTransparency = 0}):Play()
-TweenService:Create(filesText, fadeIn, {TextTransparency = 0}):Play()
-TweenService:Create(memeText, fadeIn, {TextTransparency = 0}):Play()
-task.spawn(function()
-    while gui and gui.Parent do
-        currentFrame = currentFrame % #gravelFrames + 1
-        gravelVideo.Image = gravelFrames[currentFrame]
-        task.wait(0.1)
-    end
-end)
-task.spawn(function()
-    while gui and gui.Parent do
-        floatOffset = floatOffset + (0.5 * floatDirection)
-        if floatOffset > 15 then
-            floatDirection = -1
-        elseif floatOffset < -15 then
-            floatDirection = 1
-        end
-        icon.Position = UDim2.fromScale(0.5, 0.10 + (floatOffset / 1000))
-        task.wait(0.02)
-    end
-end)
-task.spawn(function()
-    local gravelFloat = 0
-    local gravelDir = 1
-    while gui and gui.Parent do
-        gravelFloat = gravelFloat + (0.2 * gravelDir)
-        if gravelFloat > 8 then
-            gravelDir = -1
-        elseif gravelFloat < -8 then
-            gravelDir = 1
-        end
-        gravelVideo.Position = UDim2.fromScale(0.08, 0.88 + (gravelFloat / 1000))
-        task.wait(0.02)
-    end
-end)
-
-task.spawn(function()
-    local lastTitleChange = 0
-    while gui and gui.Parent do
-        local elapsed = tick() - lastTitleChange
-        if elapsed > math.random(3, 7) then
-            local newTitle = rngTitles[math.random(1, #rngTitles)]
-            local tween = TweenService:Create(brand, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.InOut), {
-                TextTransparency = 1
-            })
-            tween:Play()
-            tween.Completed:Wait()
-            brand.Text = newTitle
-            local tween2 = TweenService:Create(brand, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.InOut), {
-                TextTransparency = 0
-            })
-            tween2:Play()
-            lastTitleChange = tick()
-        end
-        task.wait(0.5)
-    end
-end)
-
-task.spawn(function()
-    local currentText = ""
+local function startFastTyping()
+    local textLabel = UIObject5
+    local cursorChar = "_"
     local cursorVisible = true
-    local charIndex = 1
     local isErasing = false
+    local currentText = ""
     local currentMessage = ""
-    
+    local charIndex = 1
+    local prefix = "[G.cc]: "
+    local prefixLen = #prefix
     while gui and gui.Parent do
-        if not isErasing and (not currentMessage or currentMessage == "") then
-            currentMessage = rngMemes[math.random(1, #rngMemes)]
+        if not isErasing and currentMessage == "" then
+            currentMessage = rngMemes[random(1, #rngMemes)]
             charIndex = 1
             currentText = ""
         end
-        
         if not isErasing then
             if charIndex <= #currentMessage then
                 currentText = currentText .. currentMessage:sub(charIndex, charIndex)
                 charIndex = charIndex + 1
-                memeText.Text = currentText .. (cursorVisible and "_" or " ")
-                task.wait(math.random(3, 8) / 100)
+                textLabel.Text = prefix .. currentText .. (cursorVisible and cursorChar or " ")
+                task.wait(random(1, 3) / 100)
             else
-                task.wait(math.random(15, 35) / 10)
+                task.wait(random(10, 25) / 10)
                 isErasing = true
             end
         else
             if #currentText > 0 then
                 currentText = currentText:sub(1, #currentText - 1)
-                memeText.Text = currentText .. (cursorVisible and "_" or " ")
-                task.wait(math.random(2, 5) / 100)
+                textLabel.Text = prefix .. currentText .. (cursorVisible and cursorChar or " ")
+                task.wait(random(1, 3) / 100)
             else
                 isErasing = false
                 currentMessage = ""
-                task.wait(math.random(5, 15) / 10)
+                task.wait(random(3, 10) / 10)
             end
         end
-        
         cursorVisible = not cursorVisible
         if not isErasing and currentText ~= "" then
-            memeText.Text = currentText .. (cursorVisible and "_" or " ")
+            textLabel.Text = prefix .. currentText .. (cursorVisible and cursorChar or " ")
         end
     end
-end)
-
+end
+local function playGlitchStartAnimation()
+    local blackFrame = Instance.new("Frame")
+    UIObject2.Visible = false
+    UIObject3.Visible = false
+    UIObject4.Visible = false
+    UIObject5.Visible = false
+    blackFrame.Size = UDim2.fromScale(1, 1)
+    blackFrame.BackgroundColor3 = Color3.new(0, 0, 0)
+    blackFrame.BackgroundTransparency = 0
+    blackFrame.ZIndex = 100
+    blackFrame.Parent = gui
+    local glitchSteps = {
+        {image = glitchVersions[5].id, duration = 0.05, offset = 12},
+        {image = glitchVersions[3].id, duration = 0.08, offset = 6},
+        {image = glitchVersions[5].id, duration = 0.03, offset = 12},
+        {image = glitchVersions[2].id, duration = 0.06, offset = 4},
+        {image = glitchVersions[4].id, duration = 0.07, offset = 8},
+        {normal = true, duration = 0.04},
+        {image = glitchVersions[1].id, duration = 0.05, offset = 2},
+        {image = glitchVersions[5].id, duration = 0.05, offset = 12},
+        {image = glitchVersions[3].id, duration = 0.06, offset = 6},
+        {normal = true, duration = 0.1},
+        {image = glitchVersions[4].id, duration = 0.04, offset = 8},
+        {image = glitchVersions[5].id, duration = 0.07, offset = 12},
+        {normal = true, duration = 0.08},
+        {image = glitchVersions[3].id, duration = 0.06, offset = 6},
+        {image = glitchVersions[5].id, duration = 0.04, offset = 12},
+        {normal = true, duration = 0.1},
+        {image = glitchVersions[1].id, duration = 0.05, offset = 2},
+        {normal = true, duration = 0.15},
+        {image = glitchVersions[5].id, duration = 0.03, offset = 12},
+        {normal = true, duration = 0.2}
+    }
+    for _, step in ipairs(glitchSteps) do
+        if step.normal then
+            UIObject1.Image = "rbxassetid://108749043601477"
+            applyGlitchPositions(0)
+        else
+            UIObject1.Image = step.image
+            applyGlitchPositions(step.offset)
+            glitchSounds[random(1, #glitchSounds)]:Play()
+            UIObject2.Visible = true
+            UIObject3.Visible = true
+            UIObject4.Visible = true
+            UIObject5.Visible = true
+        end
+        task.wait(step.duration)
+        if random() < 0.3 then
+            blackFrame.BackgroundTransparency = 0
+            task.wait(0.02)
+            blackFrame.BackgroundTransparency = 1
+        end
+    end
+    UIObject1.Image = "rbxassetid://108749043601477"
+    applyGlitchPositions(0)
+    UIObject2.Visible = true
+    UIObject3.Visible = true
+    UIObject4.Visible = true
+    UIObject5.Visible = true
+    local fadeBlack = TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+    TweenService:Create(blackFrame, fadeBlack, {BackgroundTransparency = 1}):Play()
+    task.wait(0.3)
+    blackFrame:Destroy()
+end
+playGlitchStartAnimation()
+task.wait(0.3)
+local fadeIn = TweenInfo.new(0.8, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+TweenService:Create(blurEffect, fadeIn, {Size = 24}):Play()
+task.spawn(startFastTyping)
 task.spawn(function()
-    local totalBars = 20
+    while gui and gui.Parent do
+        if not isBSODActive and random() < 0.30 then
+            local glitchData = getRandomGlitch()
+            UIObject1.Image = glitchData.id
+            applyGlitchPositions(glitchData.offset)
+            glitchSounds[random(1, #glitchSounds)]:Play()
+            task.wait(random(1, 4) / 10)
+            UIObject1.Image = "rbxassetid://108749043601477"
+            applyGlitchPositions(0)
+        end
+        task.wait(1.5)
+    end
+end)
+task.spawn(function()
+    local totalBars = 39
     local filled = 0
-    local maxDuration = 3.25
+    local maxDuration = 4.5
     local startTime = tick()
     local elapsed = 0
-    
     if not isfolder("Gravel_Saves") then
         makefolder("Gravel_Saves")
     end
-    
     if not isfolder("Gravel_Saves/assets") then
         makefolder("Gravel_Saves/assets")
     end
-    
     local saveFiles = {}
     local files = listfiles("Gravel_Saves")
     for _, file in ipairs(files) do
@@ -346,63 +383,51 @@ task.spawn(function()
             table.insert(saveFiles, file)
         end
     end
-    
-    local sound = Instance.new("Sound")
-    sound.SoundId = "rbxassetid://9120299810"
-    sound.Volume = 0.5
-    sound.Parent = SoundService
     local extraDelay = #saveFiles * 0.15
     local adjustedMaxDuration = maxDuration + extraDelay
     local totalFiles = #saveFiles
     local processedFiles = 0
-    local loadingStates = {"Loading.", "Loading..", "Loading...", "Loading...."}
-    local stateIndex = 1
-    
     while elapsed < adjustedMaxDuration do
-        task.wait(math.random(10, 30) / 100)
+        task.wait(random(10, 30) / 100)
         elapsed = tick() - startTime
         if totalFiles > 0 and processedFiles < totalFiles and elapsed > (processedFiles + 1) * (adjustedMaxDuration / (totalFiles + 2)) then
             processedFiles = processedFiles + 1
             local fileName = saveFiles[processedFiles]
             fileName = string.match(fileName, "([^/\\]+)%.json$") or "Unknown"
             if string.find(saveFiles[processedFiles], "/assets/") or string.find(saveFiles[processedFiles], "\\assets\\") then
-                filesText.Text = "Files: assets/" .. fileName
+                UIObject2.Text = "[Files]: assets/" .. fileName
             else
-                filesText.Text = "Files: " .. fileName
+                UIObject2.Text = "[Files]: " .. fileName
             end
-            sound:Play()
+            barSound:Play()
         elseif totalFiles > 0 then
             local currentFile = saveFiles[math.min(processedFiles + 1, totalFiles)]
             local displayName = currentFile and string.match(currentFile, "([^/\\]+)%.json$") or ""
             if currentFile and (string.find(currentFile, "/assets/") or string.find(currentFile, "\\assets\\")) then
-                filesText.Text = "Files: assets/" .. displayName
+                UIObject2.Text = "[Files]: assets/" .. displayName
             elseif currentFile then
-                filesText.Text = "Files: " .. displayName
+                UIObject2.Text = "[Files]: " .. displayName
             end
         end
         local targetFilled = math.min(totalBars, math.floor((elapsed / adjustedMaxDuration) * totalBars))
-        
         if targetFilled > filled then
             for i = filled + 1, targetFilled do
-                sound:Play()
+                barSound:Play()
             end
             filled = targetFilled
-        elseif math.random() < 0.75 and filled < totalBars then
-            sound:Play()
+        elseif random() < 0.75 and filled < totalBars then
+            barSound:Play()
             filled = math.min(totalBars, filled + 1)
         end
-
         local visual = string.rep("|", filled)
         local empty = string.rep(" ", totalBars - filled)
-        bar.Text = "[" .. visual .. empty .. "]"
-        
-        stateIndex = (stateIndex % #loadingStates) + 1
-        loadingText.Text = loadingStates[stateIndex]
+        UIObject3.Text = "[" .. visual .. empty .. "]"
+        local percentage = math.floor((filled / totalBars) * 100)
+        UIObject4.Text = percentage .. "%"
     end
     filled = totalBars
-    bar.Text = "[" .. string.rep("|", totalBars) .. "]"
-    loadingText.Text = "Loaded"
-    
+    UIObject3.Text = "[" .. string.rep("|", totalBars) .. "]"
+    UIObject4.Text = "100%"
     if totalFiles > 0 then
         local mainCount = 0
         local assetCount = 0
@@ -414,30 +439,67 @@ task.spawn(function()
             end
         end
         if assetCount > 0 and mainCount > 0 then
-            filesText.Text = "Files: " .. mainCount .. " saves + " .. assetCount .. " assets loaded"
+            UIObject2.Text = "[Files]: " .. mainCount .. " saves + " .. assetCount .. " assets loaded"
         elseif assetCount > 0 then
-            filesText.Text = "Files: " .. assetCount .. " assets loaded"
+            UIObject2.Text = "[Files]: " .. assetCount .. " assets loaded"
         else
-            filesText.Text = "Files: " .. totalFiles .. " saves loaded"
+            UIObject2.Text = "[Files]: " .. totalFiles .. " saves loaded"
         end
     else
-        filesText.Text = "No Files: I checked for no reason 💔🥀"
+        UIObject2.Text = "[No Files]: I checked for no reason 💔🥀"
     end
-
-    task.wait(0.6)
-    sound:Destroy()
-    local fadeOut = TweenInfo.new(0.8, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
+    task.wait(1.2)
+    humSound:Stop()
+    isBSODActive = true
+    local glitchSequence = {
+        {type = "glitch", duration = 0.05},
+        {type = "glitch", duration = 0.08},
+        {type = "bsod", duration = 0.1},
+        {type = "glitch", duration = 0.06},
+        {type = "bsod", duration = 0.1},
+        {type = "glitch", duration = 0.04},
+        {type = "bsod", duration = 0.08},
+        {type = "glitch", duration = 0.05},
+        {type = "bsod", duration = 0.15}
+    }
+    endSound:Play()
+    for _, step in ipairs(glitchSequence) do
+        if step.type == "glitch" then
+            local glitchData = getRandomGlitch()
+            UIObject1.Image = glitchData.id
+            applyGlitchPositions(glitchData.offset)
+            task.wait(step.duration)
+        else
+            UIObject1.Image = bsodImage
+            applyGlitchPositions(0)
+            task.wait(step.duration)
+        end
+    end
+    UIObject1.Image = bsodImage
+    applyGlitchPositions(0)
+    UIObject2.Visible = false
+    UIObject3.Visible = false
+    UIObject4.Visible = false
+    UIObject5.Visible = false
+    task.wait(1.2)
+    flashSound:Play()
+    local flash = Instance.new("Frame")
+    flash.Size = UDim2.fromScale(1, 1)
+    flash.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+    flash.BackgroundTransparency = 0
+    flash.ZIndex = 1000
+    flash.Parent = gui
+    local fadeOut = TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
     TweenService:Create(blurEffect, fadeOut, {Size = 0}):Play()
-    TweenService:Create(bg, fadeOut, {BackgroundTransparency = 1}):Play()
-    TweenService:Create(icon, fadeOut, {ImageTransparency = 1}):Play()
-    TweenService:Create(gravelVideo, fadeOut, {ImageTransparency = 1}):Play()
-    TweenService:Create(brand, fadeOut, {TextTransparency = 1}):Play()
-    TweenService:Create(loadingText, fadeOut, {TextTransparency = 1}):Play()
-    TweenService:Create(bar, fadeOut, {TextTransparency = 1}):Play()
-    TweenService:Create(filesText, fadeOut, {TextTransparency = 1}):Play()
-    TweenService:Create(memeText, fadeOut, {TextTransparency = 1}):Play()
-
-    task.wait(1)
+    task.wait(0.3)
+    startSound:Destroy()
+    humSound:Destroy()
+    endSound:Destroy()
+    flashSound:Destroy()
+    barSound:Destroy()
+    for _, sound in ipairs(glitchSounds) do
+        sound:Destroy()
+    end
     gui:Destroy()
     blurEffect:Destroy()
 end)
