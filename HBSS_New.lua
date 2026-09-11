@@ -140,7 +140,7 @@ local function n(opts)
         end)
     end
 end
-task.wait(5.3)
+task.wait(5.5)
 --                               ⸜( ˃ ᵕ ˂ )⸝♡
 local func = loadstring(getgist_(getgenv().HttpUrlz_.sa2func))()
 local WindUI = loadstring(getgist_(getgenv().HttpUrlz_.ilikedisui))()
@@ -586,6 +586,14 @@ local config = {
                 "the file size is 600kb..",
                 "I'm fr",
                 "D:",
+            },
+            {
+                "We're all brothers in a ''perfect'' world",
+                "In a ''perfect'' world there is uniformity",
+                "We're all brothers in a ''perfect'' world",
+                "In a ''perfect'' world there is continuity",
+                "We're all brothers in a ''perfect'' world",
+                "There is no need for spontaneity",
             },
             {
                 "if u wanna farm npcs",
@@ -6267,7 +6275,7 @@ OldNamecall = hookmetamethod(game, "__namecall", newcclosure(function(...)
     return OldNamecall(...)
 end))
 
-ScreenGui.Name = "FOVSys"
+ScreenGui.Name = "idk5"
 ScreenGui.Parent = excusemesir.CoreGui
 ScreenGui.IgnoreGuiInset = true
 CircleFrame.Name = "FOVCircle"
@@ -7973,11 +7981,11 @@ local function makeesp(targetPlayer)
     end
 
     local screenGui = Instance.new("ScreenGui")
-    screenGui.Name = "ESP_" .. getTargetName(targetPlayer)
+    screenGui.Name = "idk6_" .. getTargetName(targetPlayer)
     screenGui.ResetOnSpawn = false
     screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
     screenGui.IgnoreGuiInset = true
-    screenGui.Parent = localPlayer:WaitForChild("PlayerGui")
+    screenGui.Parent = excusemesir.CoreGui
 
     local label = Instance.new("TextLabel")
     label.Name = "ESPLabel"
@@ -9504,10 +9512,10 @@ local function aimbotfov()
     end
     
     local screenGui = Instance.new("ScreenGui")
-    screenGui.Name = "AimbotFOVRing"
+    screenGui.Name = "idk4"
     screenGui.ResetOnSpawn = false
     screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-    screenGui.Parent = localPlayer:WaitForChild("PlayerGui")
+    screenGui.Parent = excusemesir.CoreGui
     
     local ringFrame = Instance.new("Frame")
     ringFrame.Name = "RingFrame"
@@ -9850,10 +9858,10 @@ local function createTriggerBotFOV()
     end
     
     local screenGui = Instance.new("ScreenGui")
-    screenGui.Name = "TriggerBotFOV"
+    screenGui.Name = "idk2"
     screenGui.ResetOnSpawn = false
     screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-    screenGui.Parent = localPlayer:WaitForChild("PlayerGui")
+    screenGui.Parent = excusemesir.CoreGui
     
     local ringFrame = Instance.new("Frame")
     ringFrame.Name = "TriggerFOVRing"
@@ -10152,10 +10160,10 @@ local function CreateQT()
     if gui.mobileGui and gui.mobileGui.ScreenGui and gui.mobileGui.ScreenGui.Parent then return end
     
     local screenGui = Instance.new("ScreenGui")
-    screenGui.Name = "GravelQT"
+    screenGui.Name = "idk3"
     screenGui.ResetOnSpawn = false
     screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-    screenGui.Parent = localPlayer:WaitForChild("PlayerGui")
+    screenGui.Parent = excusemesir.CoreGui
 
     local container = Instance.new("Frame")
     container.Name = "QTContainer"
@@ -16158,10 +16166,10 @@ end
 ]]
 
 local fovScreenGui = Instance.new("ScreenGui")
-fovScreenGui.Name = "FOVToggleGui_Modern"
+fovScreenGui.Name = "idk1"
 fovScreenGui.ResetOnSpawn = false
 fovScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-fovScreenGui.Parent = localPlayer:WaitForChild("PlayerGui")
+fovScreenGui.Parent = excusemesir.CoreGui
 
 local mainFrame = Instance.new("Frame")
 mainFrame.Name = "MainFrame"
@@ -16956,7 +16964,7 @@ local function buhbyegravellllllll________()
             getgenv().destroyInitGui()
         end
         for _, gui in ipairs(excusemesir.CoreGui:GetChildren()) do
-            if gui:IsA("ScreenGui") and (gui.Name == "FOVSys" or gui.Name == "AimbotFOVRing" or gui.Name == "GravelQT" or gui.Name == "TriggerBotFOV" or gui.Name == "FOVToggleGui_Modern" or gui.Name == "ESP_" or string.find(gui.Name, "ESP_") or string.find(gui.Name, "FOVToggleGui")) then
+            if gui:IsA("ScreenGui") and (gui.Name == "idk5" or gui.Name == "idk4" or gui.Name == "idk3" or gui.Name == "idk2" or gui.Name == "idk1" or gui.Name == "idk6" or string.find(gui.Name, "idk6") or string.find(gui.Name, "idk1")) then
                 gui:Destroy()
             end
         end
