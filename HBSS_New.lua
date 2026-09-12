@@ -16964,6 +16964,7 @@ local function buhbyegravellllllll________()
         table.clear(config.hitboxLastSize)
         table.clear(config.varibz.candidates)
         table.clear(config.varibz.targetsInFOV)
+        table.clear(ignoreList)
     end)
 end
 Window:OnDestroy(function()
