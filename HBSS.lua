@@ -1,371 +1,373 @@
--- BLLEHHH >:P
+--me wants 2 choose dat a 1
 local TweenService = game:GetService("TweenService")
-local RunService = game:GetService("RunService")
-local ScreenGui = Instance.new("ScreenGui")
-local MainFrame = Instance.new("Frame")
-local UICorner = Instance.new("UICorner")
-local Title = Instance.new("TextLabel")
-local BackgroundBlur = Instance.new("BlurEffect")
-local Shadow = Instance.new("ImageLabel")
-local Subtitle = Instance.new("TextLabel")
-local MemeText = Instance.new("TextLabel")
-local Icon = Instance.new("ImageLabel")
-local FloatOffset = 0
-local FloatDirection = 1
-BackgroundBlur.Size = 24
-BackgroundBlur.Parent = game:GetService("Lighting")
-ScreenGui.Name = "option"
-ScreenGui.Parent = game:GetService("CoreGui")
-ScreenGui.ResetOnSpawn = false
-MainFrame.Name = "MainFrame"
-MainFrame.Size = UDim2.new(0, 540, 0, 340)
-MainFrame.Position = UDim2.new(0.5, -270, 0.5, -170)
-MainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-MainFrame.BackgroundTransparency = 0.15
-MainFrame.BorderSizePixel = 0
-MainFrame.Parent = ScreenGui
-Shadow.Name = "Shadow"
-Shadow.Image = "rbxassetid://1316045217"
-Shadow.ImageColor3 = Color3.fromRGB(0, 0, 0)
-Shadow.ImageTransparency = 0.8
-Shadow.ScaleType = Enum.ScaleType.Slice
-Shadow.SliceCenter = Rect.new(10, 10, 118, 118)
-Shadow.Size = UDim2.new(1, 20, 1, 20)
-Shadow.Position = UDim2.new(0, -10, 0, -10)
-Shadow.BackgroundTransparency = 1
-Shadow.Parent = MainFrame
-UICorner.CornerRadius = UDim.new(0, 14)
-UICorner.Parent = MainFrame
-Icon.Size = UDim2.new(0, 40, 0, 40)
-Icon.Position = UDim2.new(0.5, -20, 0.05, 0)
-Icon.Image = "rbxassetid://96858797315175"
-Icon.BackgroundTransparency = 1
-Icon.ImageTransparency = 1
-Icon.ScaleType = Enum.ScaleType.Fit
-Icon.Parent = MainFrame
-Title.Size = UDim2.new(1, 0, 0, 60)
-Title.Position = UDim2.new(0, 0, 0.15, 0)
-Title.BackgroundTransparency = 1
-Title.Text = "Gravel.cc"
-Title.TextColor3 = Color3.fromRGB(240, 240, 240)
-Title.Font = Enum.Font.Code
-Title.TextSize = 28
-Title.TextTransparency = 1
-Title.Parent = MainFrame
-Subtitle.Size = UDim2.new(1, 0, 0, 25)
-Subtitle.Position = UDim2.new(0, 0, 0.28, 0)
-Subtitle.BackgroundTransparency = 1
-Subtitle.Text = "choose ur adventure or smth"
-Subtitle.TextColor3 = Color3.fromRGB(200, 200, 200)
-Subtitle.Font = Enum.Font.Gotham
-Subtitle.TextSize = 14
-Subtitle.TextTransparency = 1
-Subtitle.Parent = MainFrame
-MemeText.Size = UDim2.new(1, 0, 0, 20)
-MemeText.Position = UDim2.new(0, 0, 0.95, 0)
-MemeText.BackgroundTransparency = 1
-MemeText.Text = ""
-MemeText.TextColor3 = Color3.fromRGB(120, 120, 120)
-MemeText.Font = Enum.Font.Code
-MemeText.TextSize = 11
-MemeText.TextTransparency = 1
-MemeText.TextXAlignment = Enum.TextXAlignment.Center
-MemeText.Parent = MainFrame
-
+local CoreGui = game:GetService("CoreGui")
+local Lighting = game:GetService("Lighting")
+local normiee = "rbxassetid://107415934558527"
+local glitchy = {
+    "rbxassetid://126903901230171",
+    "rbxassetid://108334175828481",
+    "rbxassetid://76083829320576",
+    "rbxassetid://77937445438901",
+}
+local soundhover = "rbxassetid://9120299810"
+local soundclick = "rbxassetid://139246456147301"
+local glitchsounds = {
+    "rbxassetid://131507757356742",
+    "rbxassetid://140043289814504",
+    "rbxassetid://129687541350237",
+}
+local random = math.random
 local rngTitles = {
-    "Gravel.cc", "G.cc", "HBSS.cc", "Gravel-est", "Gravel-er", 
+    "Gravel.cc", "G.cc", "HBSS.cc", "Gravel-est", "Gravel-er",
     "Graaaavel.cc", "Gravelly.cc", "Gravel.com", "Hi! I'm Gravel.cc",
     "Gravel :3", "GRAVEL.CC >:D", "holy gravel.cc",
     "GravelGravelGravel.cc", "I like gravel", "Gravel.cheatcheat",
     "Gravel.yes", "Gravel.no", "Gravel.lua", "GRAVEL GRAVEL.CC",
     "rock solid ui", "gravel is not sand", "is gravel just sand",
     "gravel cute :3", "gravel go brr", "Gpssickle's child",
-    "shovel upgrade 1+", "crushed rocks simulator",
-    "the gravel experience"
+    "shovel upgrade 1+", "crushed rocks simulator", "the gravel experience"
 }
-
-local rngMemes = {
-    "did someone say spaghetti", "my code is pasta", "al dente and tangled",
-    "bon appetit", "gaming chair diff fr", "i got the 4000$ chair",
-    "that's why i never miss", "totally not aimbot", "me and the boys",
-    "running the script", "and getting banned", "worth it every time",
-    "the script is free", "and open source", "and has silent aim",
-    "what more could you want", "Error: can't find message",
-    "i'm not having errors actually", "or maybe I am, who knows??",
-    "is that a hack?", "no it's a gaming chair", "my chair has aimbot",
-    "you should get one", "please read the InfoTab",
-    "and credit me if u did a snippet", "i'm not a robot", "i'm a gravel",
-    "robots are metal", "gravel is rock", "big difference",
-    "u ever just", "silent aim someone", "and they go '??? how'",
-    "and then u say ping diff", "well I did that", "Gravel has 0 calories",
-    "wait this isn't a virus", "it's open source", "you can literally read it",
-    "meow :3 .... MAW >:3", "can gravel run doom?", "ifone 90 proe max",
-    "wth is ts", "hell nah", "OHHHH HELLL NAH", "pop-up goes bye bye",
-    "isn't phonk just noise?", "guys it's a-a, a-a h-hacker!?!?!",
-    "tiki tiki", "Nosirski!", "click here or ur gay", "lolzer-fying",
-    "helohi", "portal above portal below *jumps in*", "GRAVEL-MAN",
-    "IM SKYLER WHITE, YO", "my diet is gravel", "dab me up :>",
-    "how much saves do u has", "O rly", ":3", "lololololooloo",
-    "is that a toby?", "Gugu Gaga Ultimated Flex Works",
-    "why is there ai slop on my TikTok fyp", "bombastic side eye",
-    "oh shiddings nott gud D:"
-}
-
-task.spawn(function()
-    while ScreenGui and ScreenGui.Parent do
-        FloatOffset = FloatOffset + (0.5 * FloatDirection)
-        if FloatOffset > 12 then
-            FloatDirection = -1
-        elseif FloatOffset < -12 then
-            FloatDirection = 1
-        end
-        Icon.Position = UDim2.new(0.5, -20, 0.05 + (FloatOffset / 1200), 0)
-        task.wait(0.02)
+local ScreenGui = Instance.new("ScreenGui")
+local blur = Instance.new("BlurEffect")
+local bg = Instance.new("Frame")
+local glitchFrame = Instance.new("Frame")
+local mainImg = Instance.new("ImageLabel")
+ScreenGui.Name = "option"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.IgnoreGuiInset = true
+ScreenGui.DisplayOrder = 2147483646
+ScreenGui.Parent = CoreGui
+blur.Size = 0
+blur.Parent = Lighting
+bg.Size = UDim2.fromScale(1, 1)
+bg.BackgroundColor3 = Color3.new(0, 0, 0)
+bg.BackgroundTransparency = 0
+bg.BorderSizePixel = 0
+bg.ZIndex = 0
+bg.Parent = ScreenGui
+glitchFrame.Size = UDim2.fromScale(1, 1)
+glitchFrame.BackgroundColor3 = Color3.new(0, 0, 0)
+glitchFrame.BackgroundTransparency = 1
+glitchFrame.ZIndex = 100
+glitchFrame.Parent = ScreenGui
+mainImg.Name = "MainImage"
+mainImg.ImageColor3 = Color3.fromRGB(255, 255, 255)
+mainImg.AnchorPoint = Vector2.new(0.5, 0.5)
+mainImg.Image = normiee
+mainImg.ZIndex = 1
+mainImg.BorderSizePixel = 0
+mainImg.Size = UDim2.new(0, 370, 0, 320)
+mainImg.Position = UDim2.new(0.5, 0, 0.5, 0)
+mainImg.ScaleType = Enum.ScaleType.Fit
+mainImg.BackgroundTransparency = 1
+mainImg.ImageTransparency = 1
+mainImg.Parent = ScreenGui
+local originalPos = UDim2.new(0.5, 0, 0.5, 0)
+local function glitch(offset)
+    if offset and offset > 0 then
+        mainImg.Position = UDim2.new(
+            0.5,
+            (random(0, 1) == 0 and -offset or offset),
+            0.5,
+            (random(0, 1) == 0 and -offset or offset)
+        )
+        mainImg.Image = glitchy[random(1, #glitchy)]
+    else
+        mainImg.Position = originalPos
+        mainImg.Image = normiee
     end
+end
+local soundPool = {}
+for i, id in ipairs(glitchsounds) do
+    local s = Instance.new("Sound")
+    s.SoundId = id
+    s.Volume = 0.12
+    s.Parent = ScreenGui
+    soundPool[i] = s
+end
+local function playGlitch()
+    local s = soundPool[random(1, #soundPool)]
+    if s then s:Play() end
+end
+local hoverSoundPool = {}
+for i, id in ipairs(glitchsounds) do
+    local s = Instance.new("Sound")
+    s.SoundId = id
+    s.Volume = 0.04
+    s.Parent = ScreenGui
+    hoverSoundPool[i] = s
+end
+local hoverIndex = 0
+local function playHoverGlitch()
+    hoverIndex = hoverIndex + 1
+    if hoverIndex > #hoverSoundPool then
+        hoverIndex = 1
+    end
+    local s = hoverSoundPool[hoverIndex]
+    if s then
+        s:Stop()
+        s:Play()
+    end
+end
+local function playSound(id, vol)
+    local s = Instance.new("Sound")
+    s.SoundId = id
+    s.Volume = vol or 0.2
+    s.Parent = ScreenGui
+    s:Play()
+    task.delay(3, function() s:Destroy() end)
+end
+local function makeLabel(name, pos, size, text, align)
+    local l = Instance.new("TextLabel")
+    l.Name = name
+    l.BackgroundTransparency = 1
+    l.TextColor3 = Color3.fromRGB(255, 255, 255)
+    l.TextSize = 12
+    l.Font = Enum.Font.Code
+    l.TextXAlignment = align or Enum.TextXAlignment.Left
+    l.TextYAlignment = Enum.TextYAlignment.Top
+    l.Text = text
+    l.TextTransparency = 1
+    l.Size = UDim2.new(0, size.X, 0, size.Y)
+    l.Position = UDim2.new(0, pos.X, 0, pos.Y)
+    l.ZIndex = 2
+    l.Parent = mainImg
+    return l
+end
+local titleLabel = makeLabel(
+    "Title",
+    Vector2.new(120, 26),
+    Vector2.new(200, 16),
+    "Gravel.cc",
+    Enum.TextXAlignment.Right
+)
+titleLabel.TextSize = 14
+local subtitleLabel = makeLabel(
+    "Subtitle",
+    Vector2.new(80, 44),
+    Vector2.new(240, 14),
+    "choose ur adventure or smth",
+    Enum.TextXAlignment.Right
+)
+subtitleLabel.TextSize = 10
+subtitleLabel.TextColor3 = Color3.fromRGB(180, 180, 180)
+local closeBtn = Instance.new("TextButton")
+closeBtn.Name = "TextButton"
+closeBtn.Visible = true
+closeBtn.TextWrapped = true
+closeBtn.BorderMode = Enum.BorderMode.Outline
+closeBtn.TextTransparency = 1
+closeBtn.TextStrokeTransparency = 1
+closeBtn.AnchorPoint = Vector2.new(0, 0)
+closeBtn.AutomaticSize = Enum.AutomaticSize.None
+closeBtn.ClipsDescendants = false
+closeBtn.LayoutOrder = 0
+closeBtn.Selectable = false
+closeBtn.ZIndex = 5
+closeBtn.BorderSizePixel = 0
+closeBtn.Size = UDim2.new(0, 43, 0, 25)
+closeBtn.Active = true
+closeBtn.RichText = false
+closeBtn.TextSize = 15
+closeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+closeBtn.BorderColor3 = Color3.fromRGB(0, 0, 0)
+closeBtn.Text = "X"
+closeBtn.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+closeBtn.AutoButtonColor = true
+closeBtn.Rotation = 0
+closeBtn.Font = Enum.Font.Code
+closeBtn.BackgroundTransparency = 1
+closeBtn.Position = UDim2.new(0, 315, 0, 15)
+closeBtn.TextXAlignment = Enum.TextXAlignment.Center
+closeBtn.TextYAlignment = Enum.TextYAlignment.Center
+closeBtn.TextScaled = false
+closeBtn.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+closeBtn.Parent = mainImg
+local closeCorner = Instance.new("UICorner")
+closeCorner.CornerRadius = UDim.new(0, 10)
+closeCorner.Parent = closeBtn
+local closeGradient = Instance.new("UIGradient")
+closeGradient.Enabled = true
+closeGradient.Transparency = NumberSequence.new(0)
+closeGradient.Color = ColorSequence.new(Color3.fromRGB(255, 255, 255), Color3.fromRGB(0, 0, 0))
+closeGradient.Rotation = 180
+closeGradient.Parent = closeBtn
+local function makeOptionButton(text, desc, yPos)
+    local btn = Instance.new("TextButton")
+    btn.Name = "Option_" .. text
+    btn.BackgroundTransparency = 1
+    btn.Text = ""
+    btn.AutoButtonColor = false
+    btn.Size = UDim2.new(0, 200, 0, 40)
+    btn.Position = UDim2.new(0, 12, 0, yPos)
+    btn.ZIndex = 3
+    btn.TextTransparency = 1
+    btn.Parent = mainImg
+    local line1 = Instance.new("TextLabel")
+    line1.BackgroundTransparency = 1
+    line1.Text = "> " .. text
+    line1.TextColor3 = Color3.fromRGB(255, 255, 255)
+    line1.TextSize = 12
+    line1.Font = Enum.Font.Code
+    line1.TextXAlignment = Enum.TextXAlignment.Left
+    line1.TextYAlignment = Enum.TextYAlignment.Top
+    line1.Size = UDim2.new(1, 0, 0, 14)
+    line1.Position = UDim2.new(0, 0, 0, 0)
+    line1.TextTransparency = 1
+    line1.ZIndex = 4
+    line1.Parent = btn
+    local line2 = Instance.new("TextLabel")
+    line2.BackgroundTransparency = 1
+    line2.Text = "  " .. desc
+    line2.TextColor3 = Color3.fromRGB(140, 140, 140)
+    line2.TextSize = 10
+    line2.Font = Enum.Font.Code
+    line2.TextXAlignment = Enum.TextXAlignment.Left
+    line2.TextYAlignment = Enum.TextYAlignment.Top
+    line2.Size = UDim2.new(1, 0, 0, 24)
+    line2.Position = UDim2.new(0, 0, 0, 16)
+    line2.TextWrapped = true
+    line2.TextTransparency = 1
+    line2.ZIndex = 4
+    line2.Parent = btn
+    return btn, line1, line2
+end
+local legacyBtn, lLegacy1, lLegacy2 = makeOptionButton(
+    "LEGACY VERSION",
+    "Good old days, won't be updated\n(bad injectors work here)",
+    80
+)
+local newBtn, lNew1, lNew2 = makeOptionButton(
+    "NEW VERSION",
+    "New bs & updated regularly\n(bad injectors NOT recommended)",
+    170
+)
+local function onHover(l1, l2, hovered)
+    TweenService:Create(l1, TweenInfo.new(0.15), {
+        TextColor3 = hovered and Color3.fromRGB(120, 255, 120) or Color3.fromRGB(255, 255, 255)
+    }):Play()
+    TweenService:Create(l2, TweenInfo.new(0.15), {
+        TextColor3 = hovered and Color3.fromRGB(180, 255, 180) or Color3.fromRGB(140, 140, 140)
+    }):Play()
+end
+legacyBtn.MouseEnter:Connect(function()
+    onHover(lLegacy1, lLegacy2, true)
+    playSound(soundhover, 0.15)
+    playHoverGlitch()
+    glitch(random(2, 6))
+    task.delay(0.1, function() glitch(0) end)
 end)
-
+legacyBtn.MouseLeave:Connect(function() onHover(lLegacy1, lLegacy2, false) end)
+newBtn.MouseEnter:Connect(function()
+    onHover(lNew1, lNew2, true)
+    playSound(soundhover, 0.15)
+    playHoverGlitch()
+    glitch(random(2, 6))
+    task.delay(0.1, function() glitch(0) end)
+end)
+newBtn.MouseLeave:Connect(function() onHover(lNew1, lNew2, false) end)
+closeBtn.MouseEnter:Connect(function()
+    playSound(soundhover, 0.15)
+    playHoverGlitch()
+    glitch(random(2, 6))
+    task.delay(0.1, function() glitch(0) end)
+    TweenService:Create(closeBtn, TweenInfo.new(0.15), {
+        BackgroundTransparency = 0.7
+    }):Play()
+end)
+closeBtn.MouseLeave:Connect(function()
+    TweenService:Create(closeBtn, TweenInfo.new(0.15), {
+        BackgroundTransparency = 1
+    }):Play()
+end)
 task.spawn(function()
-    local lastTitleChange = 0
+    local last = 0
     while ScreenGui and ScreenGui.Parent do
-        if tick() - lastTitleChange > math.random(4, 9) then
-            local newTitle = rngTitles[math.random(1, #rngTitles)]
-            local tween = TweenService:Create(Title, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.InOut), {
-                TextTransparency = 1
-            })
-            tween:Play()
-            tween.Completed:Wait()
-            Title.Text = newTitle
-            TweenService:Create(Title, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.InOut), {
-                TextTransparency = 0
-            }):Play()
-            lastTitleChange = tick()
+        if tick() - last > random(4, 9) then
+            local t = TweenService:Create(titleLabel, TweenInfo.new(0.3), {TextTransparency = 1})
+            t:Play()
+            t.Completed:Wait()
+            titleLabel.Text = rngTitles[random(1, #rngTitles)]
+            TweenService:Create(titleLabel, TweenInfo.new(0.3), {TextTransparency = 0}):Play()
+            last = tick()
         end
         task.wait(0.5)
     end
 end)
-
 task.spawn(function()
-    local currentText = ""
-    local cursorVisible = true
-    local charIndex = 1
-    local isErasing = false
-    local currentMessage = ""
-    
     while ScreenGui and ScreenGui.Parent do
-        if not isErasing and (not currentMessage or currentMessage == "") then
-            currentMessage = rngMemes[math.random(1, #rngMemes)]
-            charIndex = 1
-            currentText = ""
+        if random() < 0.55 then
+            glitch(random(2, 8))
+            playGlitch()
+            task.wait(random(1, 4) / 10)
+            glitch(0)
         end
-        
-        if not isErasing then
-            if charIndex <= #currentMessage then
-                currentText = currentText .. currentMessage:sub(charIndex, charIndex)
-                charIndex = charIndex + 1
-                MemeText.Text = currentText .. (cursorVisible and "_" or " ")
-                task.wait(math.random(3, 8) / 100)
-            else
-                task.wait(math.random(15, 35) / 10)
-                isErasing = true
-            end
-        else
-            if #currentText > 0 then
-                currentText = currentText:sub(1, #currentText - 1)
-                MemeText.Text = currentText .. (cursorVisible and "_" or " ")
-                task.wait(math.random(2, 5) / 100)
-            else
-                isErasing = false
-                currentMessage = ""
-                task.wait(math.random(5, 15) / 10)
-            end
-        end
-        
-        cursorVisible = not cursorVisible
-        if not isErasing and currentText ~= "" then
-            MemeText.Text = currentText .. (cursorVisible and "_" or " ")
-        end
+        task.wait(1.5)
     end
 end)
-
-local function createOption(name, iconId, pos, text, description)
-    local Container = Instance.new("Frame")
-    local IconContainer = Instance.new("Frame")
-    local OptionIcon = Instance.new("ImageLabel")
-    local Button = Instance.new("TextButton")
-    local BtnCorner = Instance.new("UICorner")
-    local BtnStroke = Instance.new("UIStroke")
-    local OptionTitle = Instance.new("TextLabel")
-    local OptionDesc = Instance.new("TextLabel")
-    local IconCorner = Instance.new("UICorner")
-    
-    Container.Size = UDim2.new(0, 200, 0, 180)
-    Container.Position = pos
-    Container.BackgroundTransparency = 1
-    Container.Parent = MainFrame
-    
-    IconContainer.Size = UDim2.new(0, 70, 0, 70)
-    IconContainer.Position = UDim2.new(0.5, -35, 0.08, 0)
-    IconContainer.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-    IconContainer.BackgroundTransparency = 0.9
-    IconContainer.Parent = Container
-    IconCorner.CornerRadius = UDim.new(1, 0)
-    IconCorner.Parent = IconContainer
-    
-    OptionIcon.Size = UDim2.new(0, 40, 0, 40)
-    OptionIcon.Position = UDim2.new(0.5, -20, 0.5, -20)
-    OptionIcon.Image = iconId
-    OptionIcon.BackgroundTransparency = 1
-    OptionIcon.ImageTransparency = 1
-    OptionIcon.Parent = IconContainer
-    
-    OptionTitle.Size = UDim2.new(1, 0, 0, 30)
-    OptionTitle.Position = UDim2.new(0, 0, 0.48, 0)
-    OptionTitle.BackgroundTransparency = 1
-    OptionTitle.Text = text
-    OptionTitle.TextColor3 = Color3.fromRGB(240, 240, 240)
-    OptionTitle.Font = Enum.Font.GothamSemibold
-    OptionTitle.TextSize = 16
-    OptionTitle.TextTransparency = 1
-    OptionTitle.Parent = Container
-    
-    OptionDesc.Size = UDim2.new(1, -20, 0, 40)
-    OptionDesc.Position = UDim2.new(0, 10, 0.62, 0)
-    OptionDesc.BackgroundTransparency = 1
-    OptionDesc.Text = description
-    OptionDesc.TextColor3 = Color3.fromRGB(180, 180, 180)
-    OptionDesc.Font = Enum.Font.Gotham
-    OptionDesc.TextSize = 12
-    OptionDesc.TextTransparency = 1
-    OptionDesc.TextWrapped = true
-    OptionDesc.Parent = Container
-    
-    Button.Size = UDim2.new(0, 140, 0, 36)
-    Button.Position = UDim2.new(0.5, -70, 0.85, 0)
-    Button.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
-    Button.BackgroundTransparency = 0.9
-    Button.Text = "Select"
-    Button.Font = Enum.Font.GothamSemibold
-    Button.TextColor3 = Color3.fromRGB(255, 255, 255)
-    Button.TextSize = 14
-    Button.AutoButtonColor = true
-    Button.TextTransparency = 1
-    Button.Parent = Container
-    BtnCorner.CornerRadius = UDim.new(0, 8)
-    BtnCorner.Parent = Button
-    
-    BtnStroke.Color = Color3.fromRGB(80, 80, 80)
-    BtnStroke.Transparency = 0.8
-    BtnStroke.Thickness = 1
-    BtnStroke.Parent = Button
-    
-    Button.MouseEnter:Connect(function()
-        TweenService:Create(Button, TweenInfo.new(0.2), {
-            BackgroundTransparency = 0.7,
-            BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-        }):Play()
-        TweenService:Create(BtnStroke, TweenInfo.new(0.2), {
-            Transparency = 0.5
-        }):Play()
-        TweenService:Create(IconContainer, TweenInfo.new(0.2), {
-            BackgroundTransparency = 0.7
-        }):Play()
-    end)
-    
-    Button.MouseLeave:Connect(function()
-        TweenService:Create(Button, TweenInfo.new(0.2), {
-            BackgroundTransparency = 0.9,
-            BackgroundColor3 = Color3.fromRGB(45, 45, 45)
-        }):Play()
-        TweenService:Create(BtnStroke, TweenInfo.new(0.2), {
-            Transparency = 0.8
-        }):Play()
-        TweenService:Create(IconContainer, TweenInfo.new(0.2), {
-            BackgroundTransparency = 0.9
-        }):Play()
-    end)
-
-    return Button, OptionIcon, OptionTitle, OptionDesc, IconContainer
-end
-
-local YesBtn, OldIcon, OldTitle, OldDesc, OldIconContainer = createOption("Yes", 
-    "rbxassetid://7734056878", 
-    UDim2.new(0.05, 0, 0.3, 0), 
-    "LEGACY VERSION", 
-    "Good old days won't be updated\n(Bad injectors work here)"
-)
-
-local NoBtn, NewIcon, NewTitle, NewDesc, NewIconContainer = createOption("No", 
-    "rbxassetid://96858797315175", 
-    UDim2.new(0.52, 0, 0.3, 0), 
-    "NEW VERSION", 
-    "New bs & updated regularly\n(Bad injectors not recommended)"
-)
-
-local function tw()
-    local info = TweenInfo.new(0.7, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
-    local info2 = TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
-    
-    TweenService:Create(Icon, info2, {ImageTransparency = 0}):Play()
-    TweenService:Create(MainFrame, info, {BackgroundTransparency = 0.15}):Play()
-    task.wait(0.1)
-    TweenService:Create(Title, info, {TextTransparency = 0}):Play()
-    TweenService:Create(Subtitle, info, {TextTransparency = 0}):Play()
-    TweenService:Create(MemeText, info, {TextTransparency = 0}):Play()
+local function idk()
+    blur.Size = 24
+    glitchFrame.BackgroundTransparency = 0
+    task.wait(0.05)
+    for i = 1, 6 do
+        glitch(random(4, 12))
+        playGlitch()
+        task.wait(0.05)
+        glitch(0)
+        task.wait(0.03)
+    end
+    TweenService:Create(glitchFrame, TweenInfo.new(0.3), {BackgroundTransparency = 1}):Play()
     task.wait(0.2)
-    TweenService:Create(OldIcon, info, {ImageTransparency = 0}):Play()
-    TweenService:Create(NewIcon, info, {ImageTransparency = 0}):Play()
-    TweenService:Create(OldIconContainer, info, {BackgroundTransparency = 0.9}):Play()
-    TweenService:Create(NewIconContainer, info, {BackgroundTransparency = 0.9}):Play()
-    TweenService:Create(OldTitle, info, {TextTransparency = 0}):Play()
-    TweenService:Create(NewTitle, info, {TextTransparency = 0}):Play()
-    TweenService:Create(OldDesc, info, {TextTransparency = 0}):Play()
-    TweenService:Create(NewDesc, info, {TextTransparency = 0}):Play()
-    TweenService:Create(YesBtn, info, {TextTransparency = 0, BackgroundTransparency = 0.9}):Play()
-    TweenService:Create(NoBtn, info, {TextTransparency = 0, BackgroundTransparency = 0.9}):Play()
+    TweenService:Create(mainImg, TweenInfo.new(0.4), {ImageTransparency = 0}):Play()
+    task.wait(0.1)
+    TweenService:Create(titleLabel, TweenInfo.new(0.4), {TextTransparency = 0}):Play()
+    TweenService:Create(subtitleLabel, TweenInfo.new(0.4), {TextTransparency = 0}):Play()
+    TweenService:Create(closeBtn, TweenInfo.new(0.4), {TextTransparency = 0, BackgroundTransparency = 1}):Play()
+    task.wait(0.2)
+    TweenService:Create(lLegacy1, TweenInfo.new(0.4), {TextTransparency = 0}):Play()
+    TweenService:Create(lLegacy2, TweenInfo.new(0.4), {TextTransparency = 0}):Play()
+    TweenService:Create(lNew1, TweenInfo.new(0.4), {TextTransparency = 0}):Play()
+    TweenService:Create(lNew2, TweenInfo.new(0.4), {TextTransparency = 0}):Play()
 end
-
 local function get(url)
     local info = TweenInfo.new(0.4, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
-    TweenService:Create(BackgroundBlur, info, {Size = 0}):Play()
-    TweenService:Create(MainFrame, info, {BackgroundTransparency = 1}):Play()
-    TweenService:Create(Shadow, info, {ImageTransparency = 1}):Play()
-    
-    for _, v in pairs(MainFrame:GetDescendants()) do
+    TweenService:Create(blur, info, {Size = 0}):Play()
+    TweenService:Create(mainImg, info, {ImageTransparency = 1}):Play()
+    TweenService:Create(bg, info, {BackgroundTransparency = 1}):Play()
+    for _, v in ipairs(mainImg:GetDescendants()) do
         if v:IsA("TextLabel") or v:IsA("TextButton") then
-            TweenService:Create(v, info, {TextTransparency = 1, BackgroundTransparency = 1}):Play()
-        elseif v:IsA("ImageLabel") then
-            TweenService:Create(v, info, {ImageTransparency = 1}):Play()
-        elseif v:IsA("Frame") then
-            TweenService:Create(v, info, {BackgroundTransparency = 1}):Play()
-        elseif v:IsA("UIStroke") then
-            TweenService:Create(v, info, {Transparency = 1}):Play()
+            TweenService:Create(v, info, {TextTransparency = 1}):Play()
         end
     end
-    
     task.wait(0.5)
     ScreenGui:Destroy()
-    BackgroundBlur:Destroy()
+    blur:Destroy()
     loadstring(game:HttpGet(url))()
 end
-
-local hoverSound = Instance.new("Sound")
-hoverSound.SoundId = "rbxassetid://9120299810"
-hoverSound.Volume = 0.15
-hoverSound.Parent = ScreenGui
-
-YesBtn.MouseEnter:Connect(function()
-    hoverSound:Play()
-end)
-NoBtn.MouseEnter:Connect(function()
-    hoverSound:Play()
-end)
-
-YesBtn.MouseButton1Click:Connect(function()
+local function closeGui()
+    local info = TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
+    TweenService:Create(blur, info, {Size = 0}):Play()
+    TweenService:Create(mainImg, info, {ImageTransparency = 1}):Play()
+    TweenService:Create(bg, info, {BackgroundTransparency = 1}):Play()
+    for _, v in ipairs(mainImg:GetDescendants()) do
+        if v:IsA("TextLabel") or v:IsA("TextButton") then
+            TweenService:Create(v, info, {TextTransparency = 1}):Play()
+        end
+    end
+    task.wait(0.4)
+    ScreenGui:Destroy()
+    blur:Destroy()
+end
+legacyBtn.MouseButton1Click:Connect(function()
+    playSound(soundclick, 0.3)
     get("https://raw.githubusercontent.com/hm5650/HBSS/refs/heads/main/HBSS_Old.lua")
 end)
-
-NoBtn.MouseButton1Click:Connect(function()
+newBtn.MouseButton1Click:Connect(function()
+    playSound(soundclick, 0.3)
     get("https://raw.githubusercontent.com/hm5650/HBSS/refs/heads/main/HBSS_New.lua")
 end)
-
-tw()
+closeBtn.MouseButton1Click:Connect(function()
+    playSound(soundclick, 0.3)
+    closeGui()
+end)
+idk()
