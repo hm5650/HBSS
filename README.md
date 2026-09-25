@@ -13,7 +13,7 @@
 
 This is the official repository for Gravel.cc!
 
-Im mostly active on ![YOUTUBE](https://youtube.com/@gpssickle?si=H0dugKCbTpV_yGK7) or ![SCRIPTBLOX](https://scriptblox.com/u/Gpssickle) if you guys want to see my random scripts :3
+Im mostly active on [YOUTUBE](https://youtube.com/@gpssickle?si=H0dugKCbTpV_yGK7) or [SCRIPTBLOX](https://scriptblox.com/u/Gpssickle) if you guys want to see my random scripts :3
 
 **Warner**: Gravel.cc is still underdevelopment so elements/feats can change or become missing/unavailable & bugs can occur.
 
@@ -390,11 +390,11 @@ A quick-references of features that Gravel.cc has :p
 <details>
   <summary>Links</summary>
 
-  1. ![YouTube; Main Channel](https://youtube.com/@gpssickle?si=9bBIhhY7-nt2Ot7J)
-  2. ![YouTube; Second Channel](https://www.youtube.com/@gpszickle)
-  3. ![RScripts](rscripts.net/@Gpssickle)
-  4. ![Scriptblox](https://scriptblox.com/u/Gpssickle)
-  5. ![Roblox](roblox.com/users/8517361356/profile)
+  1. [YouTube; Main Channel](https://youtube.com/@gpssickle?si=9bBIhhY7-nt2Ot7J)
+  2. [YouTube; Second Channel](https://www.youtube.com/@gpszickle)
+  3. [RScripts](rscripts.net/@Gpssickle)
+  4. [Scriptblox](https://scriptblox.com/u/Gpssickle)
+  5. [Roblox](roblox.com/users/8517361356/profile)
 </details>
 
 ---
