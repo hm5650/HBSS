@@ -405,7 +405,7 @@ A quick-references of features that Gravel.cc has :p
 
 random art that appears when I'm bored :7
 
---
+---
 
 <img src="https://i.imgur.com/6ns17nM.png" width="200" alt= "coolart">
 <img src="https://i.imgur.com/VYd7IcR.png" width="200" alt= "anothercoolart">
