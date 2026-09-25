@@ -175,7 +175,7 @@ A quick-references of features that Gravel.cc has :p
 
 ---
 
-## SilentAimTab (HB) - Hitbox-Based
+## SilentAimTab (HB)
 
 - SilentAim (HB) Toggle
 - WallCheck - Don't shoot through walls
@@ -249,7 +249,7 @@ A quick-references of features that Gravel.cc has :p
 
 ---
 
-## WorldTab - Environment
+## WorldTab
 
 - ProxPrompts Mods - Hold Duration, Max Activation, Max Indicator
 - X-Ray - Toggle, Transparency, Blacklist (multi)
