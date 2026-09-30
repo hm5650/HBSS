@@ -2,6 +2,8 @@
 
 [HBSS_C](https://github.com/hm5650/HBSS_C/tree/main)
 
+[![Reviewed on ScriptBlox!!! :D](https://scriptblox.com/badge/Universal-Script-GRAVEL.CC-229680)](https://scriptblox.com/script/Universal-Script-GRAVEL.CC-229680)
+
 <h1 align="center">Gravel.cc</h1>
 
 ![Gravel :D](https://i.imgur.com/T8azxCr.png)
