@@ -119,6 +119,8 @@ A quick-references of features that Gravel.cc has :p
   - New Save, Load Save, Delete Save, Delete All Saves
   - Autoload on Game, Remove Autoload
   - Saves List + Autoload List paragraphs
+- Mobile Controls - Custom mobile joystick + jump button
+  - Dynamic Layout, Drag Mode, Reset Positions
 
 ---
 
@@ -142,7 +144,8 @@ A quick-references of features that Gravel.cc has :p
 - TriggerBot FOV Colors - Ring normal + target
 - Hitbox Colors - Visualizer color
 - Reach Colors - Visualizer color
-- Theme - UI theme dropdown, transparency slider, Tag TextCursor inputs, Save/Reload UI settings
+- Interaction Aura Colors - Aura visualizer color
+- Theme - UI theme dropdown, transparency slider, Tag TextCursor inputs, Notifications, Save/Reload UI settings
 
 ---
 
@@ -176,6 +179,19 @@ A quick-references of features that Gravel.cc has :p
 - Aimbot Hertz - Update rate
 - FOV Radius - Screen-space aim circle
 - Target Range - Max world distance
+
+---
+
+## TriggerbotTab
+
+- TriggerBot Toggle - Auto-shoot when target enters FOV
+- Wall Check - Raycast visibility check
+- Target Part - Head / HumanoidRootPart / Random
+- FOV Radius - Screen-space trigger circle
+- Target Range - Max world distance
+- Shoot Chance - 0-100%
+- Shoot Delay - Time between shots
+- PressDown - Hold mouse down instead of clicking
 
 ---
 
@@ -260,13 +276,14 @@ A quick-references of features that Gravel.cc has :p
 - Interactions
   - Function 2 Fire (TouchInterest / ClickDetectors / ProximityPrompts / Remotes)
   - Fire All Once, Loop Fire All, Interval slider
+- Interaction Aura - Radius slider, Visualizer toggle, Shape, Material, Transparency
 
 ---
 
 ## MiscTab
 
-- TriggerBot - Toggle, Wall Check, Target Part, FOV Radius, Hit Chance, Shoot Delay, PressDown
 - BHop - Bunny hop toggle
+- Freecam - Fly with camera
 - AntiAfk - Prevent idle kick
 - Cframe View - Spectate enemies + Zoom slider
 - WallOver (Cam-Y) - Shoot over walls + Offset slider
@@ -328,6 +345,7 @@ A quick-references of features that Gravel.cc has :p
 | G | Hitbox |
 | Z | ESP |
 | N | ClientMods |
+| P | Freecam |
 | B | SilentAim (HB) WallCheck |
 | H | Aimbot WallCheck |
 | U | SilentAim (HK) WallCheck |
@@ -341,8 +359,10 @@ A quick-references of features that Gravel.cc has :p
 - Semi-universal, works on most generic shooters, not all games
 - Keyless & free & open source
 - HK features need hookmetamethod + hookfunction
-- Not mobile friendly for TriggerBot
+- TriggerBot is now Mobile-Friendly-ish with custom mobile controls
 - Autoload remembers a save per PlaceId
+- Save/Load saves your config settings as JSON
+- BGMTab supports custom music via rbxassetid
 
 ---
 
@@ -355,16 +375,17 @@ A quick-references of features that Gravel.cc has :p
   2. VisualsTab
   3. AntiAimTab
   4. AimbotTab
-  5. SilentAimTab (HB)
-  6. SilentAimTab2 (HK)
-  7. HitboxTab
-  8. ReachTab
-  9. ClientTab
-  10. WorldTab
-  11. MiscTab
-  12. BGMTab
-  13. DevTab
-  14. InfoTab
+  5. TriggerbotTab
+  6. SilentAimTab (HB)
+  7. SilentAimTab2 (HK)
+  8. HitboxTab
+  9. ReachTab
+  10. ClientTab
+  11. WorldTab
+  12. MiscTab
+  13. BGMTab
+  14. DevTab
+  15. InfoTab
 </details>
 
 <details>
@@ -384,7 +405,11 @@ A quick-references of features that Gravel.cc has :p
   
   V
   
-  >assets - stores other .JSON files
+  >assets - stores other .JSON files (memory.json for autoload)
+  
+  V
+  
+  >BGM - stores BGM settings
 </details>
 
 ---
