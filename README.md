@@ -135,7 +135,7 @@ A quick-references of features that Gravel.cc has :p
 - ESP Components
   - Highlight ESP, Text ESP, Box ESP, Health ESP, Head Dot ESP, Tracer ESP
 - Scene
-  - Brightness slider, ClockTime slider, Skybox Changer, Kill Lighting button
+  - Brightness slider, ClockTime slider, Skybox Changer, button
   - FOV toggle + FOV value slider
 - ESP Colors - ESP, Target, Team, Tracer Line
 - SA1 FOV Colors - SilentAim (HB) ring normal + target
