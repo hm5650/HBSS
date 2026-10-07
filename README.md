@@ -172,6 +172,7 @@ A quick-references of features that Gravel.cc has :p
 - Aimbot Toggle
 - WallCheck - Raycast visibility check
 - 360° Aimbot - No FOV limit
+- AutoRotate - Use your Character instead of camera.
 - Target Part - Head / HumanoidRootPart
 - Aim Method - CFrame / MouseMoveRel / Camera / MouseMove / Teleport
 - Aim Strength - 0 (none) to 1 (instant snap)
