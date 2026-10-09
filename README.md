@@ -1,3 +1,5 @@
+# Gravel.cc
+
 *by Gpssickle! :D*
 
 [HBSS_C](https://github.com/hm5650/HBSS_C/tree/main)
@@ -7,7 +9,6 @@
 <h1 align="center">Gravel.cc</h1>
 
 ![Gravel :D](https://i.imgur.com/T8azxCr.png)
-
 
 <p align="center">A "simple" .lua script that you guys would definitely like! Called "Gravel.cc" or "G.cc" or something</p>
 
@@ -38,7 +39,6 @@ When executing the loadstring, you'll get these '2' buttons:
 
 <img src="https://i.imgur.com/zfdignn.png" width="30" alt= "desc">
 "NEW VERSION"
-
 
 ---
 
@@ -102,6 +102,8 @@ A quick-references of features that Gravel.cc has :p
 - AntiKick - Blocks server kicks (needs hookmetamethod)
 - TeamTarget - Enemies / Teams / All / Specific Team
 - Specific Teams - Pick which teams to target (multi-select)
+- Target Blacklist - Make Gravel ignore specific players
+- Ignore Friends - Skip targeting your Roblox friends
 - TargetType - Players / NPCs / Both
 - GetTarget - Closest / Lowest Health / TargetSeen
 - Targetseen Switch Rate - Delay between target switches
