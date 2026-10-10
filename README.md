@@ -102,27 +102,35 @@ A quick-references of features that Gravel.cc has :p
 - AntiKick - Blocks server kicks (needs hookmetamethod)
 - TeamTarget - Enemies / Teams / All / Specific Team
 - Specific Teams - Pick which teams to target (multi-select)
-- Target Blacklist - Make Gravel ignore specific players
+- Target Blacklist - Make Gravel ignore specific players (multi-select, auto-refreshes on join/leave)
 - Ignore Friends - Skip targeting your Roblox friends
 - TargetType - Players / NPCs / Both
-- GetTarget - Closest / Lowest Health / TargetSeen
+- GetTarget - Closest / Farthest / Lowest Health / Highest Health / Lowest Health % / Closest To Crosshair / Closest To Cursor / Aim At You / Holding Tool / TargetSeen / Stick To Target (multi-select)
 - Targetseen Switch Rate - Delay between target switches
 - Ignore Forcefield - Skip spawn-protected players
 - Indicator UI - Small HUD showing current target + features
   - Draggable, Always Visible, Size slider, Reset Position
+  - Health bar, profile thumbnail, feature list, damage flash + haptic feedback
 - QuickToggles - Mobile-friendly toggle buttons
   - Selection dropdown, Draggable toggle, Size slider
+  - Supports: SilentAim, Hitbox, AntiAim, Aimbot, ESP, ClientMod, SilentAimHK, AutoFarm, BHop, Desync, Freecam, TriggerBot, MobileControls
 - Keybinds - Enable/disable, HoldKey mode, custom key per feature
+  - Default keys: E (SilentAim HB), R (SilentAim HK), Q (Aimbot), F (AutoFarm), L (AntiAim), J (Desync), X (TriggerBot), V (BHop), G (Hitbox), Z (ESP), N (ClientMod), P (Freecam)
+  - WallCheck keys: B (SA HB), H (Aimbot), U (SA HK), Y (TriggerBot)
+  - LeftAlt = HoldKey modifier
 - AutoFarm - Toggle, Align Part, TP Max Range, TP Distance, Vertical Offset
-- Optimization - Copy-paste FPS/network optimizer code
+- Optimization - Copy-paste Sand.cc optimizer code
 - Updaters speed / Updaters - Performance vs accuracy
 - Cache Cleaners - Clear target cache interval
+- Mobile Controls - Custom mobile joystick + jump button
+  - Dynamic Layout, Drag Mode, Reset Positions
 - Save/Load
   - New Save, Load Save, Delete Save, Delete All Saves
   - Autoload on Game, Remove Autoload
   - Saves List + Autoload List paragraphs
-- Mobile Controls - Custom mobile joystick + jump button
-  - Dynamic Layout, Drag Mode, Reset Positions
+  - Auto-names saves from game name
+  - Fuzzy matching for loading
+  - Multi-step confirmation for Delete All
 
 ---
 
@@ -137,7 +145,7 @@ A quick-references of features that Gravel.cc has :p
 - ESP Components
   - Highlight ESP, Text ESP, Box ESP, Health ESP, Head Dot ESP, Tracer ESP
 - Scene
-  - Brightness slider, ClockTime slider, Skybox Changer, button
+  - Brightness slider, ClockTime slider, Skybox Changer button
   - FOV toggle + FOV value slider
 - ESP Colors - ESP, Target, Team, Tracer Line
 - SA1 FOV Colors - SilentAim (HB) ring normal + target
@@ -174,7 +182,7 @@ A quick-references of features that Gravel.cc has :p
 - Aimbot Toggle
 - WallCheck - Raycast visibility check
 - 360° Aimbot - No FOV limit
-- AutoRotate - Use your Character instead of camera.
+- AutoRotate - Use your Character instead of camera
 - Target Part - Head / HumanoidRootPart
 - Aim Method - CFrame / MouseMoveRel / Camera / MouseMove / Teleport
 - Aim Strength - 0 (none) to 1 (instant snap)
@@ -366,6 +374,8 @@ A quick-references of features that Gravel.cc has :p
 - Autoload remembers a save per PlaceId
 - Save/Load saves your config settings as JSON
 - BGMTab supports custom music via rbxassetid
+- Target Blacklist & Ignore Friends are not compatible with Save/Load
+- 200+ random messages across RNG4 (tag), RNG6 (close popup), RNG7 (open button), popups & notifications
 
 ---
 
@@ -425,7 +435,7 @@ A quick-references of features that Gravel.cc has :p
   1. [YouTube; Main Channel](https://youtube.com/@gpssickle?si=9bBIhhY7-nt2Ot7J)
   2. [YouTube; Second Channel](https://www.youtube.com/@gpszickle)
   3. [RScripts](rscripts.net/@Gpssickle)
-  4. [Scriptblox](https://scriptblox.com/u/Gpssickle)
+  4. [ScriptBlox](https://scriptblox.com/u/Gpssickle)
   5. [Roblox](https://www.roblox.com/users/8517361356/profile)
 </details>
 
