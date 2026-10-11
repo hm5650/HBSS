@@ -49,6 +49,7 @@ you could either choose a more deprecated version of Gravel.cc or a new & update
 Raw Loadstring:
 
 *(Cached by GitHub.)*
+
 ```lua
 local url = "https://raw.githubusercontent.com/hm5650/HBSS/refs/heads/main/HBSS.lua"
 
@@ -79,6 +80,7 @@ end
 API Loadstring:
 
 *(Bypasses GitHub cache.)*
+
 ```lua
 local a,b,c,g="/hm5650/HBSS/","/HBSS.lua",".github","https://"
 local d=request({Url=`{g}api{c}.com/repos{a}contents{b}`,Headers={Accept=`application/vnd{c}.VERSION.raw`}})
@@ -102,35 +104,29 @@ A quick-references of features that Gravel.cc has :p
 - AntiKick - Blocks server kicks (needs hookmetamethod)
 - TeamTarget - Enemies / Teams / All / Specific Team
 - Specific Teams - Pick which teams to target (multi-select)
-- Target Blacklist - Make Gravel ignore specific players (multi-select, auto-refreshes on join/leave)
+- Target Blacklist - Make Gravel ignore specific players
 - Ignore Friends - Skip targeting your Roblox friends
 - TargetType - Players / NPCs / Both
-- GetTarget - Closest / Farthest / Lowest Health / Highest Health / Lowest Health % / Closest To Crosshair / Closest To Cursor / Aim At You / Holding Tool / TargetSeen / Stick To Target (multi-select)
+- Fov Mode - Fixed / Cursor / Touch (moves all FOV rings)
+- Reset Touch FOV - Puts touch FOV circle back in the middle
+- GetTarget - Closest / Farthest / Lowest Health / Highest Health / Lowest Health % / Closest To Crosshair / Closest To Cursor / Aim At You / Holding Tool / TargetSeen / Stick To Target
 - Targetseen Switch Rate - Delay between target switches
 - Ignore Forcefield - Skip spawn-protected players
 - Indicator UI - Small HUD showing current target + features
   - Draggable, Always Visible, Size slider, Reset Position
-  - Health bar, profile thumbnail, feature list, damage flash + haptic feedback
 - QuickToggles - Mobile-friendly toggle buttons
-  - Selection dropdown, Draggable toggle, Size slider
-  - Supports: SilentAim, Hitbox, AntiAim, Aimbot, ESP, ClientMod, SilentAimHK, AutoFarm, BHop, Desync, Freecam, TriggerBot, MobileControls
+  - Selection dropdown, Draggable toggle, Size slider, Reset Position
 - Keybinds - Enable/disable, HoldKey mode, custom key per feature
-  - Default keys: E (SilentAim HB), R (SilentAim HK), Q (Aimbot), F (AutoFarm), L (AntiAim), J (Desync), X (TriggerBot), V (BHop), G (Hitbox), Z (ESP), N (ClientMod), P (Freecam)
-  - WallCheck keys: B (SA HB), H (Aimbot), U (SA HK), Y (TriggerBot)
-  - LeftAlt = HoldKey modifier
 - AutoFarm - Toggle, Align Part, TP Max Range, TP Distance, Vertical Offset
 - Optimization - Copy-paste Sand.cc optimizer code
 - Updaters speed / Updaters - Performance vs accuracy
 - Cache Cleaners - Clear target cache interval
-- Mobile Controls - Custom mobile joystick + jump button
-  - Dynamic Layout, Drag Mode, Reset Positions
 - Save/Load
   - New Save, Load Save, Delete Save, Delete All Saves
   - Autoload on Game, Remove Autoload
   - Saves List + Autoload List paragraphs
-  - Auto-names saves from game name
-  - Fuzzy matching for loading
-  - Multi-step confirmation for Delete All
+- Mobile Controls - Custom mobile joystick + jump button
+  - Dynamic Layout, Drag Mode, Reset Positions
 
 ---
 
@@ -139,13 +135,13 @@ A quick-references of features that Gravel.cc has :p
 - ESP Master Toggle - Enables all ESP features
 - ESP Hertz - Refresh rate for ESP updates
 - Scoper - What to scan: Humanoids / ClickDetectors / TouchInterests / ProximityPrompts / Tools
-- Tracer Start Position - Center / Bottom / Top / corners
+- Tracer Start Position - Center / Bottom / Top / BottomLeft / BottomRight / TopLeft / TopRight
 - Tracer ESP Only Targets - Only draw lines to current target
 - ESP Colour Based On Health - Color shifts with HP
 - ESP Components
   - Highlight ESP, Text ESP, Box ESP, Health ESP, Head Dot ESP, Tracer ESP
 - Scene
-  - Brightness slider, ClockTime slider, Skybox Changer button
+  - Brightness slider, ClockTime slider, Skybox Changer input
   - FOV toggle + FOV value slider
 - ESP Colors - ESP, Target, Team, Tracer Line
 - SA1 FOV Colors - SilentAim (HB) ring normal + target
@@ -374,8 +370,6 @@ A quick-references of features that Gravel.cc has :p
 - Autoload remembers a save per PlaceId
 - Save/Load saves your config settings as JSON
 - BGMTab supports custom music via rbxassetid
-- Target Blacklist & Ignore Friends are not compatible with Save/Load
-- 200+ random messages across RNG4 (tag), RNG6 (close popup), RNG7 (open button), popups & notifications
 
 ---
 
@@ -435,7 +429,7 @@ A quick-references of features that Gravel.cc has :p
   1. [YouTube; Main Channel](https://youtube.com/@gpssickle?si=9bBIhhY7-nt2Ot7J)
   2. [YouTube; Second Channel](https://www.youtube.com/@gpszickle)
   3. [RScripts](rscripts.net/@Gpssickle)
-  4. [ScriptBlox](https://scriptblox.com/u/Gpssickle)
+  4. [Scriptblox](https://scriptblox.com/u/Gpssickle)
   5. [Roblox](https://www.roblox.com/users/8517361356/profile)
 </details>
 
