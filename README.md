@@ -139,9 +139,14 @@ A quick-references of features that Gravel.cc has :p
 - Scoper - What to scan: Humanoids / ClickDetectors / TouchInterests / ProximityPrompts / Tools
 - Tracer Start Position - Center / Bottom / Top / BottomLeft / BottomRight / TopLeft / TopRight
 - Tracer ESP Only Targets - Only draw lines to current target
+- Offscreen Arrow Size - Big arrow or smol arrow
+- Offscreen Arrow Radius - How far arrows float from the middle of ur screen (or a fov circle)
 - ESP Colour Based On Health - Color shifts with HP
 - ESP Components
   - Highlight ESP, Text ESP, Box ESP, Health ESP, Head Dot ESP, Tracer ESP
+  - Offscreen Arrows - Arrows pointing to ppl ur not looking at
+  - Offscreen Arrow Distance - Shows how many studs away they are
+  - Distance ESP - idk tbh for this one (needs Text ESP on)
 - Scene
   - Brightness slider, ClockTime slider, Skybox Changer input
   - FOV toggle + FOV value slider
