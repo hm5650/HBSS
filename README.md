@@ -158,7 +158,7 @@ A quick-references of features that Gravel.cc has :p
 - Hitbox Colors - Visualizer color
 - Reach Colors - Visualizer color
 - Interaction Aura Colors - Aura visualizer color
-- Theme - UI theme dropdown, transparency slider, Tag TextCursor inputs, Notifications, Save/Reload UI settings
+- Theme - UI theme dropdown, UI Animation dropdown (ASCII / Stroke / Off), transparency slider, Tag TextCursor inputs, Notifications, Save/Reload UI settings
 
 ---
 
@@ -241,6 +241,31 @@ A quick-references of features that Gravel.cc has :p
 - FOV Radius / Target Range
 - Remote Gestalt - Custom remote name patterns
 - Detected Remotes - Live list of matched remotes
+
+---
+
+## GunModsTab
+
+- GunMods Toggle - Auto-finds ur gun's stats (modules, values, attributes) n changes em
+- Quick Mods
+  - FireRate / Damage / Range / Bullets Speed - Multiplier sliders
+  - No Recoil / No Spread / No Bullet Drop - Toggles
+  - Infinite Ammo / Instant Reload / Full Auto - Toggles
+- Param Editor
+  - Detected Params dropdown - live list of all detected stat names
+  - Param Info paragraph - type, category, current value, original value, ref count
+  - Param Value input + Apply Value / Reset Param / Reset All Overrides buttons
+- Add Param Name To Detect - custom detect names for weird/obfuscated guns
+- Deep Scan
+  - Scan Status paragraph - live progress/status
+  - Auto DeepScan toggle + Deep Scan Mode (Focused / Everything)
+  - Deep Scan Now button
+  - Clear Detected button
+  - Auto Scan Interval / Slice Budget / Max Keys Per Table / Min Match Score sliders
+- Detection Settings
+  - Read Tool ModuleScripts - requires gun ModuleScripts to edit cached settings
+  - Scan Backpack Guns - detect guns not equipped yet
+  - Apply Interval - how often mods re-apply
 
 ---
 
@@ -377,6 +402,7 @@ A quick-references of features that Gravel.cc has :p
 - Autoload remembers a save per PlaceId
 - Save/Load saves your config settings as JSON
 - BGMTab supports custom music via rbxassetid
+- GunModsTab only works if the gun's stats live on the client, not the server
 
 ---
 
@@ -392,14 +418,15 @@ A quick-references of features that Gravel.cc has :p
   5. TriggerbotTab
   6. SilentAimTab (HB)
   7. SilentAimTab2 (HK)
-  8. HitboxTab
-  9. ReachTab
-  10. ClientTab
-  11. WorldTab
-  12. MiscTab
-  13. BGMTab
-  14. DevTab
-  15. InfoTab
+  8. GunModsTab
+  9. HitboxTab
+  10. ReachTab
+  11. ClientTab
+  12. WorldTab
+  13. MiscTab
+  14. BGMTab
+  15. DevTab
+  16. InfoTab
 </details>
 
 <details>
