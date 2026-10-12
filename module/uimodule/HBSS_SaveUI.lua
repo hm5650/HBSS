@@ -6,6 +6,7 @@ local SaveUI = {
     TextCursor1 = "_",
     TextCursor2 = "  ",
     NotifEnabled = true,
+    AnimMode = "ASCII",
     _initialized = false,
     _windUI = nil,
     _config = nil
@@ -34,6 +35,10 @@ function SaveUI:init(windUI, config)
 
     if config and config.notif ~= nil then
         self.NotifEnabled = config.notif
+    end
+
+    if config and config.Gradow and config.Gradow.animMode then
+        self.AnimMode = config.Gradow.animMode
     end
 
     self._initialized = true
@@ -66,6 +71,7 @@ function SaveUI:save(theme, transparency)
         textcursor = self:getTextCursor1(),
         textcursor2 = self:getTextCursor2(),
         notif = self:getNotif(),
+        animMode = self:getAnimMode(),
         savedAt = os.time()
     }
 
@@ -178,7 +184,7 @@ function SaveUI:load()
             self._config.Gradow.uiThemeSave.CurrentTransparency = self.CurrentTransparency
         end
     end)
-
+    self:applyAnimMode(decoded.animMode)
     return true
 end
 
@@ -246,7 +252,7 @@ function SaveUI:autoLoad()
             self._config.Gradow.uiThemeSave.CurrentTransparency = self.CurrentTransparency
         end
     end)
-
+    self:applyAnimMode(decoded.animMode)
     return true
 end
 
@@ -310,6 +316,33 @@ function SaveUI:getNotif()
     return self.NotifEnabled
 end
 
+function SaveUI:applyAnimMode(mode)
+    if mode == nil then return false end
+    self:setAnimMode(mode)
+    local ok, err = pcall(function()
+        local g = self._config and self._config.Gradow
+        if g and g.setAnimMode then
+            g.setAnimMode(self.AnimMode)
+        end
+    end)
+    if not ok then
+        warn("SaveUI: failed to apply animMode: " .. tostring(err))
+    end
+    return ok
+end
+
+function SaveUI:getAnimMode()
+    return self.AnimMode or "ASCII"
+end
+
+function SaveUI:setAnimMode(mode)
+    if mode ~= "ASCII" and mode ~= "Stroke" and mode ~= "Off" then
+        mode = "ASCII"
+    end
+    self.AnimMode = mode
+    return true
+end
+
 function SaveUI:setTheme(theme)
     self.CurrentTheme = theme
     if self._config and self._config.Gradow and self._config.Gradow.uiThemeSave then
@@ -340,6 +373,7 @@ function SaveUI:reset()
     self.TextCursor1 = "_"
     self.TextCursor2 = "  "
     self.NotifEnabled = true
+    self.AnimMode = "ASCII"
 
     if self._config and self._config.Gradow then
         if not self._config.Gradow.uiThemeSave then
@@ -353,6 +387,10 @@ function SaveUI:reset()
 
     if self._config then
         self._config.notif = true
+    end
+
+    if self._config and self._config.Gradow and self._config.Gradow.setAnimMode then
+        self._config.Gradow.setAnimMode("ASCII")
     end
 
     if self._windUI then
