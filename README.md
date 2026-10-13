@@ -120,7 +120,10 @@ A quick-references of features that Gravel.cc has :p
   - Selection dropdown, Draggable toggle, Size slider, Reset Position
 - Keybinds - Enable/disable, HoldKey mode, custom key per feature
 - AutoFarm - Toggle, Align Part, TP Max Range, TP Distance, Vertical Offset
-- Optimization - Copy-paste Sand.cc optimizer code
+- Optimization
+  - Copy-paste Sand.cc optimizer code
+  - GetDescendants Radius - How far the scanner looks around your camera (higher = lag but more accuracy), default 1000
+  - GetDescendants Interval - How often the scanner re-sorts stuff (higher = less lag but less accurate), default 2
 - Updaters speed / Updaters - Performance vs accuracy
 - Cache Cleaners - Clear target cache interval
 - Save/Load
@@ -384,6 +387,7 @@ A quick-references of features that Gravel.cc has :p
 | G | Hitbox |
 | Z | ESP |
 | N | ClientMods |
+| K | GunMods |
 | P | Freecam |
 | B | SilentAim (HB) WallCheck |
 | H | Aimbot WallCheck |
