@@ -122,7 +122,7 @@ A quick-references of features that Gravel.cc has :p
 - AutoFarm - Toggle, Align Part, TP Max Range, TP Distance, Vertical Offset
 - Optimization
   - Copy-paste Sand.cc optimizer code
-  - GetDescendants Radius - How far the scanner looks around your camera (higher = lag but more accuracy), default 1000
+  - GetDescendants Radii - How far the scanner looks around your camera & character (higher = lag but more accuracy), default 1000
   - GetDescendants Interval - How often the scanner re-sorts stuff (higher = less lag but less accurate), default 2
 - Updaters speed / Updaters - Performance vs accuracy
 - Cache Cleaners - Clear target cache interval
